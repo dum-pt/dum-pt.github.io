@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dům Pt · Bathrooms</title>
+<style>
+  :root {
+    --bg: #f3efe8; --card: #fbf9f5; --ink: #2b2622; --muted: #6f655b; --line: #e2dbd0; --accent: #8d735a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1815; --card: #24201c; --ink: #efe9e1; --muted: #a99d90; --line: #36302a; --accent: #c8a985; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 56px 16px 64px; }
+  header { margin-bottom: 36px; }
+  h1 { margin: 0 0 6px; font-size: clamp(28px, 4vw, 40px); font-weight: 600; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); max-width: 640px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  a.card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: inherit; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
+  a.card:hover, a.card:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(40, 30, 20, 0.12); outline: none; }
+  a.card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; background: var(--line); }
+  .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .kicker { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  h2 { margin: 0; font-size: 19px; font-weight: 600; }
+  .body p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .open { margin-top: auto; padding-top: 10px; color: var(--accent); font-weight: 600; font-size: 14.5px; }
+  footer { margin-top: 36px; color: var(--muted); font-size: 14px; max-width: 760px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Dům Pt · Bathrooms</h1>
+    <p>Interactive 3D views of the bathroom designs. Each opens in your browser, with stone schemes, times of day and the open / close options in its panel.</p>
+  </header>
+  <div class="grid">
+    <a class="card" href="lower-bathroom.html">
+      <img src="thumbs/lower-bathroom.jpg" alt="Lower bathroom: marble trough basin under a backlit mirror" width="960" height="600">
+      <div class="body">
+        <span class="kicker">Lower floor · kids &amp; guests</span>
+        <h2>Lower bathroom</h2>
+        <p>The original layout, with five vanity versions to switch between and flip.</p>
+        <span class="open">Open 3D view →</span>
+      </div>
+    </a>
+    <a class="card" href="lower-bathroom-one-wall.html">
+      <img src="thumbs/lower-bathroom-one-wall.jpg" alt="Lower bathroom with the fixtures on one wall, looking towards the window" width="960" height="600">
+      <div class="body">
+        <span class="kicker">Lower floor · kids &amp; guests</span>
+        <h2>Lower bathroom, fixtures on one wall</h2>
+        <p>Vanity, WC and shower on one wall; two versions of the cabinet wall opposite.</p>
+        <span class="open">Open 3D view →</span>
+      </div>
+    </a>
+    <a class="card" href="master-bathroom.html">
+      <img src="thumbs/master-bathroom.jpg" alt="Master bathroom: freestanding bath in front of the window" width="960" height="600">
+      <div class="body">
+        <span class="kicker">Upper floor</span>
+        <h2>Master bathroom</h2>
+        <p>Bath and walk-in shower, in two layouts: a freestanding bath by the window or a built-in bath along the stone wall.</p>
+        <span class="open">Open 3D view →</span>
+      </div>
+    </a>
+  </div>
+  <footer>Drag to look around, scroll to move closer, double-click to focus; the number keys jump between views and P saves an image. Best on a computer; each view loads about 1 MB.</footer>
+</main>
+</body>
+</html>
