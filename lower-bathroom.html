@@ -38,6 +38,8 @@
   #vanity-flip { margin-top: 7px; }
   .winrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
   .winrow .seg { flex: 1; }
+  .winrow > span:first-child { min-width: 44px; }
+  .winrow input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
   #side { max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: thin; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
   #sunrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
@@ -96,6 +98,8 @@
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip on" id="t-door" aria-pressed="true" title="Open or close the door (D)">Close door</button><button class="chip" id="t-hamper" aria-pressed="false" title="Tilt the two laundry hampers out or back (L). You can also click a front.">Open hampers</button></div>
     <div class="winrow"><span>Window</span><div class="seg" id="win" title="Window: closed, tilted or open (W)"></div></div>
+    <div class="winrow" title="Exterior venetian blinds: retracted (left) to let down to the sill (right); B lets them down or retracts them"><span>Blinds</span><input type="range" id="blind" min="0" max="1" step="0.01" value="0" aria-label="Exterior blinds, retracted to down"></div>
+    <div class="winrow" title="Slat angle of the exterior blinds: open (left) to closed (right)"><span>Slats</span><input type="range" id="slats" min="0" max="1" step="0.01" value="0.3" aria-label="Slat angle, open to closed"></div>
   </div>
   <div class="group"><h2>Render</h2>
     <div class="chips">
@@ -164,6 +168,9 @@ const WIN_FRAME = 0.05, WIN_SASH = 0.07, WIN_TOP = 2.55;
 const WIN = { x0: DOOR_N[0] + 0.002 + WIN_FRAME + WIN_SASH, x1: DOOR_N[1] - 0.002 - WIN_FRAME - WIN_SASH, z0: 0.13, z1: WIN_TOP - WIN_FRAME - WIN_SASH, y: 5.415 };
 
 // the opening sash (inside the outer frame, 3 mm gap): x and z extent, and its depth in the wall
+// exterior venetian blinds in the window's outer reveal: guide rails on the reveal faces (x0, x1), the slats'
+// centre line at y, from the head down to the sill
+const BLIND = { x0: DOOR_N[0], x1: DOOR_N[1], y: 5.508, head: WIN_TOP, sill: 0.004 };
 const SASH = { x0: DOOR_N[0] + 0.002 + WIN_FRAME + 0.003, x1: DOOR_N[1] - 0.002 - WIN_FRAME - 0.003, y0: 5.365, y1: 5.44, z0: 0.033, z1: WIN_TOP - WIN_FRAME - 0.003 };
 
 // ---------------------------------------------------------------- renderer
@@ -856,6 +863,9 @@ M.pavement = physical({ color: 0xefeee9, clearcoat: 0.2, clearcoatRoughness: 0.5
 M.pavement.defines = { OUTDOOR: '' };
 M.soffit = physical({ color: 0xf2f0eb, roughness: 0.8 });     // the canopy over it: white render, matte
 M.soffit.defines = { OUTDOOR: '' };
+// the exterior blinds: powder-coated aluminium, RAL 7016 anthracite, lit as OUTDOOR
+M.blind = physical({ color: 0x383e42, roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.4 });
+M.blind.defines = { OUTDOOR: '' };
 // woven seagrass for the storage baskets: over-under strands drawn into a small tiling canvas
 {
   const n = 128, cv = document.createElement('canvas');
@@ -1288,6 +1298,83 @@ function animateOpenings(dt) {
   }
   if (moved) renderer.shadowMap.needsUpdate = true;
   return moved;
+}
+
+// ---------------------------------------------------------------- exterior venetian blinds, switchable glass
+// Retractable, tiltable outdoor blinds in the window's outer reveal: C80 aluminium slats in anthracite between
+// side guide rails, a heavier bottom rail and ladder cords. Let down, the slats hang from the bottom rail up at
+// their 72 mm pitch; the rest wait packed in a box hidden in the lintel. BLINDS.down: how far they are let down
+// (0 retracted .. 1 to the sill), target: where they are travelling to; tilt: 0 open (horizontal) .. 1 closed
+// (80 degrees, the outer edge down). The slats cast the real sun's shadows; blindLight() dims the light that
+// has no shadows of its own (the sky through the window, the sun bounced off the mirror).
+const SLAT = { w: 0.08, pitch: 0.072, t: 0.0045 };
+const BLINDS = { down: 0, target: 0, tilt: 0.3, slats: null, rail: null, cords: [], cordX: [], n: 0, cx: 0 };
+// switchable PDLC privacy film on the window glass (the master bathroom has it): powered it is clear, off milky
+const PDLC = { frosted: false };
+function buildBlinds() {
+  const { x0, x1, y, head, sill } = BLIND, gw = 0.024, len = x1 - x0 - gw;
+  const G = new THREE.Group();
+  R.add(G);
+  const part = (geo, shadow = true) => { const m = new THREE.Mesh(geo, M.blind); m.castShadow = shadow; m.receiveShadow = true; G.add(m); return m; };
+  part(box(x0, x0 + gw, y - 0.03, y + 0.03, sill, head));                         // guide rails
+  part(box(x1 - gw, x1, y - 0.03, y + 0.03, sill, head));
+  // a slat: a crowned strip along x, its width across the reveal (y), turned about its length to tilt
+  const g = new THREE.BoxGeometry(len, SLAT.w, SLAT.t, 1, 8, 1), P = g.attributes.position;
+  for (let i = 0; i < P.count; i++) { const v = P.getY(i) / (SLAT.w / 2); P.setZ(i, P.getZ(i) + 0.006 * (1 - v * v)); }
+  g.computeVertexNormals();
+  BLINDS.n = Math.ceil((head - sill) / SLAT.pitch);
+  BLINDS.slats = new THREE.InstancedMesh(g, M.blind, BLINDS.n);
+  Object.assign(BLINDS.slats, { castShadow: true, receiveShadow: true, frustumCulled: false });
+  G.add(BLINDS.slats);
+  BLINDS.cx = (x0 + x1) / 2;
+  BLINDS.rail = part(box(-len / 2, len / 2, -0.036, 0.036, -0.0125, 0.0125));
+  for (const f of [0.12, 0.88]) {
+    BLINDS.cordX.push(x0 + gw / 2 + len * f);
+    BLINDS.cords.push(part(cyl(0.0015, 1, 'z', [0, 0, 0.5], 6), false));
+  }
+  updateBlinds();
+}
+function updateBlinds() {
+  const { y, head, sill } = BLIND, drop = BLINDS.down * (head - sill), bottom = head - drop, shown = drop > 0.02;
+  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -THREE.MathUtils.degToRad(80 * BLINDS.tilt));
+  const m = new THREE.Matrix4(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+  for (let i = 0; i < BLINDS.n; i++) {
+    const z = bottom + 0.035 + i * SLAT.pitch;
+    sc.setScalar(shown && z < head - 0.012 ? 1 : 0);
+    BLINDS.slats.setMatrixAt(i, m.compose(p.set(BLINDS.cx, y, z), q, sc));
+  }
+  BLINDS.slats.instanceMatrix.needsUpdate = true;
+  BLINDS.rail.visible = shown;
+  BLINDS.rail.position.set(BLINDS.cx, y, bottom);
+  BLINDS.cords.forEach((c, i) => { c.visible = shown; c.position.set(BLINDS.cordX[i], y, bottom); c.scale.z = Math.max(drop, 0.001); });
+  renderer.shadowMap.needsUpdate = true;
+  dirty = true;
+}
+// let the blinds down (0..1) and tilt the slats (0..1); animated, they travel at about 0.45 of the drop a second
+function setBlinds(down, tilt = BLINDS.tilt, animate = false) {
+  BLINDS.target = down;
+  BLINDS.tilt = tilt;
+  if (!animate) BLINDS.down = down;
+  $('blind').value = down;
+  $('slats').value = tilt;
+  updateBlinds();
+  refreshSun();
+  envSoon();
+}
+// the share of daylight the blinds let through
+function blindLight() {
+  const a = THREE.MathUtils.degToRad(80 * BLINDS.tilt);
+  return 1 - BLINDS.down * Math.min(1, (SLAT.w * Math.sin(a) + SLAT.t * Math.cos(a)) / SLAT.pitch);
+}
+function setFilm(frosted) {
+  PDLC.frosted = frosted;
+  M.windowGlass.roughness = frosted ? 1 : 0;
+  M.windowGlass.transmission = frosted ? 0.6 : 1;
+  M.windowGlass.color.set(frosted ? 0xf8f7f4 : 0xffffff);
+  document.querySelectorAll('#film button').forEach((b) => b.classList.toggle('on', (b.dataset.key === 'off') === frosted));
+  refreshSun();
+  envSoon();
+  dirty = true;
 }
 
 function buildCeilingFixtures() {
@@ -1895,6 +1982,7 @@ function buildSurroundings(viewTex) {
   OUT.sun = new THREE.Mesh(new THREE.SphereGeometry(VIEW.r * 0.92 * Math.tan(0.0093), 24, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }));
   OUT.sun.userData.noAO = true;
   OUT.outside.add(OUT.sun);
+  buildBlinds();
 }
 // the photo seen from the window: taken on the plot looking east at dusk (24 Aug 2024), embedded as base64
 async function loadView() {
@@ -2027,15 +2115,17 @@ function setSun(alt, az, day) {
   const sunCol = kelvin(3600 + 2400 * THREE.MathUtils.clamp(U / 0.5, 0, 1), 5800);
   const skyL = up ? 0.4 + 1.6 * THREE.MathUtils.smoothstep(U, 0, 0.35) : 0;
   L.sun.visible = L.bounce.visible = day && up;
-  L.sun.color.copy(sunCol); L.sun.intensity = 22 * strength;
-  L.bounce.color.copy(sunCol).multiply(M.mirror.color); L.bounce.intensity = 22 * strength;
+  // the blinds' share of the light that has no shadows of its own, and the film when it is frosted
+  const shade = blindLight(), frost = PDLC.frosted ? 1 : 0;
+  L.sun.color.copy(sunCol); L.sun.intensity = 22 * strength * (1 - 0.85 * frost);
+  L.bounce.color.copy(sunCol).multiply(M.mirror.color); L.bounce.intensity = 22 * strength * shade * (1 - 0.85 * frost);
   const c = L.sun.target.position;
   L.sun.position.copy(c).addScaledVector(dir, 12);
   const mdir = toThree(new THREE.Vector3(-sunSU.x, sunSU.y, sunSU.z)).normalize();
   L.bounce.position.copy(c).addScaledVector(mdir, 12);
   L.skyArea.visible = day && up;
   L.skyArea.color.copy(kelvin(6400, 5800));
-  L.skyArea.intensity = 1.4 * skyL;
+  L.skyArea.intensity = 1.4 * skyL * shade * (1 + 3 * strength * frost);
   // outside: the photo as taken at dusk, brighter with the sun up, near-black and bluish at night
   const dusk = THREE.MathUtils.clamp((U + 0.12) / 0.11, 0.02, 1);
   if (up) OUT.view.color.setScalar(1.6 + 2.4 * strength);
@@ -2043,6 +2133,10 @@ function setSun(alt, az, day) {
   // the pavement's sky light, in step with the photo: white by day, pale at dusk, dark at night
   M.pavement.emissive.copy(OUT.view.color).multiply(M.pavement.color).multiplyScalar(0.6);
   M.soffit.emissive.copy(OUT.view.color).multiply(M.soffit.color).multiplyScalar(0.3);   // the soffit sees the ground
+  M.blind.emissive.copy(OUT.view.color).multiply(M.blind.color).multiplyScalar(0.5);
+  // frosted, the film glows with the daylight behind it (the sky, and the sun when it is in the east)
+  if (frost) M.windowGlass.emissive.copy(OUT.view.color).multiplyScalar(0.4).addScalar(strength * Math.max(0, sunSU.y)).multiplyScalar(shade);
+  else M.windowGlass.emissive.setScalar(0);
   OUT.sun.visible = day && up;
   OUT.sun.position.copy(VIEW.centre).addScaledVector(dir, VIEW.r * 0.92);
   OUT.sun.material.color.copy(sunCol).multiplyScalar(400);
@@ -2108,6 +2202,13 @@ function applyMood(key) {
   if (m.day) { const { alt, az } = solar(DAY_OF_YEAR, sunHour); setSun(alt, az, true); }
   else setSun(THREE.MathUtils.degToRad(m.sky[0]), THREE.MathUtils.degToRad(m.sky[1]), false);
   $('sunrow').hidden = !m.day;
+}
+// set the daylight again for the current mood and hour (after the blinds or the film change)
+function refreshSun() {
+  const m = MOODS[moodKey];
+  if (m.day) { const { alt, az } = solar(DAY_OF_YEAR, sunHour); setSun(alt, az, true); }
+  else setSun(THREE.MathUtils.degToRad(m.sky[0]), THREE.MathUtils.degToRad(m.sky[1]), false);
+  dirty = true;
 }
 function setSunHour(h) {
   sunHour = h;
@@ -2206,6 +2307,7 @@ function renderLegend() {
     ['Shower glass', 'bronze tinted', '#8c7059'],
     ['Door', 'flush, white lacquer', '#f2f0eb'],
     ['Window', 'tilt & turn aluminium, bronze anodised', '#4d443c'],
+    ['Blinds', 'exterior venetian blinds, C80 slats, anthracite RAL 7016', '#383e42'],
     ['Walls', p.walls ? STONES[p.walls].label : 'lime plaster', p.walls ? STONES[p.walls].swatch : p.plaster],
   ].filter(Boolean);
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
@@ -2382,6 +2484,8 @@ function buildUI() {
   $('t-refl').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); setReflections(e.currentTarget.classList.contains('on')); });
   $('t-hamper').addEventListener('click', () => setHamper(!HAMPER.open, true));
   $('t-door').addEventListener('click', () => setDoor(!DOOR.open));
+  $('blind').addEventListener('input', (e) => setBlinds(parseFloat(e.target.value)));
+  $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   {
     // a click (not a drag) on a hamper front toggles them; a double-click only toggles once
@@ -2402,6 +2506,7 @@ function buildUI() {
     if (e.key === 'p' || e.key === 'P') { saveImage(); return; }
     if (e.key === 'l' || e.key === 'L') { setHamper(!HAMPER.open, true); return; }
     if (e.key === 'd' || e.key === 'D') { setDoor(!DOOR.open); return; }
+    if (e.key === 'b' || e.key === 'B') { setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true); return; }
     if (e.key === 'w' || e.key === 'W') { const k = Object.keys(WINDOW_MODES); setWindow(k[(k.indexOf(WINDOW.mode) + 1) % k.length]); return; }
     if ((e.key === 'f' || e.key === 'F') && !busy) { withBusy(async () => { setFlip(!vanityFlip); captureEnv(); }); return; }
     const i = parseInt(e.key, 10);
@@ -2549,6 +2654,12 @@ function loop() {
     renderer.shadowMap.needsUpdate = true;
     dirty = true;
   }
+  if (BLINDS.slats && BLINDS.down !== BLINDS.target) {
+    const d = BLINDS.target - BLINDS.down;
+    BLINDS.down += Math.sign(d) * Math.min(Math.abs(d), dt * 0.45);
+    updateBlinds();
+    if (BLINDS.down === BLINDS.target) { refreshSun(); envSoon(); }
+  }
   if (!dirty) return;
   dirty = false;
   if (!tween) clampCamera();
@@ -2587,7 +2698,7 @@ try {
   buildUI();
   goTo(VIEWS[1], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
