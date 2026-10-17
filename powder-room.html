@@ -194,8 +194,8 @@ const DOOR_S = [54.345, 55.145], DOOR_H = 2.15;                   // door from t
 const ST = { front: 54.225, splash: X0 + 0.02, side: [14.885, 15.395], top: 0.77, floor: 0.65, lip: 0.85, z0: 0.6, back: 1.1, drawer: [0.345, 0.595] };
 const MIRROR = { y0: Y0, y1: Y1, z0: 1.11, x: ST.splash };        // full-width mirror from the backsplash to the ceiling (x = its face)
 // the mirror in five versions (MIRRORS): the full-width glass as built, or a smaller one centred over the basin on a
-// backdrop (BACKDROPS) that covers the wall from the LED line over the backsplash to the ceiling, flush with the
-// backsplash (its face at BACK_X). Each smaller mirror is a rounded rectangle, w x h from z0, the radii of its corners
+// backdrop (BACKDROPS) that covers the wall from the backsplash's top to the ceiling, flush with the backsplash (its
+// face at BACK_X); the LED line over the backsplash belongs to the full-width mirror, so it goes with it. Each smaller mirror is a rounded rectangle, w x h from z0, the radii of its corners
 // [top-left, top-right, bottom-right, bottom-left]; halo: frameless, on an LED mount 25 mm off the backdrop that
 // washes it with a glow round the glass; frame: a slim frame in the fittings' metal
 const BACK_X = ST.splash;
@@ -1349,16 +1349,20 @@ function buildArchitecture() {
   MIRROR.edge.receiveShadow = true;
   MIRROR.edge.userData.noAO = true;
   full.add(MIRROR.edge);
-  // the smaller ones, and the backdrop behind them over the same gap, up to the ceiling (for each height of it); its
-  // finish is the backdrop's (applyBackdrop)
+  // the shadow gap under it with the LED line (its light: L.halo)
+  for (const [mat, geo] of [[M.dark, box(X0, X0 + 0.004, Y0, Y1, ST.back, MIRROR.z0, { faces: 'X' })], [E.led, box(X0 + 0.004, X0 + 0.012, Y0 + 0.01, Y1 - 0.01, ST.back + 0.002, MIRROR.z0 - 0.002, { faces: 'X' })]]) {
+    const o = new THREE.Mesh(geo, mat);
+    o.receiveShadow = true;
+    full.add(o);
+  }
+  // the smaller ones, and the backdrop behind them, standing on the backsplash, up to the ceiling (for each height of
+  // it); its finish is the backdrop's (applyBackdrop)
   for (const m of Object.values(MIRRORS)) if (!m.group) buildMirror(m);
   MIRROR.backGeos = {};
-  for (const z of [H, CEIL_LOW]) MIRROR.backGeos[z] = box(X0, BACK_X, Y0, Y1, MIRROR.z0, z, { faces: 'Xz' });
+  for (const z of [H, CEIL_LOW]) MIRROR.backGeos[z] = box(X0, BACK_X, Y0, Y1, ST.back, z, { faces: 'X' });
   MIRROR.back = new THREE.Mesh(MIRROR.backGeos[H], M.plaster);
   MIRROR.back.receiveShadow = true;
   groups.room.add(MIRROR.back);
-  add(M.dark, box(X0, X0 + 0.004, Y0, Y1, ST.back, MIRROR.z0, { faces: 'X' }), { shadow: false });
-  add(E.led, box(X0 + 0.004, X0 + 0.012, Y0 + 0.01, Y1 - 0.01, ST.back + 0.002, MIRROR.z0 - 0.002, { faces: 'X' }), { shadow: false });
   // the WC pre-wall, in the chosen finish (PREWALLS, applyPrewall); its top is a 20 cm ledge under the cabinet (see
   // WALLS). Its face and its top as two meshes (a fluted face keeps a plain top); for tiles the top's UVs run on
   // from the face's (u along y, v from the edge back), so they turn over the edge (PREWALL.tops: tiled, plain)
@@ -2439,7 +2443,7 @@ function applyMood(key) {
   E.flame.visible = m.candle > 0;
   E.led.color.copy(c).multiplyScalar(BASE.strip * m.led);
   applyVanityLights(m, c);
-  L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = m.led > 0;
+  L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = m.led > 0 && mirrorKey === 'full';   // (the LED line goes with the full-width mirror)
   L.art.color.copy(c); L.art.intensity = BASE.art * m.art; L.art.visible = m.art > 0;
   // the lit recess (with that ceiling): the hidden LED washing its ceiling, and the soft light that ceiling throws
   // down (the lamp's colour times the ceiling's paint)
