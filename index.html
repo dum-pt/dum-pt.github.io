@@ -18,7 +18,7 @@
   header { margin-bottom: 36px; }
   h1 { margin: 0 0 6px; font-size: clamp(28px, 4vw, 40px); font-weight: 600; letter-spacing: -0.01em; }
   header p { margin: 0; color: var(--muted); max-width: 640px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 20px; }
   a.card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: inherit; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
   a.card:hover, a.card:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(40, 30, 20, 0.12); outline: none; }
   a.card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; background: var(--line); }
@@ -64,8 +64,17 @@
         <span class="open">Open 3D view →</span>
       </div>
     </a>
+    <a class="card" href="powder-room.html">
+      <img src="thumbs/powder-room.jpg" alt="Powder room: backlit marble Street basin under a full-width mirror, candle-lit" width="960" height="600">
+      <div class="body">
+        <span class="kicker">Upper floor · between the stairs</span>
+        <h2>Powder room</h2>
+        <p>A windowless WC with an antoniolupi Street basin, in three styles (Noir, Cosy, Jewel) and three light moods.</p>
+        <span class="open">Open 3D view →</span>
+      </div>
+    </a>
   </div>
-  <footer>Drag to look around, scroll to move closer, double-click to focus; the number keys jump between views and P saves an image. Best on a computer; each view loads about 1 MB.</footer>
+  <footer>Drag to look around, scroll to move closer, double-click to focus; the number keys jump between views and P saves an image. Best on a computer; each view loads up to about 1 MB.</footer>
 </main>
 </body>
 </html>
