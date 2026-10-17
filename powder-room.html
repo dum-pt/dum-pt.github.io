@@ -104,6 +104,7 @@
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, the ceiling and the door; each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the drawer, the cabinet and the frame (in the styles that have them in wood) and of a wooden floor; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Seamless poured epoxy, oiled planks in the chosen wood, or 60 × 60 cm porcelain tiles; the epoxy and the tiles take the style's colour (F)"></div></div>
+  <div class="group"><h2>Ceiling</h2><div class="seg" id="ceilings" title="As built at 2.60 m, lowered to 2.35 m, or lowered with a recess up to 2.60 m over the basin, lit by an LED hidden on the lowered ceiling (H)"></div></div>
   <div class="group"><h2>WC wall</h2><div class="seg" id="walls" title="The cabinet over the WC: over a lit niche with the stack in a stone chase, with an open cubby beside a closed column, or full height (N)"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
@@ -187,7 +188,21 @@ const MIRROR = { y0: Y0, y1: Y1, z0: 1.11, x: ST.splash };        // full-width 
 const WC = { front: 55.745, top: 1.15 };                           // the WC pre-wall: its face and height (its top is a ledge)
 // the cabinet over the WC, on the pre-wall's line (its versions: WALLS): its top, door thickness, the bottom of the
 // cabinet over a niche or cubby, the south face of the niche's stone chase and of the cubby's closed column
-const CAB = { z1: H - 0.004, t: 0.019, z0: 1.55, chase: 15.48, column: 15.45 };
+const CAB = { t: 0.019, z0: 1.55, chase: 15.48, column: 15.45 };
+// the ceiling in three versions (CEILINGS): as built (H), lowered to CEIL_LOW, or lowered with a recess up to H over
+// the basin and the mirror, lit from a cove: RECESS.x is the lowered ceiling's edge, pocket how far the recess runs on
+// over it, slab its thickness, led how far back from the edge the LED lies on it (still out of sight from anywhere
+// in the room: the edge hides it)
+const CEIL_LOW = 2.35;
+const RECESS = { x: 54.55, pocket: 0.12, slab: 0.05, led: 0.04 };
+const CEILINGS = {
+  high: { label: 'High', z: H, desc: 'flat, 2.60 m' },
+  low: { label: 'Low', z: CEIL_LOW, desc: 'lowered to 2.35 m' },
+  recess: { label: 'Lit recess', z: CEIL_LOW, recess: true, desc: 'lowered to 2.35 m; over the basin a recess up to 2.60 m, lit by a hidden LED cove' },
+};
+let ceilKey = 'high';
+// the ceiling's height over the point x (the recess is higher)
+const ceilAt = (x, key = ceilKey) => (CEILINGS[key].recess && x < RECESS.x ? H : CEILINGS[key].z);
 const PIPE = { x: X1 - 0.065, y: Y1 - 0.074, r: 0.055 };            // DN 100 vent stack (110 mm)
 const ART = { x0: 54.82, x1: 55.22, z0: 1.38, z1: 1.94 };           // the framed print on the north wall, facing the door
 const CANDLES = [[(WC.front + X1) / 2, 15.36, WC.top + 0.07], [54.05, 15.52, ST.top + 0.059]];   // the wicks
@@ -1208,9 +1223,7 @@ function buildArchitecture() {
   wall(DOOR_S[1], X1, YW0, Y0);
   wall(DOOR_S[0], DOOR_S[1], YW0, Y0, DOOR_H, WT);
   wall(X0, X1, Y1, YW1);
-  // flat ceiling, in the walls' colour
-  const ceil = (mat, geo) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; groups.ceiling.add(m); };
-  ceil(M.ceiling, box(X0, X1, Y0, Y1, H, WT, { faces: 'z' }));
+  // (the ceiling, in its versions, is built with its lights: buildCeilingFixtures)
   // floor: one poured plane (the planar reflector), into the door opening
   const fl = mergeGeometries([
     box(X0, X1, Y0, Y1, -0.05, 0, { faces: 'Z' }),
@@ -1221,13 +1234,20 @@ function buildArchitecture() {
   groups.room.add(floorMesh);
   floorRefl.meshes.push(floorMesh);
   // the mirror: 6 mm glass across the whole west wall, flush with the Street backsplash and up to the ceiling,
-  // over a 1 cm shadow gap with the LED line that backlights the basin
-  const mg = box(MIRROR.x - 0.006, MIRROR.x, MIRROR.y0 + 0.002, MIRROR.y1 - 0.002, MIRROR.z0, H - 0.003, { faces: 'X' });
-  mirrorMesh = new THREE.Mesh(mg, M.mirror);
+  // over a 1 cm shadow gap with the LED line that backlights the basin; the glass and its edges for each height of
+  // the ceiling over it (applyCeiling swaps them)
+  MIRROR.geos = {};
+  for (const z of [H, CEIL_LOW]) {
+    MIRROR.geos[z] = ['X', 'yYzZ'].map((faces) => box(MIRROR.x - 0.006, MIRROR.x, MIRROR.y0 + 0.002, MIRROR.y1 - 0.002, MIRROR.z0, z - 0.003, { faces }));
+  }
+  mirrorMesh = new THREE.Mesh(MIRROR.geos[H][0], M.mirror);
   mirrorMesh.receiveShadow = true;
   groups.room.add(mirrorMesh);
   mirrorRefl.meshes.push(mirrorMesh);
-  add(M.mirrorEdge, box(MIRROR.x - 0.006, MIRROR.x, MIRROR.y0 + 0.002, MIRROR.y1 - 0.002, MIRROR.z0, H - 0.003, { faces: 'yYzZ' }), { shadow: false });
+  MIRROR.edge = new THREE.Mesh(MIRROR.geos[H][1], M.mirrorEdge);
+  MIRROR.edge.receiveShadow = true;
+  MIRROR.edge.userData.noAO = true;
+  groups.room.add(MIRROR.edge);
   add(M.dark, box(X0, X0 + 0.004, Y0, Y1, ST.back, MIRROR.z0, { faces: 'X' }), { shadow: false });
   add(E.led, box(X0 + 0.004, X0 + 0.012, Y0 + 0.01, Y1 - 0.01, ST.back + 0.002, MIRROR.z0 - 0.002, { faces: 'X' }), { shadow: false });
   // the WC pre-wall clad in the basin's stone; its top is a 20 cm ledge under the cabinet (see WALLS)
@@ -1395,12 +1415,34 @@ function setFilm(frosted) {
 }
 
 function buildCeilingFixtures() {
-  const C = groups.ceiling;
-  const put = (mat, geo, shadow = false) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; C.add(m); return m; };
-  // trimless downlights, and the small adjustable spot aimed at the print
-  for (const [x, y] of [...DOWNLIGHTS, ART_SPOT]) {
-    put(M.dark, cyl(0.035, 0.004, 'z', [x, y, H - 0.001]));
-    put(E.down, cyl(0.024, 0.002, 'z', [x, y, H - 0.0035]));
+  // the ceiling in its versions (CEILINGS), each in its own group with the fittings set in it: the trimless
+  // downlights, the small adjustable spot aimed at the print, the pendant's canopy and cable (in a group of its own,
+  // as the pendants are hidden from above)
+  for (const [key, c] of Object.entries(CEILINGS)) {
+    c.group = new THREE.Group();
+    c.cable = new THREE.Group();
+    groups.ceiling.add(c.group);
+    groups.pendants.add(c.cable);
+    const put = (mat, geo, G = c.group) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; G.add(m); return m; };
+    if (c.recess) {
+      // the lowered ceiling (its underside, its edge facing the mirror, its top), the recess running on over it
+      // into the pocket, the pocket's back, and the LED lying just behind the edge
+      const { x, pocket, slab } = RECESS, zt = c.z + slab;
+      put(M.ceiling, box(x, X1, Y0, Y1, c.z, zt, { faces: 'zxZ' }));
+      put(M.ceiling, box(X0, x + pocket, Y0, Y1, H, WT, { faces: 'z' }));
+      put(M.ceiling, box(x + pocket, x + pocket + 0.02, Y0, Y1, zt, H, { faces: 'x' }));
+      put(E.led, box(x + RECESS.led - 0.01, x + RECESS.led + 0.01, Y0 + 0.01, Y1 - 0.01, zt, zt + 0.006, { faces: 'xZ' }));
+    } else put(M.ceiling, box(X0, X1, Y0, Y1, c.z, WT, { faces: 'z' }));
+    for (const [x, y] of [...DOWNLIGHTS, ART_SPOT]) {
+      const z = ceilAt(x, key);
+      put(M.dark, cyl(0.035, 0.004, 'z', [x, y, z - 0.001]));
+      put(E.down, cyl(0.024, 0.002, 'z', [x, y, z - 0.0035]));
+    }
+    for (const [x, y] of PENDANTS) {
+      const z = ceilAt(x, key), z1 = PENDANT.z1;
+      put(M.metal, cyl(0.03, 0.008, 'z', [x, y, z - 0.004], 40), c.cable);
+      put(M.metal, cyl(0.0008, z - 0.008 - z1, 'z', [x, y, (z - 0.008 + z1) / 2], 6), c.cable);
+    }
   }
   // the pendant, hanging in front of the mirror beside the basin (the mirror doubles it): a slim tube in the
   // fittings' finish whose foot is a short glass tip that glows (opal, smoked in Noir), rounded at the bottom, on a
@@ -1408,8 +1450,6 @@ function buildCeilingFixtures() {
   for (const [x, y] of PENDANTS) {
     const g = (mat, geo) => { const m = new THREE.Mesh(geo, mat); groups.pendants.add(m); return m; };
     const { r, z0, z1, tip } = PENDANT, zt = z0 + tip, rg = r - 0.001, rc = 0.008, prof = [[0, 0]];
-    g(M.metal, cyl(0.03, 0.008, 'z', [x, y, H - 0.004], 40));
-    g(M.metal, cyl(0.0008, H - 0.008 - z1, 'z', [x, y, (H - 0.008 + z1) / 2], 6));
     g(M.metal, cyl(r, z1 - zt, 'z', [x, y, (z1 + zt) / 2], 40));
     for (let i = 0; i <= 8; i++) {
       const a = -Math.PI / 2 + (i / 8) * (Math.PI / 2);
@@ -1418,6 +1458,20 @@ function buildCeilingFixtures() {
     prof.push([rg, tip + 0.002]);
     g(E.globe, lathe(prof, [x, y, z0], 40));
   }
+}
+// shows one version of the ceiling: the ceiling, the mirror up to it, the lights set in it, and the cabinet over the
+// WC to fit under it
+function applyCeiling(key) {
+  ceilKey = key;
+  for (const [k, c] of Object.entries(CEILINGS)) c.group.visible = c.cable.visible = k === key;
+  const zm = ceilAt(X0);
+  mirrorMesh.geometry = MIRROR.geos[zm][0];
+  MIRROR.edge.geometry = MIRROR.geos[zm][1];
+  L.down.forEach((s, i) => { const [x, y] = DOWNLIGHTS[i]; s.position.copy(SU(x, y, ceilAt(x) - 0.01)); });
+  L.art.position.copy(SU(ART_SPOT[0], ART_SPOT[1], ceilAt(ART_SPOT[0]) - 0.01));
+  BP.bpMax.value.y = CEILINGS[key].z;              // the room's box for the reflections
+  document.querySelectorAll('#ceilings button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  applyWall(wallKey);                              // (relights the room, the shadows, the legend)
 }
 // Tilt-out laundry hampers (two, lights and colours): a walnut front with a linen bag on a frame behind
 // it, pivoting on the front's bottom edge. Meshes are built in room coordinates, then shifted onto the pivot.
@@ -1483,10 +1537,11 @@ function buildMirrorFrame() {
   add(M.veneer, box(x0, DOOR_S[0] - 0.002, Y0, Y0 + t + 0.012, zt, zt + 0.022, { faces: 'YzZxX' }));
   add(M.veneer, box(DOOR_S[1] + 0.002, x1, Y0, Y0 + t + 0.012, zt, zt + 0.022, { faces: 'YzZxX' }));
   flush(groups.panels);
-  for (const k of Object.keys(WALLS)) buildCabinet(k);
+  for (const k of Object.keys(WALLS)) for (const top of ['high', 'low']) buildCabinet(k, top);
 }
 
-// The cabinet over the WC: on the pre-wall's line and as deep (20 cm), up to the ceiling. The WC's vent stack
+// The cabinet over the WC: on the pre-wall's line and as deep (20 cm), up to the ceiling (built for the high and the
+// lowered ceiling, with a shelf less under the lowered one: shelvesLow). The WC's vent stack
 // (DN 100) rises from the pre-wall up the back of the cabinet, where the shelves are notched round it, to the roof.
 // Spare rolls, towels and a basket inside. The WC wall in three versions (z0: the bottom of the cabinet's doors;
 // led: the LED line lighting the niche or cubby; ledge: the candle and the reed diffuser stand on the ledge):
@@ -1496,16 +1551,18 @@ function buildMirrorFrame() {
 //   full  - doors from the ledge to the ceiling, the stack all inside (the diffuser moves to the basin)
 // Two doors hinged at the side walls, built in each style's front (flat, fluted) and opened together (CABINET).
 const WALLS = {
-  niche: { label: 'Lit niche', z0: CAB.z0, shelves: [1.9, 2.24], ledge: true, led: { x: WC.front + 0.035, y0: Y0 + 0.01, y1: CAB.chase - 0.01, z: CAB.z0, w: 0.009 } },
-  cubby: { label: 'Cubby', z0: CAB.z0, shelves: [1.9, 2.24], ledge: true, led: { x: WC.front + 0.035, y0: Y0 + 0.026, y1: CAB.column - 0.026, z: CAB.z0, w: 0.009 } },
-  full: { label: 'Full height', z0: WC.top, shelves: [1.52, 1.9, 2.24], ledge: false, led: null },
+  niche: { label: 'Lit niche', z0: CAB.z0, shelves: [1.9, 2.24], shelvesLow: [1.94], ledge: true, led: { x: WC.front + 0.035, y0: Y0 + 0.01, y1: CAB.chase - 0.01, z: CAB.z0, w: 0.009 } },
+  cubby: { label: 'Cubby', z0: CAB.z0, shelves: [1.9, 2.24], shelvesLow: [1.94], ledge: true, led: { x: WC.front + 0.035, y0: Y0 + 0.026, y1: CAB.column - 0.026, z: CAB.z0, w: 0.009 } },
+  full: { label: 'Full height', z0: WC.top, shelves: [1.52, 1.9, 2.24], shelvesLow: [1.52, 1.94], ledge: false, led: null },
 };
 let wallKey = 'cubby';
 const CABINET = { open: false, t: 0, max: THREE.MathUtils.degToRad(95), doors: [], fronts: {}, knobs: [] };
-function buildCabinet(wall) {
-  const W = WALLS[wall], { z1, t } = CAB, { z0, shelves } = W, x0 = WC.front, xi = x0 + t, xb = X1 - 0.008, st = 0.016, bt = 0.018;
-  W.group = new THREE.Group();
-  R.add(W.group);
+function buildCabinet(wall, top) {
+  const W = WALLS[wall], { t } = CAB, { z0 } = W, x0 = WC.front, xi = x0 + t, xb = X1 - 0.008, st = 0.016, bt = 0.018;
+  const zTop = top === 'high' ? H : CEIL_LOW, z1 = zTop - 0.004, shelves = top === 'high' ? W.shelves : W.shelvesLow;
+  W.groups ??= {};
+  const group = W.groups[top] = new THREE.Group();
+  R.add(group);
   if (wall === 'niche') add(M.street, box(X1 - 0.14, X1, CAB.chase, Y1, WC.top, z0, { faces: 'xy' }));
   if (wall === 'cubby') {
     // the cubby, lined in the front's finish: its back, its south side, its top (the cabinet's underside, behind the
@@ -1531,10 +1588,10 @@ function buildCabinet(wall) {
     add(M.cabInside, box(xi + 0.002, front, notch, Y1 - st, z, z + bt, { faces: 'xXzZ' }));
   }
   // the stack, from the pre-wall to the ceiling, with a coupling
-  add(M.pipe, cyl(PIPE.r, H - WC.top, 'z', [PIPE.x, PIPE.y, (H + WC.top) / 2], 40));
+  add(M.pipe, cyl(PIPE.r, zTop - WC.top, 'z', [PIPE.x, PIPE.y, (zTop + WC.top) / 2], 40));
   add(M.pipe, cyl(PIPE.r + 0.005, 0.07, 'z', [PIPE.x, PIPE.y, 2.06], 40));
-  // spare rolls stacked two high, folded hand towels, two bottles, a basket on the top shelf
-  const sh = shelves.length - 2;              // the shelf the towels stand on
+  // spare rolls stacked two high, folded hand towels, two bottles, a basket on the top shelf (if there is room)
+  const sh = Math.max(0, shelves.length - 2);     // the shelf the towels stand on
   for (const [y, z] of [[14.73, z0 + bt], [14.85, z0 + bt], [14.73, z0 + bt + 0.1], [14.85, z0 + bt + 0.1]]) {
     add(M.paper, cyl(0.054, 0.098, 'z', [55.84, y, z + 0.049], 32));
     add(M.dark, cyl(0.02, 0.1, 'z', [55.84, y, z + 0.049], 16), { shadow: false });
@@ -1542,14 +1599,14 @@ function buildCabinet(wall) {
   for (let i = 0; i < 3; i++) add(M.towel, rbox(0.15, 0.24, 0.034, 0.012, [55.84, 15.12, shelves[sh] + bt + 0.017 + i * 0.034]));
   add(M.bottleWhite, cyl(0.026, 0.15, 'z', [55.84, 14.75, shelves[sh] + bt + 0.075], 24));
   add(M.amber, cyl(0.024, 0.13, 'z', [55.84, 14.83, shelves[sh] + bt + 0.065], 24));
-  add(M.rattan, rbox(0.15, 0.32, 0.15, 0.01, [55.845, 14.88, shelves[sh + 1] + bt + 0.075]));
-  flush(W.group);
+  if (shelves[sh + 1]) add(M.rattan, rbox(0.15, 0.32, 0.15, 0.01, [55.845, 14.88, shelves[sh + 1] + bt + 0.075]));
+  flush(group);
   // the doors: on hinges at the side walls (s: which way each turns), a 3 mm gap between them
   const za = z0 + 0.002, zb = z1 - 0.002;
   for (const kind of ['flat', 'fluted']) {
     const G = new THREE.Group();
     R.add(G);
-    CABINET.fronts[wall + '/' + kind] = G;
+    CABINET.fronts[wall + '@' + top + '/' + kind] = G;
     for (const [ya, yb, hy, s] of [[Y0 + 0.002, YC - 0.0015, Y0 + 0.002, 1], [YC + 0.0015, Y1 - 0.002, Y1 - 0.002, -1]]) {
       const pivot = new THREE.Group(), holder = new THREE.Group();
       pivot.position.set(x0, hy, 0);
@@ -1583,9 +1640,9 @@ function cabFront(kind, ya, yb, za, zb) {
 // the LED line under the cabinet
 function applyWall(key) {
   wallKey = key;
-  const W = WALLS[key], front = PALETTES[paletteKey].cab.front;
-  for (const [k, w] of Object.entries(WALLS)) w.group.visible = k === key;
-  for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === key + '/' + front;
+  const W = WALLS[key], top = cabTop();
+  for (const [k, w] of Object.entries(WALLS)) for (const [t, g] of Object.entries(w.groups)) g.visible = k === key && t === top;
+  for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === cabFrontKey();
   groups.ledge.visible = W.ledge;
   groups.ledgeAlt.visible = !W.ledge;
   VANITIES.street.leds.length = 1;
@@ -1595,6 +1652,9 @@ function applyWall(key) {
   renderLegend();
   dirty = true;
 }
+// which of the cabinet's builds and fronts are on show: for the ceiling's height, the WC wall and the style's front
+const cabTop = () => (CEILINGS[ceilKey].z === H ? 'high' : 'low');
+const cabFrontKey = () => wallKey + '@' + cabTop() + '/' + PALETTES[paletteKey].cab.front;
 function setCabinet(open, look = false) {
   CABINET.open = open;
   const b = $('t-cab');
@@ -2039,7 +2099,14 @@ function buildLights() {
     return a;
   };
   L.vanityLights = [area(0.02, 1, SU(X1, Y0, 0)), area(0.02, 1, SU(X1, Y0, 0))];   // placed by applyVanityLights
-  L.cove = area(X1 - X0 - 0.04, 0.2, SU((X0 + X1) / 2, COVE_Y + 0.125, WT_COVE - 0.012));
+  // the lit recess (CEILINGS.recess): the LED behind the lowered ceiling's edge, aimed up and 30 degrees towards the
+  // mirror, washing the recess's ceiling; and the light that ceiling throws down over the basin
+  L.cove = area(RECESS.x - X0 - 0.03, Y1 - Y0 - 0.03, SU((X0 + RECESS.x) / 2, YC, H - 0.01));
+  {
+    const x = RECESS.x + RECESS.led, z = CEIL_LOW + RECESS.slab + 0.008, a = THREE.MathUtils.degToRad(30);
+    L.coveLed = area(Y1 - Y0 - 0.04, 0.02, SU(x, YC, z));
+    L.coveLed.lookAt(SU(x - Math.sin(a), YC, z + Math.cos(a)));
+  }
   // the LED line under the mirror: it grazes down the marble backsplash into the basin
   L.halo = area(0.02, Y1 - Y0 - 0.06, SU(X0 + 0.03, YC, ST.back + 0.004));
   L.corridor = new THREE.PointLight(0xfff1de, 1.2, 0, 2);
@@ -2137,15 +2204,16 @@ function kelvinRaw(k) {
 }
 
 // The room has no daylight: three moods of its own lights. pend: the pendant; led: the backlit basin and the
-// floor wash under it; art: the picture light; down: the two downlights; candle: the two candles. tint: the colour
+// floor wash under it; art: the picture light; down: the two downlights; candle: the two candles; cove: the lit
+// recess, when the ceiling has one. tint: the colour
 // of the lamps as the eye sees it (set directly: the kelvin approximation drops blue too steeply this warm).
 // sky only sets the dark outside.
 const MOODS = {
-  intimate: { label: 'Intimate', down: 0, pend: 0.6, led: 1, art: 1, candle: 1, tint: '#ffdcb8', exposure: 1.2, sky: [-14, 340], bloom: 1.0 },
-  evening: { label: 'Evening', down: 0.3, pend: 1, led: 1, art: 1, candle: 0.8, tint: '#ffe6cc', exposure: 0.85, sky: [-14, 340], bloom: 1.2 },
-  bright: { label: 'Bright', down: 1, pend: 1, led: 0.7, art: 0.7, candle: 0, tint: '#fff4e8', exposure: 0.7, sky: [-14, 340], bloom: 1.6 },
+  intimate: { label: 'Intimate', down: 0, pend: 0.6, led: 1, art: 1, candle: 1, cove: 0.7, tint: '#ffdcb8', exposure: 1.2, sky: [-14, 340], bloom: 1.0 },
+  evening: { label: 'Evening', down: 0.3, pend: 1, led: 1, art: 1, candle: 0.8, cove: 1, tint: '#ffe6cc', exposure: 0.85, sky: [-14, 340], bloom: 1.2 },
+  bright: { label: 'Bright', down: 1, pend: 1, led: 0.7, art: 0.7, candle: 0, cove: 1, tint: '#fff4e8', exposure: 0.7, sky: [-14, 340], bloom: 1.6 },
 };
-const BASE = { down: 6, pend: 1.6, led: 20, downLens: 30, globe: 1.6, strip: 7, haloLight: 10, art: 5, candle: 0.12, flame: 6 };
+const BASE = { down: 6, pend: 1.6, led: 20, downLens: 30, globe: 1.6, strip: 7, haloLight: 10, art: 5, candle: 0.12, flame: 6, coveLed: 300, coveBounce: 3 };
 const FLAME = '#ff9d4a';
 function applyBacklight() {}
 function applyMood(key) {
@@ -2166,7 +2234,11 @@ function applyMood(key) {
   applyVanityLights(m, c);
   L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = m.led > 0;
   L.art.color.copy(c); L.art.intensity = BASE.art * m.art; L.art.visible = m.art > 0;
-  L.cove.visible = false;
+  // the lit recess (with that ceiling): the hidden LED washing its ceiling, and the soft light that ceiling throws
+  // down (the lamp's colour times the ceiling's paint)
+  const cove = CEILINGS[ceilKey].recess ? m.cove : 0;
+  L.coveLed.color.copy(c); L.coveLed.intensity = BASE.coveLed * cove; L.coveLed.visible = cove > 0;
+  L.cove.color.copy(c).multiply(M.ceiling.color); L.cove.intensity = BASE.coveBounce * cove; L.cove.visible = cove > 0;
   for (const a of L.nicheStrips) a.visible = false;
   L.corridor.intensity = 1.0;
   for (const mat of OUT_ROOM) mat.emissive.copy(mat.color).multiplyScalar(0.025);
@@ -2208,7 +2280,7 @@ async function applyPalette(key) {
   await applyWoodChoice(p.wood, false);
   applyPaint(PAINTS[p.paint].color, p.paint, false);
   await applyFloor();
-  for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === wallKey + '/' + p.cab.front;
+  for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === cabFrontKey();
   for (const g of CABINET.knobs) g.visible = !!p.cab.knobs;
   groups.panels.visible = p.panels === 'fluted';
   M.art.map = printTexture(p.print);
@@ -2370,6 +2442,7 @@ function renderLegend() {
     ['Cabinet', 'over the WC, hiding its vent stack, ' + { niche: 'over a lit niche', cubby: 'with a lit cubby', full: 'full height' }[wallKey] + ': ' + (cab.finish === 'wood' ? (cab.front === 'fluted' ? 'fluted ' : '') + wn + ', ' + cab.desc : cab.label), cab.finish === 'wood' ? wood.swatch : cab.finish],
     ['Drawer', wood.label, wood.swatch],
     ['Fittings', METALS[p.metal].label, METALS[p.metal].swatch],
+    ['Ceiling', CEILINGS[ceilKey].desc, paintColor],
     ['Floor', { epoxy: 'seamless poured epoxy', wood: wn + ' planks, 20 cm wide, oiled', tiles: 'porcelain tiles, 60 × 60 cm, from the middle of the room' }[floorKey], floorKey === 'wood' ? wood.swatch : p.floor],
     ['Mirror', 'full width, up to the ceiling, ' + p.mirrorLabel, p.mirror],
     ['Light', p.light + ', backlit basin, ' + (WALLS[wallKey].led ? 'lit ' + wallKey + ', ' : '') + 'picture light', p.glass],
@@ -2489,9 +2562,9 @@ function goTo(view, instant = false) {
 }
 function clampCamera() {
   const p = camera.position;
-  if (p.y > H - 0.02 && (current.plan || tween)) return;          // only the plan view looks in from above
+  if (p.y > CEILINGS[ceilKey].z - 0.02 && (current.plan || tween)) return;      // only the plan view looks in from above
   let x = p.x, y = -p.z, z = p.y;
-  z = THREE.MathUtils.clamp(z, 0.25, H - 0.08);
+  z = THREE.MathUtils.clamp(z, 0.25, CEILINGS[ceilKey].z - 0.08);
   const inDoor = DOOR.t > 0.5 && x > DOOR_S[0] + 0.07 && x < DOOR_S[1] - 0.07;
   y = THREE.MathUtils.clamp(y, inDoor ? 13.5 : Y0 + 0.08, Y1 - 0.08);
   x = THREE.MathUtils.clamp(x, y < Y0 ? DOOR_S[0] + 0.07 : X0 + 0.08, y < Y0 ? DOOR_S[1] - 0.07 : X1 - 0.08);
@@ -2529,6 +2602,7 @@ function buildUI() {
   seg($('stones'), Object.fromEntries(STONE_PICK.map((k) => [k, { label: STONES[k].short }])), (k) => withBusy(async () => { await applyStoneChoice(k); captureEnv(); }), stoneKey);
   seg($('woods'), Object.fromEntries(WOOD_PICK.map((k) => [k, { label: `<i class="dot" style="background:${WOODS[k].swatch}"></i>${WOODS[k].short}` }])), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
+  seg($('ceilings'), CEILINGS, (k) => withBusy(async () => { applyCeiling(k); captureEnv(); }), ceilKey);
   seg($('walls'), WALLS, (k) => withBusy(async () => { applyWall(k); captureEnv(); }), wallKey);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow
   // when it closes)
@@ -2592,6 +2666,11 @@ function buildUI() {
     if ((e.key === 'f' || e.key === 'F') && !busy) {
       const k = Object.keys(FLOORS), n = k[(k.indexOf(floorKey) + 1) % k.length];
       withBusy(async () => { await setFloor(n); captureEnv(); });
+      return;
+    }
+    if ((e.key === 'h' || e.key === 'H') && !busy) {
+      const k = Object.keys(CEILINGS), n = k[(k.indexOf(ceilKey) + 1) % k.length];
+      withBusy(async () => { applyCeiling(n); captureEnv(); });
       return;
     }
     if (e.key === 'd' || e.key === 'D') { setDoor(!DOOR.open); return; }
@@ -2708,7 +2787,7 @@ window.addEventListener('resize', resize);
 // ---------------------------------------------------------------- render loop
 const clock = new THREE.Clock();
 function renderFrame() {
-  const above = camera.position.y > H - 0.02;
+  const above = camera.position.y > CEILINGS[ceilKey].z - 0.02;
   groups.ceiling.visible = !above;
   groups.pendants.visible = !above;
   OUT.outside.visible = OUT.canopy.visible = sky.visible = !above;
@@ -2775,7 +2854,7 @@ try {
   buildLights();
   setStatus('Laying out the stone and the veneer…');
   await applyPalette(paletteKey);
-  applyWall(wallKey);
+  applyCeiling(ceilKey);
   applyMood(moodKey);
   setStatus('Lighting the room…');
   await pause();
@@ -2787,7 +2866,7 @@ try {
   goTo(VIEWS[0], true);
   renderFrame();
   window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, PALETTES, applyVanity, setFlip, setDoor, setCabinet, CABINET, applyWall, WALLS, applyStoneChoice,
-    PAINTS, WOODS, FLOORS, applyPaint, applyWoodChoice, setFloor, roomEv, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+    PAINTS, WOODS, FLOORS, applyPaint, applyWoodChoice, setFloor, roomEv, CEILINGS, applyCeiling, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
