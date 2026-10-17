@@ -63,10 +63,15 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #opts { display: none; }
   #stones, #woods { display: grid; grid-template-columns: 1fr 1fr; }
+  #mirrors { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .group.off .seg { opacity: 0.38; pointer-events: none; }
   #woods .dot { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); vertical-align: -0.5px; }
   #paints { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
-  #paints button, #paint-pick { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
-  #paints button.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
+  #paints button, #paint-pick, #glazes button { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
+  #paints button.on, #glazes button.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
+  #prewalls { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #glazes { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; margin-top: 8px; }
+  #glazes.off { opacity: 0.38; pointer-events: none; }
   #paint-pick { position: relative; overflow: hidden; cursor: pointer; background: conic-gradient(#c96b5b, #c9b45b, #7fae6e, #5b9bc9, #8e6bc9, #c96b5b); }
   #paint-pick.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
   #paint-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
@@ -101,11 +106,14 @@
 <div id="side" class="panel">
   <div class="group"><h2>Style</h2><div class="seg" id="palettes" title="Four characters for the room: dark and intimate, warm and cosy, a deep green jewel box, calm Japandi (S)"></div></div>
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The stone of the Street basin and the WC pre-wall; each style starts with its own (T)"></div></div>
+  <div class="group"><h2>Mirror</h2><div class="seg" id="mirrors" title="The full-width mirror as built, or a smaller one on a backdrop: slim or round and backlit, a capsule or an arch in a slim metal frame (M)"></div></div>
+  <div class="group" id="backdrop-group"><h2>Backdrop</h2><div class="seg" id="backdrops" title="Behind a smaller mirror, over the whole wall to the ceiling and flush with the backsplash: the wall paint, the basin's stone, the wood or fluted wood (B)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, the ceiling and the door; each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the drawer, the cabinet and the frame (in the styles that have them in wood) and of a wooden floor; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Seamless poured epoxy, oiled planks in the chosen wood, or 60 × 60 cm porcelain tiles; the epoxy and the tiles take the style's colour (F)"></div></div>
   <div class="group"><h2>Ceiling</h2><div class="seg" id="ceilings" title="As built at 2.60 m, lowered to 2.35 m, or lowered with a recess up to 2.60 m over the basin, lit by an LED hidden on the lowered ceiling (H)"></div></div>
-  <div class="group"><h2>WC wall</h2><div class="seg" id="walls" title="The cabinet over the WC: over a lit niche with the stack in a stone chase, with an open cubby beside a closed column, or full height (N)"></div></div>
+  <div class="group"><h2>WC wall</h2><div class="seg" id="walls" title="The cabinet over the WC: over a lit niche with the stack in a corner chase, with an open cubby beside a closed column, or full height (N)"></div></div>
+  <div class="group"><h2>WC pre-wall</h2><div class="seg" id="prewalls" title="The finish of the pre-wall behind the WC and its ledge: the basin's stone, glazed tiles (handmade 10 × 10 cm zellige or slim 7.5 × 30 cm, stacked) in the glaze below, or the wood (G)"></div><div id="glazes" title="The tiles' glaze; each style starts with its own"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
   </div>
@@ -159,7 +167,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices, toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 
 const $ = (id) => document.getElementById(id);
@@ -185,6 +193,26 @@ const DOOR_S = [54.345, 55.145], DOOR_H = 2.15;                   // door from t
 // side[0] / side[1], top heights, the sunk basin floor, the drawer under it
 const ST = { front: 54.225, splash: X0 + 0.02, side: [14.885, 15.395], top: 0.77, floor: 0.65, lip: 0.85, z0: 0.6, back: 1.1, drawer: [0.345, 0.595] };
 const MIRROR = { y0: Y0, y1: Y1, z0: 1.11, x: ST.splash };        // full-width mirror from the backsplash to the ceiling (x = its face)
+// the mirror in five versions (MIRRORS): the full-width glass as built, or a smaller one centred over the basin on a
+// backdrop (BACKDROPS) that covers the wall from the LED line over the backsplash to the ceiling, flush with the
+// backsplash (its face at BACK_X). Each smaller mirror is a rounded rectangle, w x h from z0, the radii of its corners
+// [top-left, top-right, bottom-right, bottom-left]; halo: frameless, on an LED mount 25 mm off the backdrop that
+// washes it with a glow round the glass; frame: a slim frame in the fittings' metal
+const BACK_X = ST.splash;
+const MIRRORS = {
+  full: { label: 'Full wall', desc: 'full width, from the backsplash to the ceiling' },
+  slim: { label: 'Slim', w: 0.4, h: 1.0, z0: 1.22, r: [0.012, 0.012, 0.012, 0.012], halo: true, desc: 'slim, 40 × 100 cm, frameless, backlit' },
+  round: { label: 'Round', w: 0.6, h: 0.6, z0: 1.3, r: [0.3, 0.3, 0.3, 0.3], halo: true, desc: 'round, Ø 60 cm, frameless, backlit' },
+  capsule: { label: 'Capsule', w: 0.45, h: 0.95, z0: 1.2, r: [0.225, 0.225, 0.225, 0.225], frame: true, desc: 'capsule, 45 × 95 cm, in a slim metal frame' },
+  arch: { label: 'Arch', w: 0.5, h: 1.0, z0: 1.2, r: [0.25, 0.25, 0, 0], frame: true, desc: 'arched, 50 × 100 cm, in a slim metal frame' },
+};
+const BACKDROPS = {
+  paint: { label: 'Paint' },
+  stone: { label: 'Stone' },
+  wood: { label: 'Wood' },
+  fluted: { label: 'Fluted' },
+};
+let mirrorKey = 'full', backKey = 'stone';
 const WC = { front: 55.745, top: 1.15 };                           // the WC pre-wall: its face and height (its top is a ledge)
 // the cabinet over the WC, on the pre-wall's line (its versions: WALLS): its top, door thickness, the bottom of the
 // cabinet over a niche or cubby, the south face of the niche's stone chase and of the cubby's closed column
@@ -244,6 +272,34 @@ const BP = {
   bpProbe: { value: SU(54.9, 15.14, 1.3) },
   bpOn: { value: 1 },
 };
+// The glow of a backlit mirror's LEDs on the backdrop round it (MIRRORS[].halo): diffuse light on the surfaces that
+// lie in the backdrop's plane (glowX) and face the room, falling off with the distance from the mirror's outline (a
+// rounded rectangle, centre glowC, half-sizes glowB, corner radii glowR in iq's sdRoundBox order: top-right,
+// bottom-right, top-left, bottom-left; in the wall's plane: SketchUp y, z), a bright core and a soft tail. Every
+// material carries it (patchShader); glowOn switches it off.
+const GLOW = {
+  glowOn: { value: 0 },
+  glowX: { value: BACK_X },
+  glowC: { value: new THREE.Vector2() },
+  glowB: { value: new THREE.Vector2() },
+  glowR: { value: new THREE.Vector4() },
+  glowColor: { value: new THREE.Color(0) },
+};
+const glowFragment = /* glsl */`
+  if ( glowOn > 0.5 ) {
+    float near = max( inverseTransformDirection( normal, viewMatrix ).x, 0.0 ) * ( 1.0 - smoothstep( 0.012, 0.04, abs( vWPos.x - glowX ) ) );
+    if ( near > 0.0 ) {
+      vec2 p = vec2( - vWPos.z, vWPos.y ) - glowC;
+      vec4 r = glowR;
+      r.xy = p.x > 0.0 ? r.xy : r.zw;
+      r.x = p.y > 0.0 ? r.x : r.y;
+      vec2 q = abs( p ) - glowB + r.x;
+      float d = max( min( max( q.x, q.y ), 0.0 ) + length( max( q, 0.0 ) ) - r.x, 0.0 );
+      float g = 0.55 * exp( - d / 0.025 ) + 0.45 * exp( - d / 0.09 );
+      reflectedLight.directDiffuse += near * g * glowColor * BRDF_Lambert( material.diffuseColor );
+    }
+  }
+  #include <lights_fragment_end>`;
 const lightsMapsPatched = THREE.ShaderChunk.lights_fragment_maps
   .replace('radiance += getIBLRadiance( geometryViewDir, geometryNormal, material.roughness );', `
     #ifdef PLANAR
@@ -271,7 +327,7 @@ const envParsPatched = THREE.ShaderChunk.envmap_physical_pars_fragment.replace(
 
 function patchShader(shader) {
   // called as material.onBeforeCompile, so `this` is the material
-  Object.assign(shader.uniforms, BP);
+  Object.assign(shader.uniforms, BP, GLOW);
   const pl = this.userData.planar;
   if (pl) Object.assign(shader.uniforms, pl.uniforms);
   shader.vertexShader = shader.vertexShader
@@ -293,6 +349,12 @@ function patchShader(shader) {
       uniform vec3 bpMax;
       uniform vec3 bpProbe;
       uniform float bpOn;
+      uniform float glowOn;
+      uniform float glowX;
+      uniform vec2 glowC;
+      uniform vec2 glowB;
+      uniform vec4 glowR;
+      uniform vec3 glowColor;
       vec3 boxProject( vec3 dir ) {
         if ( bpOn < 0.5 ) return dir;
         vec3 tA = ( bpMax - vWPos ) / dir;
@@ -318,6 +380,7 @@ function patchShader(shader) {
         #endif
       #endif`)
     .replace('#include <lights_fragment_begin>', outdoorLights)
+    .replace('#include <lights_fragment_end>', glowFragment)
     .replace('#include <aomap_fragment>', `
       #ifdef NO_DIRECT_SPEC
         reflectedLight.directSpecular = vec3( 0.0 );   // the planar reflection already shows the light sources
@@ -499,6 +562,7 @@ const BAKE_FRAG = /* glsl */`
   uniform float uRough, uRoughVar, uFlute;
   uniform vec2 uTile;
   uniform float uJoint;
+  uniform float uPillow;
   ${NOISE}
 
   void sampleMat(vec2 p, float seed, out vec3 col, out float h, out float r) {
@@ -613,6 +677,14 @@ const BAKE_FRAG = /* glsl */`
     col = mix(col, uVein, vein * uVeinAmt);
     h = -pore * 0.0006 + fbm(vec3(p * 50.0, seed + 3.0), 3) * 0.00006 + g1 * 0.000005;
     r = uRough + (c - 0.5) * uRoughVar + pore * 0.12;
+  #elif KIND == 5
+    // glazed tile: each tile a shade of its own between base and base2 and a touch warmer or cooler, the glaze in
+    // faint clouds over a wavy face (uWarp: how wavy)
+    float t = fract(sin(seed * 12.9898 + 4.1) * 43758.5453), t2 = fract(sin(seed * 78.233 + 1.7) * 43758.5453);
+    float c = fbm(vec3(p * uScale, seed), 4) * 0.5 + 0.5;
+    col = mix(uBase, uBase2, t) * (1.0 + (c - 0.5) * uCloud) * vec3(1.0 + (t2 - 0.5) * 0.05, 1.0, 1.0 - (t2 - 0.5) * 0.05);
+    h = fbm(vec3(p * 14.0, seed + 3.0), 3) * 0.0006 * uWarp;
+    r = uRough + (c - 0.5) * uRoughVar;
   #else
     // lime plaster: soft clouds, fine trowel texture
     vec3 q = vec3(p * uScale, seed);
@@ -634,6 +706,7 @@ const BAKE_FRAG = /* glsl */`
       float bevel = 1.0 - smoothstep(uJoint * 0.5, uJoint * 0.5 + 0.0016, d);
       col = mix(col, uGrout, joint);
       h -= bevel * 0.0005 + joint * 0.0006;
+      h += uPillow * 0.0012 * smoothstep(0.0, 0.016, d);        // a face that rises from its edges
       r = mix(r, 0.85, joint);
     } else {
       sampleMat(p, uSeed, col, h, r);
@@ -696,7 +769,7 @@ function bakeMaterial(kind, mode) {
         uVein2: { value: new THREE.Color() }, uFine: { value: new THREE.Color() }, uGrout: { value: new THREE.Color() },
         uScale: { value: 1 }, uWarp: { value: 1 }, uVeinW: { value: 0.03 }, uVeinAmt: { value: 1 }, uFineAmt: { value: 0.5 },
         uCloud: { value: 0.5 }, uHalo: { value: 1 }, uBand: { value: 0 }, uStria: { value: 0 }, uAngle: { value: 0 }, uStretch: { value: 1 }, uRough: { value: 0.3 }, uRoughVar: { value: 0.05 },
-        uFlute: { value: 0 }, uTile: { value: new THREE.Vector2() }, uJoint: { value: 0.002 },
+        uFlute: { value: 0 }, uTile: { value: new THREE.Vector2() }, uJoint: { value: 0.002 }, uPillow: { value: 0 },
       },
       vertexShader: QUAD_VERT, fragmentShader: BAKE_FRAG, depthTest: false, depthWrite: false,
     }));
@@ -778,21 +851,21 @@ const METALS = {
 };
 // four characters for the room: the Street basin's stone to start with (also the WC pre-wall), the wood of its
 // drawer and the paint of the walls, the ceiling and the door to start with (the pickers change all three), the
-// plaster they are in, the fittings, the colour of the epoxy or tiled floor, the WC, the mirror's tint, the pendant
+// plaster they are in, the glaze of a tiled WC pre-wall, the fittings, the colour of the epoxy or tiled floor, the WC, the mirror's tint, the pendant
 // (glass: its tip's colour; light: what it is); panels: fluted panelling in the wood; cab: the cabinet's front (flat
 // or fluted), its finish (the wood, or a paint with its roughness, coat and label) and knobs; print: the picture on
 // the north wall; frame: black, the wood, or a gilt colour; ev: the exposure (the pale rooms throw far more light back)
 const PALETTES = {
-  noir: { label: 'Noir', street: 'marquina', wood: 'smoked', paint: 'charcoal', plaster: 'lime plaster', metal: 'gunmetal', floor: '#423d39',
+  noir: { label: 'Noir', street: 'marquina', wood: 'smoked', paint: 'charcoal', glaze: 'black', plaster: 'lime plaster', metal: 'gunmetal', floor: '#423d39',
     wc: '#1d1c1b', wcRough: 0.42, wcLabel: 'matte black', mirror: '#d9c9b3', mirrorLabel: 'bronze', glass: '#8a7a6b', light: 'slim gunmetal tube pendant, smoked glass tip', towel: '#5a5550',
     panels: false, cab: { front: 'flat', finish: 'wood', desc: 'flat panels, handleless' }, ev: 1.75, print: 'abstract', frame: 'black' },
-  cosy: { label: 'Cosy', street: 'levanto', wood: 'walnutPhoto', paint: 'taupe', plaster: 'clay plaster', metal: 'brass', floor: '#bda88f',
+  cosy: { label: 'Cosy', street: 'levanto', wood: 'walnutPhoto', paint: 'taupe', glaze: 'terracotta', plaster: 'clay plaster', metal: 'brass', floor: '#bda88f',
     wc: '#f1efeb', wcRough: 0.18, wcLabel: 'white', mirror: '#f0eee9', mirrorLabel: 'clear', glass: '#f3e3cc', light: 'slim brass tube pendant, warm opal glass tip', towel: '#d6c4ab',
     panels: 'fluted', cab: { front: 'fluted', finish: 'wood', desc: 'handleless' }, ev: 0.7, print: 'abstract', frame: 'wood' },
-  jewel: { label: 'Jewel', street: 'carrara', wood: 'walnutPhoto', paint: 'forest', plaster: 'lime plaster', metal: 'brass', floor: '#e6e1d8',
+  jewel: { label: 'Jewel', street: 'carrara', wood: 'walnutPhoto', paint: 'forest', glaze: 'green', plaster: 'lime plaster', metal: 'brass', floor: '#e6e1d8',
     wc: '#f1efeb', wcRough: 0.18, wcLabel: 'white', mirror: '#f0f2f1', mirrorLabel: 'clear', glass: '#f2ece2', light: 'slim brass tube pendant, opal glass tip', towel: '#ebe5da',
     panels: false, cab: { front: 'flat', finish: '#2a4a3c', rough: 0.2, coat: 0.9, knobs: true, label: 'deep green lacquer, brass knobs' }, ev: 0.85, print: 'abstract', frame: '#b8955a' },
-  japandi: { label: 'Japandi', street: 'taj', wood: 'whiteoak', paint: 'bone', plaster: 'limewash', metal: 'black', floor: '#c9c1b4',
+  japandi: { label: 'Japandi', street: 'taj', wood: 'whiteoak', paint: 'bone', glaze: 'sand', plaster: 'limewash', metal: 'black', floor: '#c9c1b4',
     wc: '#efede8', wcRough: 0.35, wcLabel: 'matte white', mirror: '#f0efec', mirrorLabel: 'clear', glass: '#f4ebdb', light: 'slim black tube pendant, opal glass tip', towel: '#c9bca8',
     panels: false, cab: { front: 'flat', finish: 'wood', desc: 'full flat panels, handleless' }, ev: 0.42, print: 'enso', frame: 'wood' },
 };
@@ -821,6 +894,28 @@ const FLOOR_AT = [(X0 + X1) / 2 - 1.2, YC - 0.6];
 // matt porcelain with a soft cloud, each tile its own (white here: the style's floor colour tints it), 60 x 60 cm,
 // 2 mm joints
 const TILES = { kind: 3, base: '#ffffff', base2: '#ebe7e0', grout: '#c9c3b9', scale: 1.4, cloud: 0.8, rough: 0.42, roughVar: 0.08 };
+// the WC pre-wall and its ledge (and the niche's corner chase): the basin's stone, glazed tiles, the wood (fluted:
+// the ledge's top stays plain). Tiles: the bake (white: the glaze tints it, the grout too, a shade darker) and its
+// texture set (spec); laid from a joint on the WC's centre line and from the ledge's edge down, turning over the
+// edge onto the ledge
+const PREWALLS = {
+  stone: { label: 'Stone' },
+  zellige: { label: 'Zellige', spec: 'zellige', desc: 'zellige, 10 × 10 cm, handmade',
+    bake: { kind: 5, base: '#ffffff', base2: '#c9c9c9', grout: '#a9a6a1', scale: 9, cloud: 0.12, warp: 1, rough: 0.06, roughVar: 0.06, pillow: 1 } },
+  slim: { label: 'Slim tiles', spec: 'slimtile', desc: 'slim glazed tiles, 7.5 × 30 cm, stacked',
+    bake: { kind: 5, base: '#ffffff', base2: '#dedede', grout: '#aeaba6', scale: 5, cloud: 0.06, warp: 0.35, rough: 0.09, roughVar: 0.04, pillow: 0.35 } },
+  wood: { label: 'Wood' },
+  fluted: { label: 'Fluted' },
+};
+const GLAZES = {
+  white: { label: 'White', color: '#eeebe5' },
+  sand: { label: 'Sand', color: '#d6c3a5' },
+  sage: { label: 'Sage', color: '#9fac95' },
+  green: { label: 'Bottle green', color: '#2c5546' },
+  blue: { label: 'Ink blue', color: '#2b4560' },
+  terracotta: { label: 'Terracotta', color: '#b25f3e' },
+  black: { label: 'Black', color: '#252322' },
+};
 
 // world size (metres) and resolution of each baked texture set
 const SPECS = {
@@ -830,6 +925,8 @@ const SPECS = {
   veneer: { size: [1.2, 2.4], res: [1024, 2048], nres: [512, 1024], rres: [256, 512], wrap: THREE.MirroredRepeatWrapping, bump: 1.0 },
   epoxy: { size: [3.0, 3.0], res: [1024, 1024], nres: [512, 512], rres: [256, 256], wrap: THREE.MirroredRepeatWrapping, bump: 0.5 },
   tiles: { size: [2.4, 1.2], res: [2048, 1024], nres: [2048, 1024], rres: [512, 256], wrap: THREE.ClampToEdgeWrapping, bump: 0.4, tile: [0.6, 0.6] },
+  zellige: { size: [1.2, 1.2], res: [2048, 2048], nres: [2048, 2048], rres: [512, 512], wrap: THREE.RepeatWrapping, bump: 1.0, tile: [0.1, 0.1] },
+  slimtile: { size: [1.2, 1.2], res: [2048, 2048], nres: [2048, 2048], rres: [512, 512], wrap: THREE.RepeatWrapping, bump: 1.0, tile: [0.075, 0.3] },
   plaster: { size: [2.0, 2.0], res: [1024, 1024], nres: [1024, 1024], rres: [256, 256], wrap: THREE.MirroredRepeatWrapping, bump: 1.0 },
   limewall: { size: [1.6, 1.6], res: [2048, 2048], nres: [2048, 2048], rres: [512, 512], wrap: THREE.MirroredRepeatWrapping, bump: 0.8 },
   flutedStone: { size: [0.96, 0.48], res: [1024, 512], nres: [1024, 512], rres: [256, 128], wrap: THREE.MirroredRepeatWrapping, bump: 1.0, flute: 0.012 },
@@ -862,7 +959,7 @@ async function bakeSet(key, def, specName, seed = 1) {
     u.uVeinAmt.value = def.veinAmt ?? 1; u.uFineAmt.value = def.fineAmt ?? 0.5; u.uCloud.value = def.cloud ?? 0.5;
     u.uAngle.value = def.angle ?? 0; u.uHalo.value = def.halo ?? 1; u.uBand.value = def.band ?? 0; u.uStria.value = def.stria ?? 0; u.uStretch.value = def.stretch ?? 1; u.uRough.value = def.rough ?? 0.4;
     u.uRoughVar.value = def.roughVar ?? 0.05; u.uFlute.value = spec.flute || 0;
-    u.uTile.value.set(...(spec.tile || [0, 0])); u.uJoint.value = 0.002;
+    u.uTile.value.set(...(spec.tile || [0, 0])); u.uJoint.value = 0.002; u.uPillow.value = def.pillow ?? 0;
   };
   const map = mkRT(spec.res, { colorSpace: THREE.SRGBColorSpace });
   const cm = bakeMaterial(def.kind, 0); setU(cm, spec.res);
@@ -937,6 +1034,7 @@ const M = {
   cab: physical({ clearcoat: 0.3, clearcoatRoughness: 0.3 }),         // the cabinet's front: the style's wood or paint
   cabInside: physical({ color: 0xe8e3db, roughness: 0.6 }),           // its lining
   pipe: physical({ color: 0x8f9293, roughness: 0.4 }),                // the grey PP vent stack
+  tile: physical({ clearcoat: 0.7, clearcoatRoughness: 0.06 }),       // glazed tiles on the WC pre-wall: the glaze tints them
   plaster: physical({ color: 0xece8e1 }),
   ceiling: physical({ color: 0xf2efea }),
   poche: new THREE.MeshBasicMaterial({ color: 0x2b2622 }),
@@ -1233,25 +1331,43 @@ function buildArchitecture() {
   floorMesh.receiveShadow = true;
   groups.room.add(floorMesh);
   floorRefl.meshes.push(floorMesh);
-  // the mirror: 6 mm glass across the whole west wall, flush with the Street backsplash and up to the ceiling,
-  // over a 1 cm shadow gap with the LED line that backlights the basin; the glass and its edges for each height of
-  // the ceiling over it (applyCeiling swaps them)
+  // the mirror, in its versions (MIRRORS), each in a group of its own. As built: 6 mm glass across the whole west
+  // wall, flush with the Street backsplash and up to the ceiling, over a 1 cm shadow gap with the LED line that
+  // backlights the basin; the glass and its edges for each height of the ceiling over it (applyCeiling swaps them)
   MIRROR.geos = {};
   for (const z of [H, CEIL_LOW]) {
     MIRROR.geos[z] = ['X', 'yYzZ'].map((faces) => box(MIRROR.x - 0.006, MIRROR.x, MIRROR.y0 + 0.002, MIRROR.y1 - 0.002, MIRROR.z0, z - 0.003, { faces }));
   }
+  const full = MIRRORS.full.group = new THREE.Group();
+  MIRRORS.full.face = MIRROR.x;
+  groups.room.add(full);
   mirrorMesh = new THREE.Mesh(MIRROR.geos[H][0], M.mirror);
   mirrorMesh.receiveShadow = true;
-  groups.room.add(mirrorMesh);
+  full.add(mirrorMesh);
   mirrorRefl.meshes.push(mirrorMesh);
   MIRROR.edge = new THREE.Mesh(MIRROR.geos[H][1], M.mirrorEdge);
   MIRROR.edge.receiveShadow = true;
   MIRROR.edge.userData.noAO = true;
-  groups.room.add(MIRROR.edge);
+  full.add(MIRROR.edge);
+  // the smaller ones, and the backdrop behind them over the same gap, up to the ceiling (for each height of it); its
+  // finish is the backdrop's (applyBackdrop)
+  for (const m of Object.values(MIRRORS)) if (!m.group) buildMirror(m);
+  MIRROR.backGeos = {};
+  for (const z of [H, CEIL_LOW]) MIRROR.backGeos[z] = box(X0, BACK_X, Y0, Y1, MIRROR.z0, z, { faces: 'Xz' });
+  MIRROR.back = new THREE.Mesh(MIRROR.backGeos[H], M.plaster);
+  MIRROR.back.receiveShadow = true;
+  groups.room.add(MIRROR.back);
   add(M.dark, box(X0, X0 + 0.004, Y0, Y1, ST.back, MIRROR.z0, { faces: 'X' }), { shadow: false });
   add(E.led, box(X0 + 0.004, X0 + 0.012, Y0 + 0.01, Y1 - 0.01, ST.back + 0.002, MIRROR.z0 - 0.002, { faces: 'X' }), { shadow: false });
-  // the WC pre-wall clad in the basin's stone; its top is a 20 cm ledge under the cabinet (see WALLS)
-  add(M.street, box(WC.front, X1, Y0, Y1, 0, WC.top, { faces: 'xZ' }));
+  // the WC pre-wall, in the chosen finish (PREWALLS, applyPrewall); its top is a 20 cm ledge under the cabinet (see
+  // WALLS). Its face and its top as two meshes (a fluted face keeps a plain top); for tiles the top's UVs run on
+  // from the face's (u along y, v from the edge back), so they turn over the edge (PREWALL.tops: tiled, plain)
+  const top = box(WC.front, X1, Y0, Y1, 0, WC.top, { faces: 'Z', swap: true }), tuv = top.attributes.uv;
+  for (let i = 0; i < tuv.count; i++) tuv.setY(i, WC.top + tuv.getY(i) - WC.front);
+  PREWALL.tops = { tiled: top, plain: box(WC.front, X1, Y0, Y1, 0, WC.top, { faces: 'Z' }) };
+  PREWALL.face = new THREE.Mesh(box(WC.front, X1, Y0, Y1, 0, WC.top, { faces: 'x' }), M.street);
+  PREWALL.top = new THREE.Mesh(top, M.street);
+  for (const o of [PREWALL.face, PREWALL.top]) { o.castShadow = o.receiveShadow = true; groups.room.add(o); }
   // (the door moves, so it is built separately: buildDoor)
 }
 
@@ -1467,12 +1583,93 @@ function applyCeiling(key) {
   const zm = ceilAt(X0);
   mirrorMesh.geometry = MIRROR.geos[zm][0];
   MIRROR.edge.geometry = MIRROR.geos[zm][1];
+  MIRROR.back.geometry = MIRROR.backGeos[zm];
   L.down.forEach((s, i) => { const [x, y] = DOWNLIGHTS[i]; s.position.copy(SU(x, y, ceilAt(x) - 0.01)); });
   L.art.position.copy(SU(ART_SPOT[0], ART_SPOT[1], ceilAt(ART_SPOT[0]) - 0.01));
   BP.bpMax.value.y = CEILINGS[key].z;              // the room's box for the reflections
   document.querySelectorAll('#ceilings button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   applyWall(wallKey);                              // (relights the room, the shadows, the legend)
 }
+
+// A smaller mirror's outline in the wall's plane (u: SketchUp y, to the right seen from the room; v: up), grown by
+// g (shrunk if negative): a rounded rectangle, its corners drawn counter-clockwise from the bottom right
+function mirrorOutline(m, g = 0, n = 24) {
+  const u0 = YC - m.w / 2 - g, u1 = YC + m.w / 2 + g, v0 = m.z0 - g, v1 = m.z0 + m.h + g;
+  const [tl, tr, br, bl] = m.r.map((r) => (r > 0 ? Math.max(r + g, 0.001) : 0));
+  const pts = [];
+  for (const [cu, cv, r, a0] of [[u1 - br, v0 + br, br, -Math.PI / 2], [u1 - tr, v1 - tr, tr, 0], [u0 + tl, v1 - tl, tl, Math.PI / 2], [u0 + bl, v0 + bl, bl, Math.PI]]) {
+    if (!r) { pts.push(new THREE.Vector2(cu, cv)); continue; }        // a square corner
+    for (let i = 0; i <= n; i++) { const a = a0 + (i / n) * (Math.PI / 2); pts.push(new THREE.Vector2(cu + r * Math.cos(a), cv + r * Math.sin(a))); }
+  }
+  // (where two rounded corners meet, as on a circle or a capsule, a point repeats)
+  return pts.filter((p, i) => p.distanceTo(pts[(i + pts.length - 1) % pts.length]) > 1e-5);
+}
+// builds one of the smaller mirrors into its group: the glass (a reflector), and round it a slim frame in the
+// fittings' metal, or behind it the dark LED mount with the glass's edge showing; the shapes are drawn in the wall's
+// plane and stood on it at x
+function buildMirror(m) {
+  const g = m.group = new THREE.Group();
+  groups.room.add(g);
+  const onWall = (x) => new THREE.Matrix4().set(0, 0, 1, x, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+  const shape = (grow, holes = []) => { const s = new THREE.Shape(mirrorOutline(m, grow)); s.holes.push(...holes.map((h) => new THREE.Path(mirrorOutline(m, h)))); return s; };
+  const extrude = (s, x0, x1) => new THREE.ExtrudeGeometry(s, { depth: x1 - x0, bevelEnabled: false, curveSegments: 1 }).applyMatrix4(onWall(x0));
+  const put = (mat, geo) => { const o = new THREE.Mesh(geo, mat); o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+  const back = BACK_X + (m.frame ? 0.016 : 0.025);        // the glass's back: 6 mm glass in a 25 mm frame, or on the mount
+  m.face = back + 0.006;
+  const glass = put(M.mirror, new THREE.ShapeGeometry(shape(0)).applyMatrix4(onWall(m.face)));
+  mirrorRefl.meshes.push(glass);
+  if (m.frame) {
+    // 12 mm wide, standing 3 mm proud of the glass and over its edge
+    put(M.metal, toCreasedNormals(extrude(shape(0.012, [-0.001]), BACK_X, BACK_X + 0.025), 0.5));
+  } else {
+    put(M.dark, extrude(shape(-0.05), BACK_X, back));
+    // the glass's edge: the sides of its extrusion
+    const e = extrude(shape(0), back, m.face), { start, count } = e.groups[1], edge = new THREE.BufferGeometry();
+    for (const k of ['position', 'normal', 'uv']) { const a = e.attributes[k]; edge.setAttribute(k, new THREE.Float32BufferAttribute(a.array.slice(start * a.itemSize, (start + count) * a.itemSize), a.itemSize)); }
+    e.dispose();
+    const em = put(M.mirrorEdge, edge);
+    em.castShadow = false;
+    em.userData.noAO = true;
+  }
+}
+// shows one version of the mirror (and the backdrop behind a smaller one), moves the reflection's plane to its
+// glass, and sets its backlight's glow
+function applyMirror(key) {
+  mirrorKey = key;
+  const m = MIRRORS[key];
+  for (const [k, v] of Object.entries(MIRRORS)) v.group.visible = k === key;
+  MIRROR.back.visible = key !== 'full';
+  mirrorRefl.p.copy(SU(m.face, YC, 1.6));
+  GLOW.glowOn.value = m.halo ? 1 : 0;
+  if (m.halo) {
+    const [tl, tr, br, bl] = m.r, cz = m.z0 + m.h / 2;
+    GLOW.glowC.value.set(YC, cz);
+    GLOW.glowB.value.set(m.w / 2, m.h / 2);
+    GLOW.glowR.value.set(tr, br, tl, bl);
+    // (its light into the room comes from the backdrop round the glass)
+    L.glow.width = m.w + 0.12;
+    L.glow.height = m.h + 0.12;
+    L.glow.position.copy(SU(BACK_X + 0.003, YC, cz));
+    L.glow.lookAt(SU(BACK_X + 1, YC, cz));
+  }
+  document.querySelectorAll('#mirrors button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  $('backdrop-group').classList.toggle('off', key === 'full');
+  if (L.pend.length) applyMood(moodKey);
+  renderer.shadowMap.needsUpdate = true;
+  renderLegend();
+  dirty = true;
+}
+// the backdrop's finish: the wall paint (the wall built out flush), the basin's stone, the wood, fluted wood
+function applyBackdrop(key) {
+  backKey = key;
+  MIRROR.back.material = { paint: M.plaster, stone: M.street, wood: M.veneer, fluted: M.fluted }[key];
+  document.querySelectorAll('#backdrops button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  if (L.pend.length) applyMood(moodKey);
+  renderLegend();
+  dirty = true;
+}
+// the backdrop's colour, roughly (for the light its glow throws into the room)
+const backdropColor = () => new THREE.Color({ paint: paintColor, stone: STONES[stoneKey].swatch, wood: WOODS[woodKey].swatch, fluted: WOODS[woodKey].swatch }[backKey]);
 // Tilt-out laundry hampers (two, lights and colours): a walnut front with a linen bag on a frame behind
 // it, pivoting on the front's bottom edge. Meshes are built in room coordinates, then shifted onto the pivot.
 const hampers = [];
@@ -1557,13 +1754,20 @@ const WALLS = {
 };
 let wallKey = 'cubby';
 const CABINET = { open: false, t: 0, max: THREE.MathUtils.degToRad(95), doors: [], fronts: {}, knobs: [] };
+const PREWALL = { face: null, top: null, chases: [] };
 function buildCabinet(wall, top) {
   const W = WALLS[wall], { t } = CAB, { z0 } = W, x0 = WC.front, xi = x0 + t, xb = X1 - 0.008, st = 0.016, bt = 0.018;
   const zTop = top === 'high' ? H : CEIL_LOW, z1 = zTop - 0.004, shelves = top === 'high' ? W.shelves : W.shelvesLow;
   W.groups ??= {};
   const group = W.groups[top] = new THREE.Group();
   R.add(group);
-  if (wall === 'niche') add(M.street, box(X1 - 0.14, X1, CAB.chase, Y1, WC.top, z0, { faces: 'xy' }));
+  if (wall === 'niche') {
+    // the stack's corner chase, clad like the pre-wall
+    const c = new THREE.Mesh(box(X1 - 0.14, X1, CAB.chase, Y1, WC.top, z0, { faces: 'xy' }), M.street);
+    c.castShadow = c.receiveShadow = true;
+    group.add(c);
+    PREWALL.chases.push(c);
+  }
   if (wall === 'cubby') {
     // the cubby, lined in the front's finish: its back, its south side, its top (the cabinet's underside, behind the
     // doors' bottom edge); the closed column beside it: the side facing the cubby and a fixed front flush with the doors
@@ -2109,6 +2313,9 @@ function buildLights() {
   }
   // the LED line under the mirror: it grazes down the marble backsplash into the basin
   L.halo = area(0.02, Y1 - Y0 - 0.06, SU(X0 + 0.03, YC, ST.back + 0.004));
+  // a backlit mirror's glow, thrown into the room by the backdrop round it (placed by applyMirror)
+  L.glow = new THREE.RectAreaLight(0xffffff, 0, 1, 1);
+  scene.add(L.glow);
   L.corridor = new THREE.PointLight(0xfff1de, 1.2, 0, 2);
   L.corridor.position.copy(SU(54.75, 13.95, 2.3));
   scene.add(L.corridor);
@@ -2213,7 +2420,7 @@ const MOODS = {
   evening: { label: 'Evening', down: 0.3, pend: 1, led: 1, art: 1, candle: 0.8, cove: 1, tint: '#ffe6cc', exposure: 0.85, sky: [-14, 340], bloom: 1.2 },
   bright: { label: 'Bright', down: 1, pend: 1, led: 0.7, art: 0.7, candle: 0, cove: 1, tint: '#fff4e8', exposure: 0.7, sky: [-14, 340], bloom: 1.6 },
 };
-const BASE = { down: 6, pend: 1.6, led: 20, downLens: 30, globe: 1.6, strip: 7, haloLight: 10, art: 5, candle: 0.12, flame: 6, coveLed: 300, coveBounce: 3 };
+const BASE = { down: 6, pend: 1.6, led: 20, downLens: 30, globe: 1.6, strip: 7, haloLight: 10, art: 5, candle: 0.12, flame: 6, coveLed: 300, coveBounce: 3, glow: 8, glowRoom: 0.8 };
 const FLAME = '#ff9d4a';
 function applyBacklight() {}
 function applyMood(key) {
@@ -2239,6 +2446,10 @@ function applyMood(key) {
   const cove = CEILINGS[ceilKey].recess ? m.cove : 0;
   L.coveLed.color.copy(c); L.coveLed.intensity = BASE.coveLed * cove; L.coveLed.visible = cove > 0;
   L.cove.color.copy(c).multiply(M.ceiling.color); L.cove.intensity = BASE.coveBounce * cove; L.cove.visible = cove > 0;
+  // a backlit mirror (it glows with the basin's LEDs): the glow on the backdrop, and the light it throws
+  const glow = MIRRORS[mirrorKey].halo ? m.led : 0;
+  GLOW.glowColor.value.copy(c).multiplyScalar(BASE.glow * glow);
+  L.glow.color.copy(c).multiply(backdropColor()); L.glow.intensity = BASE.glowRoom * glow; L.glow.visible = glow > 0;
   for (const a of L.nicheStrips) a.visible = false;
   L.corridor.intensity = 1.0;
   for (const mat of OUT_ROOM) mat.emissive.copy(mat.color).multiplyScalar(0.025);
@@ -2272,6 +2483,7 @@ function setSunHour(h) {
 // ---------------------------------------------------------------- palettes
 let paletteKey = 'japandi', stoneKey = PALETTES.japandi.street, woodKey = PALETTES.japandi.wood, floorKey = 'epoxy';
 let paintKey = PALETTES.japandi.paint, paintColor = PAINTS[paintKey].color;      // (paintKey null: a colour from the picker)
+let prewallKey = 'stone', glazeKey = PALETTES.japandi.glaze;
 async function applyPalette(key) {
   const p = PALETTES[key];
   paletteKey = key;
@@ -2279,6 +2491,7 @@ async function applyPalette(key) {
   await applyStoneChoice(p.street, false);
   await applyWoodChoice(p.wood, false);
   applyPaint(PAINTS[p.paint].color, p.paint, false);
+  applyGlaze(p.glaze, false);
   await applyFloor();
   for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === cabFrontKey();
   for (const g of CABINET.knobs) g.visible = !!p.cab.knobs;
@@ -2303,7 +2516,8 @@ async function applyPalette(key) {
   renderLegend();
 }
 function textureKeys() {
-  return new Set([floorKey === 'tiles' ? 'tiles/tiles' : 'epoxy/epoxy', 'flutes/fluted', 'plaster/plaster']);
+  const w = PREWALLS[prewallKey];
+  return new Set([floorKey === 'tiles' ? 'tiles/tiles' : 'epoxy/epoxy', 'flutes/fluted', 'plaster/plaster', ...(w.spec ? [prewallKey + '/' + w.spec] : [])]);
 }
 // the wood, and what is made of it in this style: the drawer, the fluted panelling and fronts, the cabinet's front
 // (or the style's paint for it), the print's frame, a wooden floor
@@ -2324,6 +2538,7 @@ async function applyWoodChoice(key, refresh = true) {
   document.querySelectorAll('#woods button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   if (!refresh) return;
   if (floorKey === 'wood') await applyFloor();
+  if (L.pend.length) applyMood(moodKey);
   dropPhotos();
   renderer.shadowMap.needsUpdate = true;
   renderLegend();
@@ -2423,9 +2638,46 @@ async function applyStoneChoice(key, refresh = true) {
   M.street.clearcoatRoughness = 0.1;
   document.querySelectorAll('#stones button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   if (!refresh) return;
+  if (L.pend.length) applyMood(moodKey);      // (a backlit mirror's light takes the backdrop's colour)
   dropPhotos();
   renderer.shadowMap.needsUpdate = true;
   renderLegend();
+}
+// the WC pre-wall's finish (and the corner chase's): the stone is the basin's and the wood the drawer's, so they
+// follow those pickers; the tiles are baked the first time they are shown, the glaze tints them
+async function applyPrewall(key, refresh = true) {
+  prewallKey = key;
+  const w = PREWALLS[key];
+  let face = M.street, top = M.street;
+  if (w.spec) {
+    const set = await bakeSet(key, w.bake, w.spec, 6), [su, sv] = SPECS[w.spec].size;
+    applyStone(M.tile, set, { polish: 0.7 });
+    // a joint on the WC's centre line, a row starting at the ledge's edge
+    for (const t of [set.map, set.normalMap, set.roughnessMap]) t.offset.set(-YC / su, -WC.top / sv);
+    face = top = M.tile;
+  }
+  if (key === 'wood') face = top = M.veneer;
+  if (key === 'fluted') { face = M.fluted; top = M.veneer; }
+  PREWALL.face.material = face;
+  PREWALL.top.material = top;
+  PREWALL.top.geometry = PREWALL.tops[w.spec ? 'tiled' : 'plain'];        // (the wood's grain along the ledge)
+  for (const c of PREWALL.chases) c.material = face;
+  document.querySelectorAll('#prewalls button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  $('glazes').classList.toggle('off', !w.spec);
+  if (!refresh) return;
+  dropTextures(textureKeys());
+  renderer.shadowMap.needsUpdate = true;
+  renderLegend();
+  dirty = true;
+}
+// the tiles' glaze
+function applyGlaze(key, refresh = true) {
+  glazeKey = key;
+  M.tile.color.set(GLAZES[key].color);
+  document.querySelectorAll('#glazes button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  if (!refresh) return;
+  renderLegend();
+  dirty = true;
 }
 // frees the GPU copies of the photos not on show (they upload again when needed)
 function dropPhotos() {
@@ -2438,13 +2690,13 @@ function renderLegend() {
   const rows = [
     ['Basin', VANITIES[vanityKey].basin(p), STONES[stoneKey].swatch],
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + (p.panels ? ' over fluted ' + wn + ' panelling' : '') + ', walls and ceiling; the door to match', paintColor],
-    ['WC', 'wall-hung, ' + p.wcLabel + ', on a ' + STONES[stoneKey].label + ' pre-wall', p.wc],
+    ['WC', 'wall-hung, ' + p.wcLabel + ', on a pre-wall ' + ({ stone: 'in ' + STONES[stoneKey].label, wood: 'clad in ' + wn, fluted: 'clad in fluted ' + wn }[prewallKey] ?? 'in ' + GLAZES[glazeKey].label.toLowerCase() + ' ' + PREWALLS[prewallKey].desc), p.wc],
     ['Cabinet', 'over the WC, hiding its vent stack, ' + { niche: 'over a lit niche', cubby: 'with a lit cubby', full: 'full height' }[wallKey] + ': ' + (cab.finish === 'wood' ? (cab.front === 'fluted' ? 'fluted ' : '') + wn + ', ' + cab.desc : cab.label), cab.finish === 'wood' ? wood.swatch : cab.finish],
     ['Drawer', wood.label, wood.swatch],
     ['Fittings', METALS[p.metal].label, METALS[p.metal].swatch],
     ['Ceiling', CEILINGS[ceilKey].desc, paintColor],
     ['Floor', { epoxy: 'seamless poured epoxy', wood: wn + ' planks, 20 cm wide, oiled', tiles: 'porcelain tiles, 60 × 60 cm, from the middle of the room' }[floorKey], floorKey === 'wood' ? wood.swatch : p.floor],
-    ['Mirror', 'full width, up to the ceiling, ' + p.mirrorLabel, p.mirror],
+    ['Mirror', MIRRORS[mirrorKey].desc + ', ' + p.mirrorLabel + (mirrorKey === 'full' ? '' : '; ' + { paint: 'the wall behind it built out flush with the backsplash, painted', stone: 'behind it a ' + STONES[stoneKey].label + ' backdrop up to the ceiling', wood: 'behind it ' + wn + ' panelling up to the ceiling', fluted: 'behind it fluted ' + wn + ' panelling up to the ceiling' }[backKey]), p.mirror],
     ['Light', p.light + ', backlit basin, ' + (WALLS[wallKey].led ? 'lit ' + wallKey + ', ' : '') + 'picture light', p.glass],
   ].filter(Boolean);
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
@@ -2603,7 +2855,16 @@ function buildUI() {
   seg($('woods'), Object.fromEntries(WOOD_PICK.map((k) => [k, { label: `<i class="dot" style="background:${WOODS[k].swatch}"></i>${WOODS[k].short}` }])), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
   seg($('ceilings'), CEILINGS, (k) => withBusy(async () => { applyCeiling(k); captureEnv(); }), ceilKey);
+  seg($('mirrors'), MIRRORS, (k) => withBusy(async () => { applyMirror(k); captureEnv(); }), mirrorKey);
+  seg($('backdrops'), BACKDROPS, (k) => withBusy(async () => { applyBackdrop(k); captureEnv(); }), backKey);
   seg($('walls'), WALLS, (k) => withBusy(async () => { applyWall(k); captureEnv(); }), wallKey);
+  seg($('prewalls'), PREWALLS, (k) => withBusy(async () => { await applyPrewall(k); captureEnv(); }), prewallKey);
+  $('glazes').innerHTML = Object.entries(GLAZES).map(([k, v]) => `<button data-key="${k}" class="${k === glazeKey ? 'on' : ''}" style="background:${v.color}" title="${v.label}" aria-label="${v.label} glaze"></button>`).join('');
+  $('glazes').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || busy || b.classList.contains('on')) return;
+    withBusy(async () => { applyGlaze(b.dataset.key); captureEnv(); });
+  });
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow
   // when it closes)
   $('paint-pick').insertAdjacentHTML('beforebegin', Object.entries(PAINTS).map(([k, v]) => `<button data-key="${k}" class="${k === paintKey ? 'on' : ''}" style="background:${v.color}" title="${v.label}" aria-label="${v.label}"></button>`).join(''));
@@ -2671,6 +2932,22 @@ function buildUI() {
     if ((e.key === 'h' || e.key === 'H') && !busy) {
       const k = Object.keys(CEILINGS), n = k[(k.indexOf(ceilKey) + 1) % k.length];
       withBusy(async () => { applyCeiling(n); captureEnv(); });
+      return;
+    }
+    if ((e.key === 'g' || e.key === 'G') && !busy) {
+      const k = Object.keys(PREWALLS), n = k[(k.indexOf(prewallKey) + 1) % k.length];
+      document.querySelectorAll('#prewalls button').forEach((b) => b.classList.toggle('on', b.dataset.key === n));
+      withBusy(async () => { await applyPrewall(n); captureEnv(); });
+      return;
+    }
+    if ((e.key === 'm' || e.key === 'M') && !busy) {
+      const k = Object.keys(MIRRORS), n = k[(k.indexOf(mirrorKey) + 1) % k.length];
+      withBusy(async () => { applyMirror(n); captureEnv(); });
+      return;
+    }
+    if ((e.key === 'b' || e.key === 'B') && !busy && mirrorKey !== 'full') {
+      const k = Object.keys(BACKDROPS), n = k[(k.indexOf(backKey) + 1) % k.length];
+      withBusy(async () => { applyBackdrop(n); captureEnv(); });
       return;
     }
     if (e.key === 'd' || e.key === 'D') { setDoor(!DOOR.open); return; }
@@ -2854,6 +3131,9 @@ try {
   buildLights();
   setStatus('Laying out the stone and the veneer…');
   await applyPalette(paletteKey);
+  await applyPrewall(prewallKey, false);
+  applyBackdrop(backKey);
+  applyMirror(mirrorKey);
   applyCeiling(ceilKey);
   applyMood(moodKey);
   setStatus('Lighting the room…');
@@ -2866,7 +3146,7 @@ try {
   goTo(VIEWS[0], true);
   renderFrame();
   window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, PALETTES, applyVanity, setFlip, setDoor, setCabinet, CABINET, applyWall, WALLS, applyStoneChoice,
-    PAINTS, WOODS, FLOORS, applyPaint, applyWoodChoice, setFloor, roomEv, CEILINGS, applyCeiling, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+    PAINTS, WOODS, FLOORS, applyPaint, applyWoodChoice, setFloor, roomEv, CEILINGS, applyCeiling, MIRRORS, BACKDROPS, applyMirror, applyBackdrop, GLOW, mirrorRefl, PREWALLS, GLAZES, applyPrewall, applyGlaze, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
