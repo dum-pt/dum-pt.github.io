@@ -764,21 +764,21 @@ const METALS = {
 // four characters for the room: the Street basin's stone to start with (also the WC pre-wall), the wood of its
 // drawer and the paint of the walls, the ceiling and the door to start with (the pickers change all three), the
 // plaster they are in, the fittings, the colour of the epoxy or tiled floor, the WC, the mirror's tint, the pendant
-// (glass: its colour; light: what it is); panels: fluted panelling in the wood; cab: the cabinet's front (flat or
-// fluted), its finish (the wood, or a paint with its roughness, coat and label) and knobs; print: the picture on the
-// north wall; frame: black, the wood, or a gilt colour; ev: the exposure (the pale rooms throw far more light back)
+// (glass: its tip's colour; light: what it is); panels: fluted panelling in the wood; cab: the cabinet's front (flat
+// or fluted), its finish (the wood, or a paint with its roughness, coat and label) and knobs; print: the picture on
+// the north wall; frame: black, the wood, or a gilt colour; ev: the exposure (the pale rooms throw far more light back)
 const PALETTES = {
   noir: { label: 'Noir', street: 'marquina', wood: 'smoked', paint: 'charcoal', plaster: 'lime plaster', metal: 'gunmetal', floor: '#423d39',
-    wc: '#1d1c1b', wcRough: 0.42, wcLabel: 'matte black', mirror: '#d9c9b3', mirrorLabel: 'bronze', glass: '#8a7a6b', light: 'smoked glass globe', pendant: 'globe', towel: '#5a5550',
+    wc: '#1d1c1b', wcRough: 0.42, wcLabel: 'matte black', mirror: '#d9c9b3', mirrorLabel: 'bronze', glass: '#8a7a6b', light: 'slim gunmetal tube pendant, smoked glass tip', towel: '#5a5550',
     panels: false, cab: { front: 'flat', finish: 'wood', desc: 'flat panels, handleless' }, ev: 1.75, print: 'abstract', frame: 'black' },
   cosy: { label: 'Cosy', street: 'levanto', wood: 'walnutPhoto', paint: 'taupe', plaster: 'clay plaster', metal: 'brass', floor: '#bda88f',
-    wc: '#f1efeb', wcRough: 0.18, wcLabel: 'white', mirror: '#f0eee9', mirrorLabel: 'clear', glass: '#f3e3cc', light: 'warm opal glass globe', pendant: 'globe', towel: '#d6c4ab',
+    wc: '#f1efeb', wcRough: 0.18, wcLabel: 'white', mirror: '#f0eee9', mirrorLabel: 'clear', glass: '#f3e3cc', light: 'slim brass tube pendant, warm opal glass tip', towel: '#d6c4ab',
     panels: 'fluted', cab: { front: 'fluted', finish: 'wood', desc: 'handleless' }, ev: 0.7, print: 'abstract', frame: 'wood' },
   jewel: { label: 'Jewel', street: 'carrara', wood: 'walnutPhoto', paint: 'forest', plaster: 'lime plaster', metal: 'brass', floor: '#e6e1d8',
-    wc: '#f1efeb', wcRough: 0.18, wcLabel: 'white', mirror: '#f0f2f1', mirrorLabel: 'clear', glass: '#f2ece2', light: 'opal glass globe', pendant: 'globe', towel: '#ebe5da',
+    wc: '#f1efeb', wcRough: 0.18, wcLabel: 'white', mirror: '#f0f2f1', mirrorLabel: 'clear', glass: '#f2ece2', light: 'slim brass tube pendant, opal glass tip', towel: '#ebe5da',
     panels: false, cab: { front: 'flat', finish: '#2a4a3c', rough: 0.2, coat: 0.9, knobs: true, label: 'deep green lacquer, brass knobs' }, ev: 0.85, print: 'abstract', frame: '#b8955a' },
   japandi: { label: 'Japandi', street: 'taj', wood: 'whiteoak', paint: 'bone', plaster: 'limewash', metal: 'black', floor: '#c9c1b4',
-    wc: '#efede8', wcRough: 0.35, wcLabel: 'matte white', mirror: '#f0efec', mirrorLabel: 'clear', glass: '#f4ebdb', light: 'washi paper lantern', pendant: 'lantern', towel: '#c9bca8',
+    wc: '#efede8', wcRough: 0.35, wcLabel: 'matte white', mirror: '#f0efec', mirrorLabel: 'clear', glass: '#f4ebdb', light: 'slim black tube pendant, opal glass tip', towel: '#c9bca8',
     panels: false, cab: { front: 'flat', finish: 'wood', desc: 'full flat panels, handleless' }, ev: 0.42, print: 'enso', frame: 'wood' },
 };
 // the wall paints in the picker (each style's own among them); any other colour comes from its colour picker
@@ -961,7 +961,7 @@ const M = {
 // emissive surfaces, driven by the light mood
 const E = {
   down: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-  globe: physical({ color: 0xffffff, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 1, side: THREE.DoubleSide }),   // (the lantern is open)
+  globe: physical({ color: 0xffffff, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 1 }),
   led: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   nicheLed: physical({ color: 0xe8e4dc, roughness: 0.35, emissive: 0xffffff, emissiveIntensity: 0 }),   // opal diffuser
   // glow of the LED strip behind the mirror on the wall around it (additive, falls off with distance from the edge)
@@ -1402,27 +1402,23 @@ function buildCeilingFixtures() {
     put(M.dark, cyl(0.035, 0.004, 'z', [x, y, H - 0.001]));
     put(E.down, cyl(0.024, 0.002, 'z', [x, y, H - 0.0035]));
   }
-  // the pendant, hanging in front of the mirror beside the basin (the mirror doubles it): a mouth-blown glass globe
-  // on a hair-thin cable, or (Japandi) a washi paper lantern on its bamboo ribs with black wire rims
-  groups.pendants.add(PEND.globe, PEND.lantern);
+  // the pendant, hanging in front of the mirror beside the basin (the mirror doubles it): a slim tube in the
+  // fittings' finish whose foot is a short glass tip that glows (opal, smoked in Noir), rounded at the bottom, on a
+  // hair-thin cable from a flush canopy
   for (const [x, y] of PENDANTS) {
-    const g = (G, mat, geo) => { const m = new THREE.Mesh(geo, mat); G.add(m); return m; };
-    const { r, z } = PENDANT;
-    g(groups.pendants, M.metal, cyl(0.03, 0.01, 'z', [x, y, H - 0.005], 32));
-    g(PEND.globe, M.metal, cyl(0.0009, H - 0.01 - (z + r + 0.02), 'z', [x, y, (H - 0.01 + z + r + 0.02) / 2], 6));
-    g(PEND.globe, M.metal, cyl(0.013, 0.026, 'z', [x, y, z + r + 0.008], 24, 0.01));
-    g(PEND.globe, E.globe, sphere(r, [x, y, z], 48));
-    const lh = 0.36, lr = 0.12, prof = [];
-    for (let i = 0; i <= 72; i++) {
-      const t = i / 72, ribs = 1 - 0.022 * (0.5 + 0.5 * Math.cos(2 * Math.PI * 9 * t));
-      prof.push([Math.max(t < 0.5 ? 0.05 : 0.035, lr * Math.pow(Math.sin(Math.PI * t), 0.75)) * ribs, -lh / 2 + lh * t]);
+    const g = (mat, geo) => { const m = new THREE.Mesh(geo, mat); groups.pendants.add(m); return m; };
+    const { r, z0, z1, tip } = PENDANT, zt = z0 + tip, rg = r - 0.001, rc = 0.008, prof = [[0, 0]];
+    g(M.metal, cyl(0.03, 0.008, 'z', [x, y, H - 0.004], 40));
+    g(M.metal, cyl(0.0008, H - 0.008 - z1, 'z', [x, y, (H - 0.008 + z1) / 2], 6));
+    g(M.metal, cyl(r, z1 - zt, 'z', [x, y, (z1 + zt) / 2], 40));
+    for (let i = 0; i <= 8; i++) {
+      const a = -Math.PI / 2 + (i / 8) * (Math.PI / 2);
+      prof.push([rg - rc + rc * Math.cos(a), rc + rc * Math.sin(a)]);
     }
-    g(PEND.lantern, E.globe, lathe(prof, [x, y, z], 64));
-    for (const [rr, dz] of [[prof[0][0], -lh / 2], [prof[72][0], lh / 2]]) g(PEND.lantern, M.metal, new THREE.TorusGeometry(rr, 0.0015, 6, 48).translate(x, y, z + dz));
-    g(PEND.lantern, M.metal, cyl(0.0009, H - 0.01 - (z + lh / 2), 'z', [x, y, (H - 0.01 + z + lh / 2) / 2], 6));
+    prof.push([rg, tip + 0.002]);
+    g(E.globe, lathe(prof, [x, y, z0], 40));
   }
 }
-const PEND = { globe: new THREE.Group(), lantern: new THREE.Group() };
 // Tilt-out laundry hampers (two, lights and colours): a walnut front with a linen bag on a frame behind
 // it, pivoting on the front's bottom edge. Meshes are built in room coordinates, then shifted onto the pivot.
 const hampers = [];
@@ -1616,7 +1612,7 @@ const WT_COVE = WT + 0.04;
 const DOWNLIGHTS = [[54.7, YC], [55.42, YC]];          // in the middle of the room, over the WC
 const ART_SPOT = [(ART.x0 + ART.x1) / 2, 15.24];       // the picture light, aimed at the print
 const PENDANTS = [[54.43, 15.40]];
-const PENDANT = { r: 0.085, z: 1.6 };                  // the glass globe: radius and the height of its centre
+const PENDANT = { r: 0.024, z0: 1.45, z1: 1.75, tip: 0.07 };   // the tube's radius, its foot and top, the glass tip's height
 
 function buildFittings(skp) {
   // the WC (Duravit Starck 3, from the master bathroom's model), hung on its marble pre-wall, centred
@@ -2014,7 +2010,7 @@ function buildLights() {
   }
   for (const [x, y] of PENDANTS) {
     const p = new THREE.PointLight(0xffffff, 1, 0, 2);
-    p.position.copy(SU(x, y, PENDANT.z));
+    p.position.copy(SU(x, y, PENDANT.z0 + PENDANT.tip / 2));      // in the glass tip
     scene.add(p);
     L.pend.push(p);
   }
@@ -2140,7 +2136,7 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// The room has no daylight: three moods of its own lights. pend: the globe pendant; led: the backlit basin and the
+// The room has no daylight: three moods of its own lights. pend: the pendant; led: the backlit basin and the
 // floor wash under it; art: the picture light; down: the two downlights; candle: the two candles. tint: the colour
 // of the lamps as the eye sees it (set directly: the kelvin approximation drops blue too steeply this warm).
 // sky only sets the dark outside.
@@ -2215,8 +2211,6 @@ async function applyPalette(key) {
   for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === wallKey + '/' + p.cab.front;
   for (const g of CABINET.knobs) g.visible = !!p.cab.knobs;
   groups.panels.visible = p.panels === 'fluted';
-  PEND.globe.visible = p.pendant === 'globe';
-  PEND.lantern.visible = p.pendant === 'lantern';
   M.art.map = printTexture(p.print);
   M.art.needsUpdate = true;
   dropPhotos();
