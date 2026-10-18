@@ -2896,6 +2896,7 @@ function buildUI() {
   $('t-refl').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); setReflections(e.currentTarget.classList.contains('on')); });
   $('t-cab').addEventListener('click', () => setCabinet(!CABINET.open, true));
   $('t-door').addEventListener('click', () => setDoor(!DOOR.open));
+  $('t-snap').addEventListener('click', () => saveImage());
   $('t-ao').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); postOn = e.currentTarget.classList.contains('on'); gtao.enabled = bloom.enabled = postOn; dirty = true; });
   window.addEventListener('keydown', (e) => {
     if (e.target.closest && e.target.closest('input, textarea')) return;

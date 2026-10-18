@@ -2473,6 +2473,7 @@ function buildUI() {
   $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   seg($('film'), { on: { label: 'On · clear' }, off: { label: 'Off · frosted' } }, (k) => setFilm(k === 'off'), 'on');
+  $('t-snap').addEventListener('click', () => saveImage());
   $('t-ao').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); postOn = e.currentTarget.classList.contains('on'); gtao.enabled = bloom.enabled = postOn; dirty = true; });
   window.addEventListener('keydown', (e) => {
     if (e.target.closest && e.target.closest('input, textarea')) return;
