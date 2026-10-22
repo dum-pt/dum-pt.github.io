@@ -126,6 +126,8 @@
   </div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide the terrace doors open or shut (D)">Open terrace doors</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the hall open or shut (G)">Open glass door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-layout" aria-pressed="false" title="Swap the living room and the dining: the TV to the north wall, the dining wall's cabinets to the east wall between the glazings (L)">Swap living &amp; dining</button></div>
+    <div class="winrow" title="The kitchen window's exterior venetian blinds: retracted (left) to let down to the sill (right); B lets them down or retracts them"><span>Blinds</span><input type="range" id="blind" min="0" max="1" step="0.01" value="0" aria-label="Kitchen window's exterior blinds, retracted to down"></div>
+    <div class="winrow" title="Slat angle of the kitchen window's exterior blinds: open (left) to closed (right)"><span>Slats</span><input type="range" id="slats" min="0" max="1" step="0.01" value="0.3" aria-label="Slat angle, open to closed"></div>
   </div>
   <div class="group"><h2>Render</h2>
     <div class="chips">
@@ -191,7 +193,7 @@ const SU = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
 // the south (three panes, a steel column inside the corner), a covered terrace round both; on the north the dining wall
 // of tall white cabinets with a mirrored niche and a floating sideboard in front of it, the bedroom behind. On the west
 // the kitchen (KX0..KX1, YK..Y1) under a lowered ceiling: a run along the facade between tall units, its worktop running
-// into a window strip screened outside by the facade's battens, and an island facing the living room; the pantry south
+// into a window strip with exterior blinds outside, and an island facing the living room; the pantry south
 // of it behind a doorway; north of the living room the lobby, with the glass door to the hall and the bedroom corridor.
 const X0 = 43.06, X1 = 50.23;          // the south glazing's inner face / the dining wall's front
 const Y0 = 10.105, YK = 14.545;        // the east wall's inner face / the kitchen's line (its fascia, the pantry's wall)
@@ -235,9 +237,13 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs:
 // lined, up to the lowered ceiling), oak shelves along its south wall (to sx1, at shelves), a tall unit at the facade
 const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.89, tall: [43.89, 44.49, 16.1] };
 // the west facade: the kitchen's window strip (its frame x0..x1, y0..y1, z0..z1: a fixed pane, the mullion, a tilt-and-
-// turn sash; the panes at glass); outside, the battens (9.2 cm on a 10.2 cm pitch, y0..y1) in front of it and a granite sill
+// turn sash; the panes at glass); outside, the facade's battens (9.2 cm on a 10.2 cm pitch, y0..y1) stop round it, its
+// reveal lined out to their face, a granite sill
 const KW = { x0: 45.445, x1: 48.385, y0: 16.88, y1: 17.03, z0: 0.879, z1: 1.599, mull: [47.695, 47.781], glass: 16.955 };
 const BATTENS = { y0: 17.29, y1: 17.31, w: 0.092, pitch: 0.102, x0: 44.413, x1: 49.45 };
+// exterior venetian blinds in the window's outer reveal, as in the bathrooms: guide rails on the reveal faces (x0, x1),
+// the slats' centre line at y, from the head down to the sill
+const BLIND = { x0: KW.x0, x1: KW.x1, y: 17.13, head: KW.z1, sill: KW.z0 };
 // the kitchen run along the facade: fronts 2 cm, their face at fy, the carcasses to the wall, a 7.5 cm plinth set back,
 // 3 mm gaps; tall units at both ends to the ceiling (the fridges; the oven at the worktop's height, the coffee machine in
 // an open niche), base units between (the sink's, the dishwasher, drawers under the hob), the worktop over them (3 cm,
@@ -2319,9 +2325,73 @@ function setCurtains(closed) {
   chip('t-curt', closed, closed ? 'Open curtains' : 'Close curtains');
   dirty = true;
 }
-// the sky's light through the east and south glazing, softened by the drawn curtains (setSun sets L.skyLevel)
+// the sky's light through the east and south glazing, softened by the drawn curtains, and through the kitchen's window,
+// by its blinds (setSun sets L.skyLevel)
 function applySky() {
-  L.sky.forEach(([a, k], i) => { a.intensity = L.skyLevel * k * (i < 3 ? 1 - 0.6 * CURT.t : 1); });
+  L.sky.forEach(([a, k], i) => { a.intensity = L.skyLevel * k * (i < 3 ? 1 - 0.6 * CURT.t : blindLight()); });
+}
+// ---------------------------------------------------------------- the kitchen window's exterior venetian blinds
+// Retractable, tiltable outdoor blinds in the window's outer reveal (as in the bathrooms): C80 aluminium slats in
+// anthracite between side guide rails, a heavier bottom rail and ladder cords. Let down, the slats hang from the bottom
+// rail up at their 72 mm pitch; the rest wait packed in a box hidden in the lintel. BLINDS.down: how far they are let
+// down (0 retracted .. 1 to the sill), target: where they are travelling to; tilt: 0 open (horizontal) .. 1 closed
+// (80 degrees, the outer edge down). The slats cast the real sun's shadows; blindLight() dims the window's sky light.
+const SLAT = { w: 0.08, pitch: 0.072, t: 0.0045 };
+const BLINDS = { down: 0, target: 0, tilt: 0.3, slats: null, rail: null, cords: [], cordX: [], n: 0, cx: 0 };
+function buildBlinds() {
+  const { x0, x1, y, head, sill } = BLIND, gw = 0.024, len = x1 - x0 - gw;
+  const G = new THREE.Group();
+  R.add(G);
+  const part = (geo, shadow = true) => { const m = new THREE.Mesh(geo, M.anthOut); m.castShadow = shadow; m.receiveShadow = true; G.add(m); return m; };
+  part(box(x0, x0 + gw, y - 0.03, y + 0.03, sill, head));                         // guide rails
+  part(box(x1 - gw, x1, y - 0.03, y + 0.03, sill, head));
+  // a slat: a crowned strip along x, its width across the reveal (y), turned about its length to tilt
+  const g = new THREE.BoxGeometry(len, SLAT.w, SLAT.t, 1, 8, 1), P = g.attributes.position;
+  for (let i = 0; i < P.count; i++) { const v = P.getY(i) / (SLAT.w / 2); P.setZ(i, P.getZ(i) + 0.006 * (1 - v * v)); }
+  g.computeVertexNormals();
+  BLINDS.n = Math.ceil((head - sill) / SLAT.pitch);
+  BLINDS.slats = new THREE.InstancedMesh(g, M.anthOut, BLINDS.n);
+  Object.assign(BLINDS.slats, { castShadow: true, receiveShadow: true, frustumCulled: false });
+  G.add(BLINDS.slats);
+  BLINDS.cx = (x0 + x1) / 2;
+  BLINDS.rail = part(box(-len / 2, len / 2, -0.036, 0.036, -0.0125, 0.0125));
+  for (const f of [0.12, 0.5, 0.88]) {
+    BLINDS.cordX.push(x0 + gw / 2 + len * f);
+    BLINDS.cords.push(part(cyl(0.0015, 1, 'z', [0, 0, 0.5], 6), false));
+  }
+  updateBlinds();
+}
+function updateBlinds() {
+  const { y, head, sill } = BLIND, drop = BLINDS.down * (head - sill), bottom = head - drop, shown = drop > 0.02;
+  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -THREE.MathUtils.degToRad(80 * BLINDS.tilt));
+  const m = new THREE.Matrix4(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+  for (let i = 0; i < BLINDS.n; i++) {
+    const z = bottom + 0.035 + i * SLAT.pitch;
+    sc.setScalar(shown && z < head - 0.012 ? 1 : 0);
+    BLINDS.slats.setMatrixAt(i, m.compose(p.set(BLINDS.cx, y, z), q, sc));
+  }
+  BLINDS.slats.instanceMatrix.needsUpdate = true;
+  BLINDS.rail.visible = shown;
+  BLINDS.rail.position.set(BLINDS.cx, y, bottom);
+  BLINDS.cords.forEach((c, i) => { c.visible = shown; c.position.set(BLINDS.cordX[i], y, bottom); c.scale.z = Math.max(drop, 0.001); });
+  renderer.shadowMap.needsUpdate = true;
+  dirty = true;
+}
+// let the blinds down (0..1) and tilt the slats (0..1); animated, they travel at about 0.45 of the drop a second
+function setBlinds(down, tilt = BLINDS.tilt, animate = false) {
+  BLINDS.target = down;
+  BLINDS.tilt = tilt;
+  if (!animate) BLINDS.down = down;
+  $('blind').value = down;
+  $('slats').value = tilt;
+  updateBlinds();
+  applySky();
+  envSoon();
+}
+// the share of daylight the blinds let through
+function blindLight() {
+  const a = THREE.MathUtils.degToRad(80 * BLINDS.tilt);
+  return 1 - BLINDS.down * Math.min(1, (SLAT.w * Math.sin(a) + SLAT.t * Math.cos(a)) / SLAT.pitch);
 }
 // living and dining as drawn or swapped (LAYOUT): the zones move, the dining wall changes, the lamps and the mirror's
 // reflection go along
@@ -2374,6 +2444,14 @@ function animateOpenings(dt) {
     shapeCurtains(ease(CURT.t));
     applySky();
     if (CURT.t === 0 || CURT.t === 1) envSoon();
+    moved = true;
+  }
+  if (BLINDS.slats && BLINDS.down !== BLINDS.target) {
+    const d = BLINDS.target - BLINDS.down;
+    BLINDS.down += Math.sign(d) * Math.min(Math.abs(d), dt * 0.45);
+    updateBlinds();
+    applySky();
+    if (BLINDS.down === BLINDS.target) envSoon();
     moved = true;
   }
   if (moved) renderer.shadowMap.needsUpdate = true;
@@ -2429,18 +2507,21 @@ function buildSurroundings(viewTex) {
   o(M.anthOut, mergeGeometries([box(SOFFIT.x0, 50.71, SOFFIT.y0 - 0.03, SOFFIT.y0, H - 0.05, H + 1.0, { faces: 'yxXzZ' }), box(SOFFIT.x0 - 0.03, SOFFIT.x0, SOFFIT.y0, T.y1 + 0.2, H - 0.05, H + 1.0, { faces: 'xyYzZ' })]), true, RF);
   o(M.anthOut, box(...POST, 0, H));
   for (const x of FINS) o(M.battens, box(x - 0.02, x + 0.02, 16.8, 16.94, 0, H));
-  // the facades: the battens over the TV wall and the south wall; on the west, the battens in front of the kitchen's
-  // window strip over the dark membrane, the window's reveal in render, its granite sill
+  // the facades: the battens over the TV wall and the south wall; on the west, the battens over the dark membrane,
+  // stopping round the kitchen's window strip (its reveal in render out to their face, its granite sill)
   o(M.battenWall, box(EG_B.x1, EG_A.x0, 9.524, YW, 0, H, { faces: 'yxX' }));
   o(M.battenWall, box(XS - 0.02, XS, SG.y1, T.y1, 0, H, { faces: 'x' }));
   {
     const B = BATTENS, z0 = -0.3, z1 = H + 0.3, g = [];
     for (const [a, b, c, d] of [[B.x0, KW.x0, z0, z1], [KW.x1, B.x1, z0, z1], [KW.x0, KW.x1, z0, KW.z0 - 0.03], [KW.x0, KW.x1, KW.z1, z1]]) g.push(box(a, b, YE, YE + 0.01, c, d, { faces: 'y' }));
     o(M.facade, mergeGeometries(g), false);
-    o(M.render, mergeGeometries([box(KW.x0, KW.x0 + 0.001, KW.y1, YE, KW.z0, KW.z1, { faces: 'X' }), box(KW.x1 - 0.001, KW.x1, KW.y1, YE, KW.z0, KW.z1, { faces: 'x' }), box(KW.x0, KW.x1, KW.y1, YE, KW.z1, KW.z1 + 0.001, { faces: 'z' })]));
+    o(M.render, mergeGeometries([box(KW.x0, KW.x0 + 0.001, KW.y1, B.y1, KW.z0, KW.z1, { faces: 'X' }), box(KW.x1 - 0.001, KW.x1, KW.y1, B.y1, KW.z0, KW.z1, { faces: 'x' }), box(KW.x0, KW.x1, KW.y1, B.y1, KW.z1, KW.z1 + 0.001, { faces: 'z' })]));
     o(M.granite, box(KW.x0, KW.x1, KW.y1, 17.34, KW.z0 - 0.03, KW.z0));
     const bs = [];
-    for (let x = B.x0; x + B.w <= B.x1 + 1e-6; x += B.pitch) bs.push(box(x, x + B.w, B.y0, B.y1, -0.2, H + 0.25, { faces: 'xXyY' }));
+    for (let x = B.x0; x + B.w <= B.x1 + 1e-6; x += B.pitch) {
+      if (x + B.w > KW.x0 && x < KW.x1) bs.push(box(x, x + B.w, B.y0, B.y1, -0.2, KW.z0 - 0.03, { faces: 'xXyYZ' }), box(x, x + B.w, B.y0, B.y1, KW.z1, H + 0.25, { faces: 'xXyYz' }));
+      else bs.push(box(x, x + B.w, B.y0, B.y1, -0.2, H + 0.25, { faces: 'xXyY' }));
+    }
     o(M.battens, mergeGeometries(bs));
   }
 
@@ -2558,7 +2639,7 @@ function buildLights() {
       { pos: [...sw('tv', (T.x0 + T.x1) / 2, T.y1 - 0.054), T.z0 - 0.003], w: 0.012, h: l });
   }
   // daylight: the sun, with shadows over the room and the terrace; the sky's light coming in through each glazing as a
-  // soft area light facing into the room (the kitchen's window strip, behind the battens, lets in less; setSun)
+  // soft area light facing into the room (the kitchen's window strip, in its deep reveal, a little less; setSun, applySky)
   L.sun = new THREE.DirectionalLight(0xffffff, 0);
   L.sun.castShadow = true;
   L.sun.shadow.mapSize.set(2048, 2048);
@@ -2578,7 +2659,7 @@ function buildLights() {
   }
   {
     const x = (KW.x0 + KW.x1) / 2, z = (KW.z0 + KW.z1) / 2;
-    skyArea(0.3, KW.x1 - KW.x0 - 0.12, KW.z1 - KW.z0, SU(x, KW.y0 - 0.005, z), SU(x, 14, z));
+    skyArea(0.7, KW.x1 - KW.x0 - 0.12, KW.z1 - KW.z0, SU(x, KW.y0 - 0.005, z), SU(x, 14, z));
   }
 }
 
@@ -2656,7 +2737,7 @@ function kelvinRaw(k) {
 // the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); hall: the hall's and
 // the corridor's lamps, seen beyond the lobby. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
 // horizon, for the dusk outside. Day: daylight only, the sun coming in through the east glazing in the morning, the south
-// at noon (and under the soffit in the evening, through the kitchen's battens)
+// at noon (and under the soffit in the evening, through the kitchen's window)
 const MOODS = {
   evening: { label: 'Evening', spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
   bright: { label: 'Bright', spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
@@ -3104,6 +3185,8 @@ function buildUI() {
   $('t-glass').addEventListener('click', () => setGlass(!GLASS.open));
   $('t-curt').addEventListener('click', () => setCurtains(!CURT.closed));
   $('t-layout').addEventListener('click', () => setLayout(!layoutSwapped));
+  $('blind').addEventListener('input', (e) => setBlinds(parseFloat(e.target.value)));
+  $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   $('t-snap').addEventListener('click', () => saveImage());
   $('t-ao').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); postOn = e.currentTarget.classList.contains('on'); gtao.enabled = bloom.enabled = postOn; dirty = true; });
   // keys: the next choice in a picker
@@ -3116,6 +3199,7 @@ function buildUI() {
     if (k === 'g') { setGlass(!GLASS.open); return; }
     if (k === 'c') { setCurtains(!CURT.closed); return; }
     if (k === 'l') { setLayout(!layoutSwapped); return; }
+    if (k === 'b') { setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true); return; }
     if (busy) return;
     if (k === 's') {
       const n = next(Object.keys(PALETTES), paletteKey);
@@ -3290,6 +3374,7 @@ try {
   buildDoors();
   buildCurtains();
   buildSurroundings(await loadView());
+  buildBlinds();
   buildLights();
   setStatus('Laying out the wood and the stone…');
   await applyPalette(paletteKey);
@@ -3302,7 +3387,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setBlinds, BLINDS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
