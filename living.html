@@ -280,19 +280,25 @@ const KSLOT = { x0: 45.99, x1: 47.99, y: 16.0, w: 0.06, d: 0.045, spots: [46.04,
 // the two Vibia Skan pendants over the table (from the model): where their diffusers hang
 const SKAN = [[48.679, 11.425, 1.71], [48.68, 11.965, 1.455]];
 // the layout: as drawn the dining is at the north end (the table before the dining wall) and the living room at the
-// south (the sofa facing the TV on the east wall between the glazings). Swapped (setLayout), the TV hangs on a plastered
-// wall in the dining wall's place with the sofa facing it (mirrored: its chaise at the west end, clear of the terrace
-// door), and the dining wall's cabinets, niche and sideboard (BUILT_E, SIDEBOARD_E: shortened to fit) stand on the east
-// wall between the glazings with the table before them. Each zone moves as one: from / to / m take a point as drawn to
-// its place swapped ((dx, dy) to (m0 dx + m1 dy, m2 dx + m3 dy)): the dining wall centred on the east wall, the table
-// (with its chairs and pendants) south of its middle to leave a way past the sofa's back; the lounge chair goes by the
-// TV's east end, turned (degrees) towards the sofa
+// south (the sofa facing the TV on the east wall between the glazings). Swapped (setLayout), the dining wall's cabinets
+// go (the room runs on 34 cm to the bedroom's wall), the TV hangs on that wall with the sofa facing it (mirrored: its
+// chaise at the west end, clear of the terrace door; set east, away from the island; a low cabinet in the wood behind
+// it, BENCH), and the dining wall's cabinets, niche and sideboard (BUILT_E, SIDEBOARD_E: shortened to fit) stand on the
+// east wall between the glazings, the table turned across the room before them. Each zone moves as one: from / to / m
+// take a point as drawn to its place swapped ((dx, dy) to (m0 dx + m1 dy, m2 dx + m3 dy)): the TV unit centred on the
+// north wall, the seating east of it; the dining wall centred on the east wall, the table (with its chairs and pendants)
+// south of its middle to leave a way past the cabinet behind the sofa; the lounge chair goes by the TV's east end,
+// turned (degrees) towards the sofa
 const LAYOUT = {
-  living: { from: [45.879, Y0], to: [X1, 11.77], m: [0, -1, -1, 0] },
+  tv: { from: [45.879, Y0], to: [BUILT.x1, 11.825], m: [0, -1, -1, 0] },
+  living: { from: [45.879, Y0], to: [BUILT.x1, 11.45], m: [0, -1, -1, 0] },
   diningWall: { from: [X1, 11.75], to: [45.897, Y0 + 0.34], m: [0, 1, -1, 0] },
-  dining: { from: [X1, 11.75], to: [45.15, Y0 + 0.34], m: [0, 1, -1, 0] },
-  lounge: { from: [43.625, 10.425], to: [49.35, 10.6], turn: 60 },
+  dining: { from: [48.67, 11.742], to: [45.5, 12.35], m: [1, 0, 0, 1] },
+  lounge: { from: [43.625, 10.425], to: [49.6, 10.6], turn: 60 },
 };
+// the low cabinet behind the sofa when swapped (as drawn: along the sofa's back, x0..x1, y0..y1, its top at z, on a
+// recessed black plinth; n handleless fronts facing away from the sofa)
+const BENCH = { x0: 43.9, x1: 46.6, y0: SOFA.y1 + 0.01, y1: SOFA.y1 + 0.39, z: 0.46, plinth: 0.06, n: 4 };
 const BUILT_E = { ...BUILT, y0: 10.438, y1: 13.063 };
 const SIDEBOARD_E = { ...SIDEBOARD, y0: 10.75, y1: 12.75, top: { ...SIDEBOARD.top, y0: 10.7, y1: 12.8 } };
 // a point (x, y) as drawn, swapped; the same move as a matrix
@@ -1533,12 +1539,12 @@ function mulberry(a) {
 // ---------------------------------------------------------------- build the room
 const groups = { ceiling: new THREE.Group(), pendants: new THREE.Group(), room: new THREE.Group() };
 for (const g of Object.values(groups)) R.add(g);
-// what moves with the layout (setLayout): the living room's furniture (and its ring, with the pendants), the dining's
-// (its pendants likewise), the lounge chair; the dining wall as drawn and, swapped, its cabinets on the east wall (in
-// the dining's frame) and the plastered TV wall in its place
-const zones = { living: new THREE.Group(), ring: new THREE.Group(), dining: new THREE.Group(), skan: new THREE.Group(), lounge: new THREE.Group(),
-  wall: new THREE.Group(), wallE: new THREE.Group(), tvWall: new THREE.Group() };
-for (const k of ['living', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
+// what moves with the layout (setLayout): the living room's seating (and its ring, with the pendants), its TV unit, the
+// cabinet behind the sofa (swapped only), the dining's furniture (its pendants likewise), the lounge chair; the dining
+// wall as drawn and, swapped, its cabinets on the east wall (in their own frame) and the bedroom's wall bare in its place
+const zones = { living: new THREE.Group(), ring: new THREE.Group(), tv: new THREE.Group(), bench: new THREE.Group(), dining: new THREE.Group(),
+  skan: new THREE.Group(), lounge: new THREE.Group(), wall: new THREE.Group(), wallE: new THREE.Group(), tvWall: new THREE.Group() };
+for (const k of ['living', 'tv', 'bench', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
 groups.pendants.add(zones.ring, zones.skan);
 for (const g of Object.values(zones)) g.matrixAutoUpdate = false;
 let floorMesh, mirrorMesh, frontMesh;
@@ -1586,7 +1592,7 @@ function buildArchitecture() {
   // the floor: one plane (the planar reflector) through the room, the lobby and on along the bedroom's corridor, the
   // kitchen, the pantry, into the glazings' reveals and the openings
   const fl = mergeGeometries([
-    [X0, X1, Y0, YK], [X1, 52.0, BUILT.y1, YK], [KX0, KX1, YK, Y1], [PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1], [PANTRY.x1, KX0, ...PANTRY.door],
+    [X0, X1, Y0, YK], [X1, BUILT.x1, Y0, BUILT.y1], [X1, 52.0, BUILT.y1, YK], [KX0, KX1, YK, Y1], [PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1], [PANTRY.x1, KX0, ...PANTRY.door],
     [DOOR_S[0], DOOR_S[1], YK, 14.795], [EG_A.x0, EG_A.x1, EG.fy1, Y0], [EG_B.x0, EG_B.x1, EG.fy1, Y0],
   ].map(([a, b, c, d]) => box(a, b, c, d, -0.05, 0, { faces: 'Z' })));
   floorMesh = new THREE.Mesh(fl, M.floor);
@@ -1677,6 +1683,7 @@ function buildCeiling() {
     }
   }
   put(M.ceiling, box(X1, 52.0, BUILT.y1, YK, H, WT, { faces: 'z' }));
+  put(M.ceiling, box(X1, BUILT.x1, Y0, BUILT.y1, H, WT, { faces: 'z' }));      // (over the dining wall's cabinets: swapped, they are gone)
   put(M.ceiling, box(PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1, HK, WT, { faces: 'z' }));
   const s0 = KSLOT.y - KSLOT.w / 2, s1 = KSLOT.y + KSLOT.w / 2, zt = HK + KSLOT.d;
   put(M.ceiling, box(KX0, KX1, YK, s0, HK, WT, { faces: 'z' }));
@@ -1910,13 +1917,13 @@ function buildIslandLight() {
 function buildDining() {
   flush(groups.room);
   // the dining wall as drawn (north); swapped, its cabinets on the east wall (built as drawn, shortened, moved there with
-  // the dining) and a plastered wall for the TV in its place
+  // the dining) and, in its place, the bedroom's wall bare for the TV
   zones.wall.add(buildDiningWall(BUILT, SIDEBOARD, false));
   flush(zones.wall);
   zones.wallE.add(buildDiningWall(BUILT_E, SIDEBOARD_E, true));
   flush(zones.wallE);
   zones.wallE.matrix.copy(layoutMatrix(LAYOUT.diningWall));
-  add(M.plaster, box(X1, BUILT.x1, Y0, BUILT.y1, 0, H, { faces: 'xY' }));
+  add(M.plaster, box(BUILT.x1 - 0.01, BUILT.x1, Y0, BUILT.y1, 0, H, { faces: 'x' }));
   flush(zones.tvWall);
   zones.wallE.visible = zones.tvWall.visible = false;
   // the dining table: the wood, four square legs flush at its corners
@@ -2038,6 +2045,15 @@ function buildLiving() {
     add(M.anth, cyl(0.3, 0.015, 'z', [x, y, 0.0075], 64));
     add(M.anth, lathe([[0.13, 0.015], [0.105, 0.12], [0.17, h - 0.03]], c, 48));
   }
+  // the coffee table: books, a candle in a dark vessel
+  {
+    const { x, y, h } = COFFEE_TABLE;
+    book(x - 0.1, y + 0.08, h, 0.25, 0.31, 0.028, 0.4, M.book3);
+    book(x - 0.1, y + 0.08, h + 0.028, 0.22, 0.28, 0.022, 0.55, M.book2);
+    add(M.potteryDark, lathe([[0.001, 0], [0.05, 0], [0.052, 0.09], [0.046, 0.09], [0.044, 0.01], [0.001, 0.01]], [x + 0.17, y - 0.1, h], 32));
+    add(M.wax, cyl(0.043, 0.06, 'z', [x + 0.17, y - 0.1, h + 0.04], 32));
+  }
+  flush(zones.living);
   // the floating TV unit: four fronts in the wood, the LED line under it; the TV on the wall over it
   {
     const T = TV_UNIT, n = 4, w2 = (T.x1 - T.x0) / n, g = RUN.gap / 2;
@@ -2048,14 +2064,6 @@ function buildLiving() {
     add(M.trim, box(TV.x0, TV.x1, Y0, Y0 + 0.03, TV.z0, TV.z1, { faces: 'xXzZ' }));
     add(M.screen, box(TV.x0 + 0.004, TV.x1 - 0.004, Y0, Y0 + 0.0305, TV.z0 + 0.004, TV.z1 - 0.004, { faces: 'Y' }));
   }
-  // the coffee table: books, a candle in a dark vessel
-  {
-    const { x, y, h } = COFFEE_TABLE;
-    book(x - 0.1, y + 0.08, h, 0.25, 0.31, 0.028, 0.4, M.book3);
-    book(x - 0.1, y + 0.08, h + 0.028, 0.22, 0.28, 0.022, 0.55, M.book2);
-    add(M.potteryDark, lathe([[0.001, 0], [0.05, 0], [0.052, 0.09], [0.046, 0.09], [0.044, 0.01], [0.001, 0.01]], [x + 0.17, y - 0.1, h], 32));
-    add(M.wax, cyl(0.043, 0.06, 'z', [x + 0.17, y - 0.1, h + 0.04], 32));
-  }
   // the TV unit: a vase, books
   {
     const z = TV_UNIT.z1;
@@ -2063,7 +2071,23 @@ function buildLiving() {
     twigs(45.0, 10.33, z + 0.2, 7, 0.5, 13);
     book(46.95, 10.3, z, 0.17, 0.24, 0.03, 0.0, M.book1);
   }
-  flush(zones.living);
+  flush(zones.tv);
+  // swapped: the low cabinet behind the sofa (zones.bench, shown only then): the wood, four handleless fronts facing away
+  // from the sofa, a recessed black plinth; a bowl and books on it
+  {
+    const B = BENCH, w = (B.x1 - B.x0) / B.n, g = RUN.gap / 2, p = B.plinth, f = B.y1 - 0.02, zt = B.z - 0.02, y = (B.y0 + B.y1) / 2;
+    add(M.trim, box(B.x0 + 0.04, B.x1 - 0.04, B.y0 + 0.03, B.y1 - 0.05, 0, p, { faces: 'xXyY' }));
+    add(M.veneer, box(B.x0, B.x1, B.y0, f, p, zt, { faces: 'xXyz' }));
+    add(M.veneer, box(B.x0, B.x1, B.y0, B.y1, zt, B.z, { faces: 'xXyYZ' }));
+    for (let i = 0; i < B.n; i++) add(M.veneer, box(B.x0 + i * w + g, B.x0 + (i + 1) * w - g, f, B.y1, p + g, zt - g, { faces: 'xXYzZ' }));
+    add(M.joint, box(B.x0, B.x1, f - 0.005, f, p, zt, { faces: 'Y' }), { shadow: false });
+    add(M.potteryDark, lathe(BOWL.map(([r, h]) => [r * 0.9, h]), [B.x0 + 0.45, y, B.z], 40));
+    book(B.x1 - 0.4, y, B.z, 0.22, 0.28, 0.03, 0.15, M.book2);
+    book(B.x1 - 0.4, y, B.z + 0.03, 0.2, 0.26, 0.025, -0.05, M.book3);
+    flush(zones.bench);
+    zones.bench.matrix.copy(layoutMatrix(LAYOUT.living));
+    zones.bench.visible = false;
+  }
 }
 
 // ---------------------------------------------------------------- things
@@ -2182,7 +2206,7 @@ function buildMeshes({ meta, buf }) {
     walk(c[0], lift.clone().multiply(new THREE.Matrix4().fromArray(c, 2)), c[1], parts);
     for (const [mat, g] of parts) add(mat, g);
     const has = (m) => parts.some(([mat]) => mat === m);
-    flush(has(E.skan) ? zones.skan : has(M.chair) ? zones.dining : has(M.lounge) ? zones.lounge : has(M.reed) ? zones.living : groups.room);
+    flush(has(E.skan) ? zones.skan : has(M.chair) ? zones.dining : has(M.lounge) ? zones.lounge : has(M.reed) ? zones.tv : groups.room);
   }
 }
 
@@ -2305,12 +2329,12 @@ let layoutSwapped = false;
 function setLayout(on) {
   layoutSwapped = on;
   const I = new THREE.Matrix4();
-  for (const [g, k] of [[zones.living, 'living'], [zones.ring, 'living'], [zones.dining, 'dining'], [zones.skan, 'dining'], [zones.lounge, 'lounge']]) {
+  for (const [g, k] of [[zones.living, 'living'], [zones.ring, 'living'], [zones.tv, 'tv'], [zones.dining, 'dining'], [zones.skan, 'dining'], [zones.lounge, 'lounge']]) {
     g.matrix.copy(on ? layoutMatrix(LAYOUT[k]) : I);
     g.matrixWorldNeedsUpdate = true;
   }
   zones.wall.visible = !on;
-  zones.wallE.visible = zones.tvWall.visible = on;
+  zones.wallE.visible = zones.tvWall.visible = zones.bench.visible = on;
   for (const { light, drawn, swapped } of L.layout) {
     const q = on ? swapped : drawn;
     light.position.copy(SU(...q.pos));
@@ -2531,7 +2555,7 @@ function buildLights() {
   {
     const T = TV_UNIT, l = T.x1 - T.x0 - 0.08;
     moves(area('wash', 1, l, 0.012, SU((T.x0 + T.x1) / 2, T.y1 - 0.054, T.z0 - 0.003)), { pos: [(T.x0 + T.x1) / 2, T.y1 - 0.054, T.z0 - 0.003], w: l, h: 0.012 },
-      { pos: [...sw('living', (T.x0 + T.x1) / 2, T.y1 - 0.054), T.z0 - 0.003], w: 0.012, h: l });
+      { pos: [...sw('tv', (T.x0 + T.x1) / 2, T.y1 - 0.054), T.z0 - 0.003], w: 0.012, h: l });
   }
   // daylight: the sun, with shadows over the room and the terrace; the sky's light coming in through each glazing as a
   // soft area light facing into the room (the kitchen's window strip, behind the battens, lets in less; setSun)
@@ -2900,9 +2924,9 @@ function renderLegend() {
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven, the coffee machine in a lit niche), drawers under the hob, wall units over the window strip', frontsC],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
-    ['Dining', (sw ? 'at the south end, before the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
+    ['Dining', (sw ? 'at the south end, across the room towards the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
     ['Dining wall', (sw ? 'on the east wall between the glazings, shortened to 2.6 m: ' : '') + 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
-    ['Living', (sw ? 'at the north end, facing the TV on a plastered wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an L-shaped sofa in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)', fab.color],
+    ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an L-shaped sofa in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
     ['Floor', floor, WOODS[p.floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); a frameless glass door to the hall', '#383b3e'],
@@ -2973,8 +2997,8 @@ const VIEWS = [
   { key: 'living', label: 'Living room', pos: [49.7, 13.9, 1.6], tgt: [44.6, 10.9, 0.95], fov: 72 },
   { key: 'kitchen', label: 'Kitchen', pos: [47.0, 10.75, 1.6], tgt: [47.0, 16.2, 1.05], fov: 74 },
   { key: 'island', label: 'Island', pos: [49.1, 13.7, 1.6], tgt: [46.3, 15.6, 0.9], fov: 66 },
-  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.2, 14.05, 1.6], tgt: [46.7, 9.6, 1.0] } },
-  { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.5, 13.75, 1.35], tgt: [50.2, 10.3, 1.1] } },
+  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [45.3, 14.2, 1.6], tgt: [45.9, 9.9, 1.0] } },
+  { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.6, 13.85, 1.35], tgt: [50.5, 10.4, 1.1] } },
   { key: 'worktop', label: 'Worktop', pos: [46.9, 15.0, 1.62], tgt: [46.9, 16.6, 0.95], fov: 70 },
   { key: 'plan', label: 'Plan', pos: [46.65, 13.4, 15], tgt: [46.65, 13.42, 0], fov: 34, plan: true },
 ];
@@ -3008,7 +3032,7 @@ function clampCamera() {
     y = Math.min(y, RUN.fy - 0.08);
     z = C(z, 0.25, HK - 0.08);
   } else {
-    x = C(x, X0 + 0.1, y > BUILT.y1 + 0.08 ? 51.8 : X1 - 0.12);
+    x = C(x, X0 + 0.1, y > BUILT.y1 + 0.08 ? 51.8 : (layoutSwapped ? BUILT.x1 : X1) - 0.12);
     y = C(y, Y0 + 0.08, YK - 0.08);
     z = C(z, 0.25, H - 0.08);
   }
