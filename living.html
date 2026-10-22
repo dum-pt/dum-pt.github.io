@@ -41,7 +41,8 @@
   .winrow .seg { flex: 1; }
   .winrow > span:first-child { min-width: 44px; }
   .winrow input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
-  #side { max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: thin; }
+  #side { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  @media (max-width: 1200px) { #side { max-height: calc(100vh - 92px); max-height: calc(100dvh - 92px); } }   /* above the view bar, where it can reach under the panel */
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
   #sunrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
   #sunrow[hidden] { display: none; }
@@ -88,7 +89,8 @@
   #tile-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
   #tile-name { margin: 6px 0 8px; font-size: 11.5px; color: var(--muted); }
   #designs, #tilestructs, #hookwalls { display: grid; grid-template-columns: repeat(3, 1fr); }
-  #fronts, #floors, #fabrics { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #fronts { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #floors, #fabrics { display: grid; grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 1500px) { #hint { bottom: 74px; } }   /* clear of the view bar */
   @media (max-width: 760px) {
     #title { left: 12px; top: 12px; padding: 10px 12px; }
@@ -96,6 +98,7 @@
     #opts { display: block; position: fixed; right: 12px; top: 12px; padding: 9px 13px; }
     #side { top: 58px; right: 12px; left: auto; width: min(280px, calc(100vw - 24px)); padding: 10px; gap: 9px; display: none; }
     #side.open { display: flex; }
+    #side { max-height: calc(100vh - 126px); max-height: calc(100dvh - 126px); }   /* the drawer: above the view bar, on the visible screen */
     #views { bottom: 12px; }
   }
 </style>
@@ -120,7 +123,7 @@
   <div class="group"><h2>Kitchen fronts</h2><div class="seg" id="fronts" title="The kitchen's and the island's handleless fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour (R)"></div></div>
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The worktop, the island's top and its waterfall end; Carrara as drawn (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
-  <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover; the cushions on it take a colour to go with it (U)"></div></div>
+  <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover, ÄPPLARYD's Lejde in light grey or grey-black; the cushions on it take a colour to go with it (U)"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks (as drawn) or herringbone (F)"></div>
     <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain); each style starts with its own"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
@@ -958,20 +961,20 @@ const METALS = {
 // fluted panel, the metal, the lounge chair's shell, the rug, the curtains; the plaster; ev: the exposure (pale rooms
 // throw back more)
 const PALETTES = {
-  noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', fabric: 'charcoal', floorWood: 'smoked',
+  noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', fabric: 'dark', floorWood: 'smoked',
     flute: '#252423', fluteLabel: 'black lacquer', metal: 'gunmetal', lounge: '#2a2826', rug: '#3b3835', curtain: '#a49c90', plaster: 'lime plaster', ev: 1.5 },
-  cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', fabric: 'linen', floorWood: 'natoak',
+  cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', fabric: 'light', floorWood: 'natoak',
     flute: '#cbbba6', fluteLabel: 'a sand lacquer', metal: 'brass', lounge: '#8a4e30', rug: '#b9a58c', curtain: '#dccdb6', plaster: 'clay plaster', ev: 0.75 },
-  jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'raffaello', fronts: 'paint', fabric: 'linen', floorWood: 'natoak',
+  jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'raffaello', fronts: 'paint', fabric: 'light', floorWood: 'natoak',
     flute: '#21392f', fluteLabel: 'a forest green lacquer', metal: 'brass', lounge: '#6e2229', rug: '#cdbfa8', curtain: '#e8e0cf', plaster: 'lime plaster', ev: 1.0 },
-  japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'chalk', stone: 'carrara', fronts: 'flat', fabric: 'boucle', floorWood: 'whiteoak',
+  japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'chalk', stone: 'carrara', fronts: 'flat', fabric: 'light', floorWood: 'whiteoak',
     flute: '#efebe4', fluteLabel: 'white lacquer', metal: 'black', lounge: '#6e2229', rug: '#d8d0c2', curtain: '#eee9e0', plaster: 'limewash', ev: 0.5 },
 };
-// the sofa's cover, and the colour of the cushions on it
+// the sofa's cover: IKEA ÄPPLARYD's Lejde, a woven cotton blend, in light grey or grey-black; and the colour of the
+// cushions on it
 const FABRICS = {
-  boucle: { label: 'Bouclé', desc: 'off-white bouclé', color: '#e4ded2', rough: 1, sheen: 0.8, nap: true, cushion: '#a88d6c', cushionLabel: 'camel' },
-  linen: { label: 'Linen', desc: 'oatmeal linen', color: '#c6b9a3', rough: 0.92, sheen: 0.5, cushion: '#7c8670', cushionLabel: 'sage' },
-  charcoal: { label: 'Wool', desc: 'charcoal wool', color: '#3a3836', rough: 0.95, sheen: 0.5, cushion: '#9e543a', cushionLabel: 'rust' },
+  light: { label: 'Light grey', desc: 'Lejde light grey', color: '#d0cec9', rough: 0.95, sheen: 0.3, cushion: '#a88d6c', cushionLabel: 'camel' },
+  dark: { label: 'Dark grey', desc: 'Lejde grey-black', color: '#565657', rough: 0.95, sheen: 0.35, cushion: '#9e543a', cushionLabel: 'rust' },
 };
 // the kitchen's fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour
 const FRONTS = {
@@ -1348,13 +1351,19 @@ function canvasTex(n, size, draw) {
   tex.anisotropy = maxAniso;
   return tex;
 }
-// bouclé for the sofa: a dense field of small loops, light on light (the cover's colour tints it), also its bump
-const BOUCLE = canvasTex(256, 0.06, (g, n, rnd, wrap) => {
-  g.fillStyle = '#cfcfcf';
+// Lejde for the sofa: a fine basket weave of melange yarns, each a shade of its own, light on light (the cover's colour
+// tints it), also its bump
+const WEAVE = canvasTex(256, 0.04, (g, n, rnd) => {
+  const c = 8;
+  g.fillStyle = '#d4d4d4';
   g.fillRect(0, 0, n, n);
-  for (let q = 0; q < 2600; q++) {
-    const x = rnd() * n, y = rnd() * n, r = 2.5 + rnd() * 3.5, v = Math.round(185 + rnd() * 70), w = 1.2 + rnd() * 1.3;
-    wrap(x, y, (X, Y) => { g.strokeStyle = `rgb(${v},${v},${v})`; g.lineWidth = w; g.beginPath(); g.arc(X, Y, r, 0, 6.3); g.stroke(); });
+  for (let i = 0; i < n / c; i++) for (let j = 0; j < n / c; j++) {
+    for (let k = 0; k < 2; k++) {
+      const v = 200 + rnd() * 55 | 0;
+      g.fillStyle = `rgb(${v},${v},${v})`;
+      if ((i + j) % 2) g.fillRect(i * c + k * c / 2 + 0.5, j * c + 0.5, c / 2 - 1, c - 1);
+      else g.fillRect(i * c + 0.5, j * c + k * c / 2 + 0.5, c - 1, c / 2 - 1);
+    }
   }
 });
 
@@ -2945,8 +2954,8 @@ function applyFabric(key, refresh = true) {
   const f = FABRICS[key], m = M.fabric;
   m.color.set(f.color);
   m.roughness = f.rough;
-  m.map = m.bumpMap = f.nap ? BOUCLE : null;
-  m.bumpScale = 2.5;
+  m.map = m.bumpMap = WEAVE;
+  m.bumpScale = 1.5;
   m.sheen = f.sheen ?? 0;
   m.sheenColor.set(f.color).lerp(new THREE.Color(0xffffff), 0.4);
   m.sheenRoughness = 0.5;

@@ -40,7 +40,8 @@
   .winrow .seg { flex: 1; }
   .winrow > span:first-child { min-width: 44px; }
   .winrow input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
-  #side { max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: thin; }
+  #side { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  @media (max-width: 1200px) { #side { max-height: calc(100vh - 92px); max-height: calc(100dvh - 92px); } }   /* above the view bar, where it can reach under the panel */
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
   #sunrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
   #sunrow[hidden] { display: none; }
@@ -93,6 +94,7 @@
     #opts { display: block; position: fixed; right: 12px; top: 12px; padding: 9px 13px; }
     #side { top: 58px; right: 12px; left: auto; width: min(280px, calc(100vw - 24px)); padding: 10px; gap: 9px; display: none; }
     #side.open { display: flex; }
+    #side { max-height: calc(100vh - 126px); max-height: calc(100dvh - 126px); }   /* the drawer: above the view bar, on the visible screen */
     #views { bottom: 12px; }
   }
 </style>
