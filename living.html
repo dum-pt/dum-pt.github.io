@@ -287,26 +287,27 @@ const KSLOT = { x0: 45.99, x1: 47.99, y: 16.0, w: 0.06, d: 0.045, spots: [46.04,
 const SKAN = [[48.679, 11.425, 1.71], [48.68, 11.965, 1.455]];
 // the layout: as drawn the dining is at the north end (the table before the dining wall) and the living room at the
 // south (the sofa facing the TV on the east wall between the glazings). Swapped (setLayout), the dining wall's cabinets
-// go (the room runs on 34 cm to the bedroom's wall), the TV hangs on that wall with the sofa facing it (mirrored: its
-// chaise at the west end, clear of the terrace door; set east, away from the island; a low cabinet in the wood behind
-// it, BENCH), and the dining wall's cabinets, niche and sideboard (BUILT_E, SIDEBOARD_E: shortened to fit) stand on the
-// east wall between the glazings, the table turned across the room before them. Each zone moves as one: from / to / m
-// take a point as drawn to its place swapped ((dx, dy) to (m0 dx + m1 dy, m2 dx + m3 dy)): the TV unit centred on the
-// north wall, the seating east of it; the dining wall centred on the east wall, the table (with its chairs and pendants)
-// south of its middle to leave a way past the cabinet behind the sofa; the lounge chair goes by the TV's east end,
-// turned (degrees) towards the sofa
+// go (the room runs on 34 cm to the bedroom's wall), the TV hangs on that wall with a shorter sofa facing it (SOFA_E,
+// mirrored: its chaise at the west end, clear of the terrace door; a low cabinet in the wood behind it, BENCH), and plain
+// tall cabinets (BUILT_E: n flush doors, shortened to fit) stand on the east wall between the glazings, the table turned
+// across the room before them. Each zone moves as one: from / to / m take a point as drawn to its place swapped ((dx, dy)
+// to (m0 dx + m1 dy, m2 dx + m3 dy)): the TV unit centred on the north wall, the seating 2.6 m back from it, the coffee
+// table centred on it; the cabinets centred on the east wall, the table (with its chairs and pendants) towards the south
+// glazing, clear of the cabinet behind the sofa; the lounge chair goes by the TV's east end, turned (degrees) towards
+// the sofa
 const LAYOUT = {
   tv: { from: [45.879, Y0], to: [BUILT.x1, 11.825], m: [0, -1, -1, 0] },
-  living: { from: [45.879, Y0], to: [BUILT.x1, 11.45], m: [0, -1, -1, 0] },
+  living: { from: [45.879, Y0], to: [BUILT.x1 - 0.5, 11.3], m: [0, -1, -1, 0] },
   diningWall: { from: [X1, 11.75], to: [45.897, Y0 + 0.34], m: [0, 1, -1, 0] },
-  dining: { from: [48.67, 11.742], to: [45.5, 12.35], m: [1, 0, 0, 1] },
+  dining: { from: [48.67, 11.742], to: [44.85, 12.35], m: [1, 0, 0, 1] },
   lounge: { from: [43.625, 10.425], to: [49.6, 10.6], turn: 60 },
 };
-// the low cabinet behind the sofa when swapped (as drawn: along the sofa's back, x0..x1, y0..y1, its top at z, on a
-// recessed black plinth; n handleless fronts facing away from the sofa)
-const BENCH = { x0: 43.9, x1: 46.6, y0: SOFA.y1 + 0.01, y1: SOFA.y1 + 0.39, z: 0.46, plinth: 0.06, n: 4 };
-const BUILT_E = { ...BUILT, y0: 10.438, y1: 13.063 };
-const SIDEBOARD_E = { ...SIDEBOARD, y0: 10.75, y1: 12.75, top: { ...SIDEBOARD.top, y0: 10.7, y1: 12.8 } };
+// swapped: the sofa 50 cm shorter (its chaise as drawn), the low cabinet behind it (as drawn: along the sofa's back,
+// x0..x1, y0..y1, its top at z, on a recessed black plinth; n handleless fronts facing away from the sofa), the plain
+// cabinets on the east wall
+const SOFA_E = { ...SOFA, x1: SOFA.x1 - 0.5, armN: SOFA.armN - 0.5 };
+const BENCH = { x0: 43.9, x1: SOFA_E.x1 - 0.1, y0: SOFA.y1 + 0.01, y1: SOFA.y1 + 0.39, z: 0.46, plinth: 0.06, n: 4 };
+const BUILT_E = { ...BUILT, y0: 10.438, y1: 13.063, n: 5 };
 // a point (x, y) as drawn, swapped; the same move as a matrix
 function mapXY(z, x, y) {
   const [fx, fy] = z.from, [a, b, c, d] = z.m;
@@ -1545,12 +1546,13 @@ function mulberry(a) {
 // ---------------------------------------------------------------- build the room
 const groups = { ceiling: new THREE.Group(), pendants: new THREE.Group(), room: new THREE.Group() };
 for (const g of Object.values(groups)) R.add(g);
-// what moves with the layout (setLayout): the living room's seating (and its ring, with the pendants), its TV unit, the
-// cabinet behind the sofa (swapped only), the dining's furniture (its pendants likewise), the lounge chair; the dining
-// wall as drawn and, swapped, its cabinets on the east wall (in their own frame) and the bedroom's wall bare in its place
-const zones = { living: new THREE.Group(), ring: new THREE.Group(), tv: new THREE.Group(), bench: new THREE.Group(), dining: new THREE.Group(),
+// what moves with the layout (setLayout): the living room's coffee table (and its ring, with the pendants), its TV unit,
+// its sofa as drawn and, swapped, the shorter one with the cabinet behind it, the dining's furniture (its pendants
+// likewise), the lounge chair; the dining wall as drawn and, swapped, the plain cabinets on the east wall (in their own
+// frame) and the bedroom's wall bare in its place
+const zones = { living: new THREE.Group(), sofa: new THREE.Group(), livingE: new THREE.Group(), ring: new THREE.Group(), tv: new THREE.Group(), dining: new THREE.Group(),
   skan: new THREE.Group(), lounge: new THREE.Group(), wall: new THREE.Group(), wallE: new THREE.Group(), tvWall: new THREE.Group() };
-for (const k of ['living', 'tv', 'bench', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
+for (const k of ['living', 'sofa', 'livingE', 'tv', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
 groups.pendants.add(zones.ring, zones.skan);
 for (const g of Object.values(zones)) g.matrixAutoUpdate = false;
 let floorMesh, mirrorMesh, frontMesh;
@@ -1922,11 +1924,11 @@ function buildIslandLight() {
 // ---------------------------------------------------------------- the dining wall and table
 function buildDining() {
   flush(groups.room);
-  // the dining wall as drawn (north); swapped, its cabinets on the east wall (built as drawn, shortened, moved there with
-  // the dining) and, in its place, the bedroom's wall bare for the TV
-  zones.wall.add(buildDiningWall(BUILT, SIDEBOARD, false));
+  // the dining wall as drawn (north); swapped, plain cabinets on the east wall (built as drawn, moved there) and, in its
+  // place, the bedroom's wall bare for the TV
+  zones.wall.add(buildDiningWall(BUILT, SIDEBOARD));
   flush(zones.wall);
-  zones.wallE.add(buildDiningWall(BUILT_E, SIDEBOARD_E, true));
+  buildCabinets(BUILT_E);
   flush(zones.wallE);
   zones.wallE.matrix.copy(layoutMatrix(LAYOUT.diningWall));
   add(M.plaster, box(BUILT.x1 - 0.01, BUILT.x1, Y0, BUILT.y1, 0, H, { faces: 'x' }));
@@ -1950,16 +1952,25 @@ function buildDining() {
   }
   flush(zones.dining);
 }
-// the dining wall (B, its sideboard S); free: both its ends stand free (else the first runs into the east wall). Returns
-// the niche's mirror
-function buildDiningWall(B, S, free) {
-  const r = B.r, [n0, n1] = B.niche, xa = B.x0 + r;
-  // the tall cabinets either side of the niche, floor to ceiling, their edges at the niche and the free ends rounded
-  if (free) {
-    add(M.built, arcWall(xa, B.y0 + r, r, Math.PI, 1.5 * Math.PI, 0, H));
-    add(M.built, box(xa, B.x1, B.y0, B.y0 + 0.01, 0, H, { faces: 'y' }));
+// swapped: the dining wall's cabinets made plain (B): floor to ceiling, n flush handleless doors, both ends standing free
+// and rounded
+function buildCabinets(B) {
+  const r = B.r, xa = B.x0 + r, w = (B.y1 - B.y0 - 2 * r) / B.n;
+  add(M.built, arcWall(xa, B.y0 + r, r, Math.PI, 1.5 * Math.PI, 0, H));
+  add(M.built, box(xa, B.x1, B.y0, B.y0 + 0.01, 0, H, { faces: 'y' }));
+  add(M.built, box(B.x0, B.x1, B.y0 + r, B.y1 - r, 0, H, { faces: 'x' }));
+  add(M.built, arcWall(xa, B.y1 - r, r, Math.PI / 2, Math.PI, 0, H));
+  add(M.built, box(xa, B.x1, B.y1 - 0.01, B.y1, 0, H, { faces: 'Y' }));
+  for (let i = 1; i < B.n; i++) {
+    const y = B.y0 + r + i * w;
+    add(M.joint, box(B.x0 - 0.0005, B.x0, y - 0.0012, y + 0.0012, 0, H, { faces: 'x' }), { shadow: false });
   }
-  add(M.built, box(B.x0, B.x1, free ? B.y0 + r : B.y0, n0 - r, 0, H, { faces: 'x' }));
+}
+// the dining wall (B, its sideboard S), its south end running into the east wall. Returns the niche's mirror
+function buildDiningWall(B, S) {
+  const r = B.r, [n0, n1] = B.niche, xa = B.x0 + r;
+  // the tall cabinets either side of the niche, floor to ceiling, their edges at the niche and the free end rounded
+  add(M.built, box(B.x0, B.x1, B.y0, n0 - r, 0, H, { faces: 'x' }));
   add(M.built, arcWall(xa, n0 - r, r, Math.PI / 2, Math.PI, 0, H));
   add(M.built, box(xa, B.x1, n0 - 0.01, n0, 0, H, { faces: 'Y' }));
   add(M.built, arcWall(xa, n1 + r, r, Math.PI, 1.5 * Math.PI, 0, H));
@@ -1972,7 +1983,7 @@ function buildDiningWall(B, S, free) {
   const mirror = new THREE.Mesh(box(B.mirror, B.mirror + 0.006, n0 + 0.002, n1 - 0.002, S.top.z, H - 0.002, { faces: 'x' }), M.mirror);
   mirror.receiveShadow = true;
   mirrorRefl.meshes.push(mirror);
-  if (!free) mirrorMesh = mirror;
+  mirrorMesh = mirror;
   for (const z of B.shelves) add(M.shelf, box(B.x0 + 0.008, B.mirror, n0, n1, z - 0.01, z));
   add(E.niche, box(B.x0 + 0.02, B.x0 + 0.032, n0 + 0.01, n1 - 0.01, H - 0.002, H, { faces: 'z' }), { shadow: false });
   // the floating sideboard: four handleless fronts in the wood across the niche and the cabinets, back into the niche,
@@ -2021,8 +2032,9 @@ function pillow(w, t, h) {
   g.computeVertexNormals();
   return g;
 }
-function buildLiving() {
-  const S = SOFA, F = M.fabric;
+// the sofa (S) and the rug before it
+function buildSofa(S) {
+  const F = M.fabric;
   const ub = (mat, x0, x1, y0, y1, z0, z1, r = 0.035) => add(mat, projectUV(rbox(x1 - x0, y1 - y0, z1 - z0, Math.min(r, (z1 - z0) / 2 - 0.002, (y1 - y0) / 2 - 0.002), [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2])));
   // the sofa: an L, its upholstered base on a recessed black plinth, the arms, the back; the chaise's long seat cushion
   // and two along the rest, three loose back cushions leaning on the back, scatter cushions, a throw
@@ -2038,12 +2050,16 @@ function buildLiving() {
   for (let i = 0; i < 2; i++) ub(F, S.cx1 + i * w + 0.005, S.cx1 + (i + 1) * w - 0.005, S.y0 + 0.005, S.backY, S.base, S.seat, 0.06);
   const bw = (S.armN - S.armS) / 3, bh = S.back - 0.03 - S.seat;
   for (let i = 0; i < 3; i++) add(F, projectUV(pillow(bw - 0.012, 0.2, bh).rotateX(-0.22).translate(S.armS + (i + 0.5) * bw, S.backY - 0.085, S.seat + bh / 2)));
-  for (const [x, rz, tilt, s, mat] of [[44.12, 0.12, -0.42, 0.46, M.cushion], [44.6, -0.1, -0.36, 0.42, M.throw], [46.18, -0.16, -0.4, 0.5, M.cushion], [45.72, 0.08, -0.33, 0.4, M.cushion]]) {
+  for (const [x, rz, tilt, s, mat] of [[S.x0 + 0.323, 0.12, -0.42, 0.46, M.cushion], [S.x0 + 0.803, -0.1, -0.36, 0.42, M.throw], [S.armN - 0.377, -0.16, -0.4, 0.5, M.cushion], [S.armN - 0.837, 0.08, -0.33, 0.4, M.cushion]]) {
     add(mat, projectUV(pillow(s, 0.16, s).rotateX(tilt).rotateZ(rz).translate(x, S.backY - 0.24, S.seat + s / 2 * Math.cos(tilt) - 0.01)));
   }
   ub(M.throw, S.armS + 0.04, S.cx1 - 0.04, S.cy0 + 0.12, S.cy0 + 0.5, S.seat - 0.005, S.seat + 0.028, 0.012);
-  // the rug under the coffee table
-  add(M.rug, box(43.98, 46.62, 10.78, 12.74, 0, 0.012, { faces: 'xXyYZ' }));
+  // the rug under the coffee table, as long as the sofa
+  add(M.rug, box(S.x0 + 0.183, S.x1 - 0.077, 10.78, 12.74, 0, 0.012, { faces: 'xXyYZ' }));
+}
+function buildLiving() {
+  buildSofa(SOFA);
+  flush(zones.sofa);
   // the coffee table: a round anthracite top on a pedestal
   {
     const { x, y, r, h } = COFFEE_TABLE, c = [x, y, 0];
@@ -2078,8 +2094,9 @@ function buildLiving() {
     book(46.95, 10.3, z, 0.17, 0.24, 0.03, 0.0, M.book1);
   }
   flush(zones.tv);
-  // swapped: the low cabinet behind the sofa (zones.bench, shown only then): the wood, four handleless fronts facing away
-  // from the sofa, a recessed black plinth; a bowl and books on it
+  // swapped (zones.livingE, shown only then): the shorter sofa; the low cabinet behind it: the wood, four handleless fronts
+  // facing away from the sofa, a recessed black plinth; a bowl and books on it
+  buildSofa(SOFA_E);
   {
     const B = BENCH, w = (B.x1 - B.x0) / B.n, g = RUN.gap / 2, p = B.plinth, f = B.y1 - 0.02, zt = B.z - 0.02, y = (B.y0 + B.y1) / 2;
     add(M.trim, box(B.x0 + 0.04, B.x1 - 0.04, B.y0 + 0.03, B.y1 - 0.05, 0, p, { faces: 'xXyY' }));
@@ -2090,9 +2107,9 @@ function buildLiving() {
     add(M.potteryDark, lathe(BOWL.map(([r, h]) => [r * 0.9, h]), [B.x0 + 0.45, y, B.z], 40));
     book(B.x1 - 0.4, y, B.z, 0.22, 0.28, 0.03, 0.15, M.book2);
     book(B.x1 - 0.4, y, B.z + 0.03, 0.2, 0.26, 0.025, -0.05, M.book3);
-    flush(zones.bench);
-    zones.bench.matrix.copy(layoutMatrix(LAYOUT.living));
-    zones.bench.visible = false;
+    flush(zones.livingE);
+    zones.livingE.matrix.copy(layoutMatrix(LAYOUT.living));
+    zones.livingE.visible = false;
   }
 }
 
@@ -2393,8 +2410,7 @@ function blindLight() {
   const a = THREE.MathUtils.degToRad(80 * BLINDS.tilt);
   return 1 - BLINDS.down * Math.min(1, (SLAT.w * Math.sin(a) + SLAT.t * Math.cos(a)) / SLAT.pitch);
 }
-// living and dining as drawn or swapped (LAYOUT): the zones move, the dining wall changes, the lamps and the mirror's
-// reflection go along
+// living and dining as drawn or swapped (LAYOUT): the zones move, the dining wall and the sofa change, the lamps go along
 let layoutSwapped = false;
 function setLayout(on) {
   layoutSwapped = on;
@@ -2403,19 +2419,18 @@ function setLayout(on) {
     g.matrix.copy(on ? layoutMatrix(LAYOUT[k]) : I);
     g.matrixWorldNeedsUpdate = true;
   }
-  zones.wall.visible = !on;
-  zones.wallE.visible = zones.tvWall.visible = zones.bench.visible = on;
+  zones.wall.visible = zones.sofa.visible = !on;
+  zones.wallE.visible = zones.tvWall.visible = zones.livingE.visible = on;
   for (const { light, drawn, swapped } of L.layout) {
     const q = on ? swapped : drawn;
     light.position.copy(SU(...q.pos));
     if (light.isSpotLight) light.target.position.copy(SU(q.pos[0], q.pos[1], 0));
     else { light.width = q.w; light.height = q.h; }
   }
-  // the mirror faces south on the dining wall, west on the east wall
-  const [mx, my] = on ? mapXY(LAYOUT.diningWall, BUILT.mirror, 11.75) : [BUILT.mirror, 11.75];
-  mirrorRefl.n.set(on ? 0 : -1, 0, on ? -1 : 0);
-  mirrorRefl.p.copy(SU(mx, my, 1.6));
-  MIRROR_BOX.copy(mirrorBox(on));
+  // the niche's and the sideboard's LED lines go dark with the dining wall (kept, not hidden: that would recompile every
+  // shader)
+  const m = MOODS[moodKey];
+  for (const [a, ch, k] of L.area) if (a.userData.drawnOnly) a.intensity = on ? 0 : BASE[ch] * k * m[ch];
   chip('t-layout', on, on ? 'Living & dining as drawn' : 'Swap living & dining');
   if (current.swap) goTo(VIEWS.find((v) => v.key === current.key));
   renderer.shadowMap.needsUpdate = true;
@@ -2625,13 +2640,12 @@ function buildLights() {
   }
   area('ucab', 1, UPPER.x1 - UPPER.x0 - 0.08, 0.012, SU((UPPER.x0 + UPPER.x1) / 2, UPPER.y0 + 0.046, UPPER.z0 - 0.003));
   area('ucab', 0.5, 0.33, 0.012, SU((TALLS[3][0] + TALLS[3][1]) / 2, RUN.fy + 0.036, COFFEE.niche[1] - 0.021));
-  // the niche's, the sideboard's and the TV unit's LED lines face down: swapped, they turn a quarter (width and height
-  // trade places); the sideboard is shorter on the east wall
-  const movesArea = (ch, zone, w, h, x, y, z, l2 = h, x2 = x, y2 = y) => moves(area(ch, 1, w, h, SU(x, y, z)), { pos: [x, y, z], w, h }, { pos: [...sw(zone, x2, y2), z], w: l2, h: w });
-  movesArea('niche', 'diningWall', 0.012, BUILT.niche[1] - BUILT.niche[0] - 0.02, BUILT.x0 + 0.026, (BUILT.niche[0] + BUILT.niche[1]) / 2, H - 0.003);
+  // the niche's, the sideboard's and the TV unit's LED lines face down; the first two only as drawn (setLayout), the TV
+  // unit's turns a quarter swapped (width and height trade places)
   {
-    const S = SIDEBOARD, SE = SIDEBOARD_E, x = S.x0 + 0.036;
-    movesArea('wash', 'diningWall', 0.012, S.y1 - S.y0 - 0.08, x, (S.y0 + S.y1) / 2, S.z0 - 0.003, SE.y1 - SE.y0 - 0.08, x, (SE.y0 + SE.y1) / 2);
+    const S = SIDEBOARD, [n0, n1] = BUILT.niche;
+    area('niche', 1, 0.012, n1 - n0 - 0.02, SU(BUILT.x0 + 0.026, (n0 + n1) / 2, H - 0.003)).userData.drawnOnly = true;
+    area('wash', 1, 0.012, S.y1 - S.y0 - 0.08, SU(S.x0 + 0.036, (S.y0 + S.y1) / 2, S.z0 - 0.003)).userData.drawnOnly = true;
   }
   {
     const T = TV_UNIT, l = T.x1 - T.x0 - 0.08;
@@ -2750,7 +2764,7 @@ function applyMood(key) {
   for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.skan, 'skan'], [[L.ring], 'ring']]) {
     for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * m[ch]; s.visible = m[ch] > 0; }
   }
-  for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * m[ch]; a.visible = m[ch] > 0; }
+  for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = a.userData.drawnOnly && layoutSwapped ? 0 : BASE[ch] * k * m[ch]; a.visible = m[ch] > 0; }
   for (const ch of ['spot', 'kdown']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.lens * (0.4 + 0.6 * m[ch]) : 0.02);
   for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.strip * (0.4 + 0.6 * m[ch]) : 0.03);
   E.skan.emissive.copy(c);
@@ -3005,9 +3019,9 @@ function renderLegend() {
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven, the coffee machine in a lit niche), drawers under the hob, wall units over the window strip', frontsC],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
-    ['Dining', (sw ? 'at the south end, across the room towards the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
-    ['Dining wall', (sw ? 'on the east wall between the glazings, shortened to 2.6 m: ' : '') + 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
-    ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an L-shaped sofa in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
+    ['Dining', (sw ? 'at the south end by the south glazing, across the room towards the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
+    ['Dining wall', sw ? 'on the east wall between the glazings: plain cabinets floor to ceiling a shade lighter than the walls, five flush handleless doors, the ends rounded' : 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
+    ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an L-shaped sofa' + (sw ? ' (2.4 m long)' : '') + ' in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
     ['Floor', floor, WOODS[p.floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); a frameless glass door to the hall', '#383b3e'],
@@ -3078,8 +3092,8 @@ const VIEWS = [
   { key: 'living', label: 'Living room', pos: [49.7, 13.9, 1.6], tgt: [44.6, 10.9, 0.95], fov: 72 },
   { key: 'kitchen', label: 'Kitchen', pos: [47.0, 10.75, 1.6], tgt: [47.0, 16.2, 1.05], fov: 74 },
   { key: 'island', label: 'Island', pos: [49.1, 13.7, 1.6], tgt: [46.3, 15.6, 0.9], fov: 66 },
-  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [45.3, 14.2, 1.6], tgt: [45.9, 9.9, 1.0] } },
-  { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.6, 13.85, 1.35], tgt: [50.5, 10.4, 1.1] } },
+  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.9, 14.15, 1.6], tgt: [45.7, 9.9, 1.0] } },
+  { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.2, 13.85, 1.35], tgt: [50.5, 10.7, 1.1] } },
   { key: 'worktop', label: 'Worktop', pos: [46.9, 15.0, 1.62], tgt: [46.9, 16.6, 0.95], fov: 70 },
   { key: 'plan', label: 'Plan', pos: [46.65, 13.4, 15], tgt: [46.65, 13.42, 0], fov: 34, plan: true },
 ];
@@ -3311,12 +3325,8 @@ window.addEventListener('resize', resize);
 const clock = new THREE.Clock();
 // the niche's mirror is only rendered when it can be seen
 const frustum = new THREE.Frustum(), projView = new THREE.Matrix4();
-// the niche's mirror, as drawn or swapped (with the dining wall)
-const mirrorBox = (on) => new THREE.Box3().setFromPoints([[BUILT.mirror - 0.01, BUILT.niche[0]], [BUILT.mirror + 0.01, BUILT.niche[1]]].flatMap(([x, y]) => {
-  const [a, b] = on ? mapXY(LAYOUT.diningWall, x, y) : [x, y];
-  return [SU(a, b, SIDEBOARD.top.z), SU(a, b, H)];
-}));
-const MIRROR_BOX = mirrorBox(false);
+// the niche's mirror (as drawn only: swapped, the plain cabinets have none)
+const MIRROR_BOX = new THREE.Box3().setFromPoints([[BUILT.mirror - 0.01, BUILT.niche[0]], [BUILT.mirror + 0.01, BUILT.niche[1]]].flatMap(([x, y]) => [SU(x, y, SIDEBOARD.top.z), SU(x, y, H)]));
 function renderFrame() {
   const above = camera.position.y > H - 0.02;
   groups.ceiling.visible = groups.pendants.visible = !above;
@@ -3325,7 +3335,7 @@ function renderFrame() {
     floorRefl.update(renderer, scene, camera, [mirrorRefl]);
     camera.updateMatrixWorld();
     frustum.setFromProjectionMatrix(projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
-    const seen = !above && camera.position.clone().sub(mirrorRefl.p).dot(mirrorRefl.n) > 0 && frustum.intersectsBox(MIRROR_BOX);
+    const seen = !above && !layoutSwapped && camera.position.clone().sub(mirrorRefl.p).dot(mirrorRefl.n) > 0 && frustum.intersectsBox(MIRROR_BOX);
     if (seen) mirrorRefl.update(renderer, scene, camera, [floorRefl]);
     mirrorRefl.uniforms.planarOn.value = seen ? 1 : 0;
   }
