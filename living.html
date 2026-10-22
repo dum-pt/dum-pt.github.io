@@ -120,12 +120,12 @@
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The worktop, the island's top and its waterfall end; Carrara as drawn (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover; the cushions on it take a colour to go with it (U)"></div></div>
-  <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide oak planks (as drawn), oak in herringbone, or 120 × 120 cm porcelain tiles as in the hall; the planks' wood and the tiles' colour come with the style (F)"></div></div>
+  <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide oak planks (as drawn) or oak in herringbone; the wood comes with the style (F)"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="7.5" aria-label="Time of day"><span id="sunlabel">8:34</span></div>
   </div>
   <div class="group"><h2>Open &amp; close</h2>
-    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide the terrace door open or shut (D)">Open terrace door</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the hall open or shut (G)">Open glass door</button></div>
+    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide the terrace doors open or shut (D)">Open terrace doors</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the hall open or shut (G)">Open glass door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-layout" aria-pressed="false" title="Swap the living room and the dining: the TV to the north wall, the dining wall's cabinets to the east wall between the glazings (L)">Swap living &amp; dining</button></div>
   </div>
   <div class="group"><h2>Render</h2>
     <div class="chips">
@@ -204,16 +204,33 @@ const XS = 42.91;                      // the south glazing's outer face
 const YE = 17.21;                      // the west facade's outer face (its insulation)
 const BACK_X = X1;                     // (no backlit mirror here: the shared glow stays off)
 // the east glazing: anthracite aluminium frames 15 cm deep (fy0..fy1; the reveal on to Y0 plastered), floor to ceiling,
-// the panes in the frame's middle (glass): A (x0..x1) a fixed pane and a lift-and-slide door (the northern one) either
-// side of their meeting stiles (mull), B (x0..x1) one fixed pane by the south-east corner; the jambs (j), head and sill
+// the panes in the frame's middle (glass): A (x0..x1) a lift-and-slide door (the southern one, on the inner track,
+// sliding north) and a fixed pane either side of their meeting stiles (mull: the fixed pane's), B (x0..x1) one fixed pane
+// by the south-east corner; the jambs (j), head and sill
 const EG = { fy0: 9.805, fy1: 9.955, glass: 9.88, head: 2.52, sill: 0.03 };
-const EG_A = { x0: 47.21, x1: 50.21, j: 0.08, mull: [48.63, 48.71] };
+const EG_A = { x0: 47.21, x1: 50.21, j: 0.08, mull: [48.71, 48.79] };
 const EG_B = { x0: 42.99, x1: 44.585, j: 0.084 };
-// the south glazing, flush with the wall's inner face: its frame (XS..X0), three panes between jambs and two mullions
-const SG = { y0: YW, y1: 14.48, glass: 42.985, jambs: [[9.805, 9.889], [14.395, 14.48]], mulls: [[11.391, 11.476], [12.893, 12.978]], head: 2.518, sill: 0.03 };
+// the south glazing, flush with the wall's inner face: its frame (XS..X0), jambs, head and sill; in two: a fixed pane
+// (the eastern one, on the outer track: glass) and a lift-and-slide door (the western one, on the inner track: sglass,
+// sliding east) either side of their meeting stiles (mull: the fixed pane's)
+const SG = { y0: YW, y1: 14.48, glass: 42.95, sglass: 43.02, jambs: [[9.805, 9.889], [14.395, 14.48]], mull: [12.102, 12.182], head: 2.518, sill: 0.03 };
 const COLUMN = { x0: 43.09, x1: 43.19, y0: 9.992, y1: 10.092 };    // the steel column in the corner
-// the graphite LED line set in the kitchen's fascia, facing the living room
+// the air vent in the kitchen's fascia, facing the living room: a 3 cm linear slot diffuser (not a light)
 const FASCIA = { x0: 45.585, x1: 48.294, z0: 2.461, z1: 2.491 };
+// the linear pendant over the island: a slim black profile (len along x, w wide, h tall), its opal diffuser underneath at
+// z (77 cm over the top), hung from the kitchen's lowered ceiling on two cables (drop: from the ends)
+const ISLAND_LIGHT = { x: 46.92, y: 14.693, len: 1.8, w: 0.035, h: 0.05, z: 1.72, drop: 0.15 };
+// the curtains: sheer linen on tracks in a pocket recessed into the ceiling along the glazing (up to pk; the curtains hang
+// from top), an LED line along the pocket's room-side edge washing them (a glow in the cloth, M.curtain: area lights
+// would weigh on every shader). Each run goes from the end it gathers at when open (a) to its far end (b), the stacks in
+// front of fixed panes, clear of the doors: A and B in the east glazings' reveals (A gathers at the north end, B by the
+// TV wall), S in front of the south glazing (gathering in the corner).
+// Wave folds every 12 cm closed, 1.8 times fullness; gathered, about 1.2 cm a fold
+const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs: [
+  { a: [50.13, 10.04], b: [47.29, 10.04] },
+  { a: [44.5, 10.04], b: [43.2, 10.04] },
+  { a: [43.135, 10.11], b: [43.135, 14.45] },
+] };
 // the pantry: its walls (14 cm: the kitchen's at x1..KX0, the living room's at YK..y0), the doorway from the kitchen (oak-
 // lined, up to the lowered ceiling), oak shelves along its south wall (to sx1, at shelves), a tall unit at the facade
 const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.89, tall: [43.89, 44.49, 16.1] };
@@ -262,6 +279,36 @@ const RING = { x: 45.885, y: 11.61, r: 0.5, r0: 0.38, h: 0.12 };
 const KSLOT = { x0: 45.99, x1: 47.99, y: 16.0, w: 0.06, d: 0.045, spots: [46.04, 46.974, 47.924] };
 // the two Vibia Skan pendants over the table (from the model): where their diffusers hang
 const SKAN = [[48.679, 11.425, 1.71], [48.68, 11.965, 1.455]];
+// the layout: as drawn the dining is at the north end (the table before the dining wall) and the living room at the
+// south (the sofa facing the TV on the east wall between the glazings). Swapped (setLayout), the TV hangs on a plastered
+// wall in the dining wall's place with the sofa facing it (mirrored: its chaise at the west end, clear of the terrace
+// door), and the dining wall's cabinets, niche and sideboard (BUILT_E, SIDEBOARD_E: shortened to fit) stand on the east
+// wall between the glazings with the table before them. Each zone moves as one: from / to / m take a point as drawn to
+// its place swapped ((dx, dy) to (m0 dx + m1 dy, m2 dx + m3 dy)): the dining wall centred on the east wall, the table
+// (with its chairs and pendants) south of its middle to leave a way past the sofa's back; the lounge chair goes by the
+// TV's east end, turned (degrees) towards the sofa
+const LAYOUT = {
+  living: { from: [45.879, Y0], to: [X1, 11.77], m: [0, -1, -1, 0] },
+  diningWall: { from: [X1, 11.75], to: [45.897, Y0 + 0.34], m: [0, 1, -1, 0] },
+  dining: { from: [X1, 11.75], to: [45.15, Y0 + 0.34], m: [0, 1, -1, 0] },
+  lounge: { from: [43.625, 10.425], to: [49.35, 10.6], turn: 60 },
+};
+const BUILT_E = { ...BUILT, y0: 10.438, y1: 13.063 };
+const SIDEBOARD_E = { ...SIDEBOARD, y0: 10.75, y1: 12.75, top: { ...SIDEBOARD.top, y0: 10.7, y1: 12.8 } };
+// a point (x, y) as drawn, swapped; the same move as a matrix
+function mapXY(z, x, y) {
+  const [fx, fy] = z.from, [a, b, c, d] = z.m;
+  return [z.to[0] + a * (x - fx) + b * (y - fy), z.to[1] + c * (x - fx) + d * (y - fy)];
+}
+function layoutMatrix(z) {
+  const [fx, fy] = z.from, [tx, ty] = z.to;
+  let [a, b, c, d] = z.m || [];
+  if (z.turn !== undefined) {
+    const t = THREE.MathUtils.degToRad(z.turn);
+    [a, b, c, d] = [Math.cos(t), -Math.sin(t), Math.sin(t), Math.cos(t)];
+  }
+  return new THREE.Matrix4().set(a, b, 0, tx - a * fx - b * fy, c, d, 0, ty - c * fx - d * fy, 0, 0, 1, 0, 0, 0, 0, 1);
+}
 // the lobby north of the living room, between the kitchen and the bedroom's wall; the opening to the hall in the
 // corridor's wall (y YK..14.795) and its frameless glass sliding door on the lobby's side (as in the hall); the bedroom's
 // wall behind the dining wall (wall) and the bedroom corridor's (cor) running on north
@@ -888,18 +935,18 @@ const METALS = {
 };
 // the four characters of the bathrooms and the hall, carried over: the wood (the kitchen's wooden fronts, the island's,
 // the dining table, the sideboard, the TV unit) to start with, the wall paint, the stone of the worktop and the island,
-// the kitchen's fronts (FRONTS), the sofa's cover (FABRICS), the floor's wood (its planks or herringbone) and the tiles'
-// colour (TILE_COLOURS), the island's fluted panel, the metal, the lounge chair's shell, the rug; the plaster; ev: the
-// exposure (pale rooms throw back more)
+// the kitchen's fronts (FRONTS), the sofa's cover (FABRICS), the floor's wood (its planks or herringbone), the island's
+// fluted panel, the metal, the lounge chair's shell, the rug, the curtains; the plaster; ev: the exposure (pale rooms
+// throw back more)
 const PALETTES = {
-  noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', fabric: 'charcoal', floorWood: 'smoked', tile: 'anthracite',
-    flute: '#252423', fluteLabel: 'black lacquer', metal: 'gunmetal', lounge: '#2a2826', rug: '#3b3835', plaster: 'lime plaster', ev: 1.5 },
-  cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', fabric: 'linen', floorWood: 'natoak', tile: 'sand',
-    flute: '#cbbba6', fluteLabel: 'a sand lacquer', metal: 'brass', lounge: '#8a4e30', rug: '#b9a58c', plaster: 'clay plaster', ev: 0.75 },
-  jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'raffaello', fronts: 'paint', fabric: 'velvet', floorWood: 'natoak', tile: 'white',
-    flute: '#21392f', fluteLabel: 'a forest green lacquer', metal: 'brass', lounge: '#6e2229', rug: '#cdbfa8', plaster: 'lime plaster', ev: 1.0 },
-  japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'chalk', stone: 'carrara', fronts: 'flat', fabric: 'boucle', floorWood: 'whiteoak', tile: 'beige',
-    flute: '#efebe4', fluteLabel: 'white lacquer', metal: 'black', lounge: '#6e2229', rug: '#d8d0c2', plaster: 'limewash', ev: 0.5 },
+  noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', fabric: 'charcoal', floorWood: 'smoked',
+    flute: '#252423', fluteLabel: 'black lacquer', metal: 'gunmetal', lounge: '#2a2826', rug: '#3b3835', curtain: '#a49c90', plaster: 'lime plaster', ev: 1.5 },
+  cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', fabric: 'linen', floorWood: 'natoak',
+    flute: '#cbbba6', fluteLabel: 'a sand lacquer', metal: 'brass', lounge: '#8a4e30', rug: '#b9a58c', curtain: '#dccdb6', plaster: 'clay plaster', ev: 0.75 },
+  jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'raffaello', fronts: 'paint', fabric: 'velvet', floorWood: 'natoak',
+    flute: '#21392f', fluteLabel: 'a forest green lacquer', metal: 'brass', lounge: '#6e2229', rug: '#cdbfa8', curtain: '#e8e0cf', plaster: 'lime plaster', ev: 1.0 },
+  japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'chalk', stone: 'carrara', fronts: 'flat', fabric: 'boucle', floorWood: 'whiteoak',
+    flute: '#efebe4', fluteLabel: 'white lacquer', metal: 'black', lounge: '#6e2229', rug: '#d8d0c2', curtain: '#eee9e0', plaster: 'limewash', ev: 0.5 },
 };
 // the sofa's cover, and the colour of the cushions on it
 const FABRICS = {
@@ -915,11 +962,10 @@ const FRONTS = {
   fluted: { label: 'Fluted' },
   paint: { label: 'Painted' },
 };
-// the floor: wide planks of the floor's wood (as drawn), herringbone of it, or the hall's large porcelain tiles
+// the floor: wide planks of the floor's wood (as drawn) or herringbone of it
 const FLOORS = {
   planks: { label: 'Planks' },
   herring: { label: 'Herringbone' },
-  tiles: { label: 'Tiles' },
 };
 // the wall paints in the picker (each style's own among them); any other colour comes from its colour picker
 const PAINTS = {
@@ -935,35 +981,8 @@ const PAINTS = {
   oxblood: { label: 'Oxblood', color: '#5b2b28' },
   charcoal: { label: 'Charcoal', color: '#4a433e' },
 };
-// the tiles: 120 x 120 cm, 2 mm joints, smooth matt, in the style's colour (the bake is white; the colour tints it), laid
-// from the corner by the south-east glazing (FLOOR_AT: the corner of the FLOOR_W x FLOOR_H they are drawn over)
-const TILE = 1.2;
-const FLOOR_W = 3 * TILE, FLOOR_H = 2 * TILE;
+// the floor's pattern is laid from the corner by the south-east glazing
 const FLOOR_AT = [X0, Y0];
-const TILE_COLOURS = {
-  white: { label: 'White', color: '#e9e6e0' },
-  ivory: { label: 'Ivory', color: '#dfd8cb' },
-  beige: { label: 'Beige', color: '#c9c1b4' },
-  sand: { label: 'Sand', color: '#bda88f' },
-  greige: { label: 'Greige', color: '#a49c91' },
-  lightgrey: { label: 'Light grey', color: '#b9b8b4' },
-  grey: { label: 'Grey', color: '#8a8984' },
-  anthracite: { label: 'Anthracite', color: '#46423e' },
-  black: { label: 'Black', color: '#252423' },
-  terracotta: { label: 'Terracotta', color: '#a66a4f' },
-};
-const TILE_STRUCTS = {
-  matt: { label: 'Matt', desc: 'smooth matt', polish: 0.4, coat: 0.32, bump: 1,
-    bake: { kind: 3, base: '#ffffff', base2: '#ebe7e0', grout: '#c4beb4', scale: 1.4, cloud: 0.8, rough: 0.45, roughVar: 0.08 } },
-  polished: { label: 'Polished', desc: 'polished', polish: 1, coat: 0.05, bump: 0.5,
-    bake: { kind: 3, base: '#ffffff', base2: '#efebe5', grout: '#c4beb4', scale: 1.4, cloud: 0.7, rough: 0.1, roughVar: 0.03 } },
-  concrete: { label: 'Concrete', desc: 'concrete look, matt', polish: 0.06, coat: 0.5, bump: 1,
-    bake: { kind: 4, base: '#f5f4f2', base2: '#d6d4d0', vein: '#cfccc7', vein2: '#8c8985', fine: '#b4b1ac', grout: '#bdb9b3', scale: 0.9, cloud: 1.0, fineAmt: 0.35, warp: 1.3, halo: 0.2, veinAmt: 0, rough: 0.7, roughVar: 0.12 } },
-  limestone: { label: 'Limestone', desc: 'limestone look, honed', polish: 0.12, coat: 0.4, bump: 1,
-    bake: { kind: 4, base: '#ffffff', base2: '#eee8de', vein: '#d8cfc1', vein2: '#a69c8d', fine: '#c8bfb1', grout: '#cbc3b7', scale: 0.6, cloud: 0.9, fineAmt: 0.55, warp: 1.1, halo: 0.4, veinAmt: 0.3, veinW: 0.0015, angle: 0.3, stretch: 0.5, rough: 0.55, roughVar: 0.1 } },
-  marble: { label: 'Marble', desc: 'marble look, polished', polish: 0.9, coat: 0.06, bump: 0.6,
-    bake: { kind: 0, base: '#ffffff', base2: '#eeedeb', vein: '#8e8c89', vein2: '#b6b4b0', fine: '#c8c6c2', grout: '#d2cfca', halo: 0.6, band: 0.5, scale: 0.8, warp: 1.6, veinW: 0.006, veinAmt: 0.8, fineAmt: 0.5, cloud: 0.8, angle: 0.5, stretch: 0.5, rough: 0.12, roughVar: 0.04 } },
-};
 
 // world size (metres) and resolution of each baked texture set
 const SPECS = {
@@ -972,7 +991,6 @@ const SPECS = {
   fluted: { size: [0.96, 2.56], res: [1024, 2048], nres: [1024, 2048], rres: [256, 512], wrap: THREE.MirroredRepeatWrapping, bump: 1.0, flute: 0.03 },
   veneer: { size: [1.2, 2.4], res: [1024, 2048], nres: [512, 1024], rres: [256, 512], wrap: THREE.MirroredRepeatWrapping, bump: 1.0 },
   epoxy: { size: [3.0, 3.0], res: [1024, 1024], nres: [512, 512], rres: [256, 256], wrap: THREE.MirroredRepeatWrapping, bump: 0.5 },
-  tiles: { size: [3.6, 2.4], res: [2048, 1365], nres: [2048, 1365], rres: [512, 341], wrap: THREE.RepeatWrapping, bump: 0.4, tile: [1.2, 1.2] },
   zellige: { size: [1.2, 1.2], res: [2048, 2048], nres: [2048, 2048], rres: [512, 512], wrap: THREE.RepeatWrapping, bump: 1.0, tile: [0.1, 0.1] },
   slimtile: { size: [1.2, 1.2], res: [2048, 2048], nres: [2048, 2048], rres: [512, 512], wrap: THREE.RepeatWrapping, bump: 1.0, tile: [0.075, 0.3] },
   plaster: { size: [2.0, 2.0], res: [1024, 1024], nres: [1024, 1024], rres: [256, 256], wrap: THREE.MirroredRepeatWrapping, bump: 1.0 },
@@ -1104,6 +1122,8 @@ const M = {
   cushion: fabricMat(0xa88d6c),
   throw: fabricMat(0xd9d1c4),
   rug: physical({ color: 0xd8d0c2, roughness: 1, sheen: 0.5, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.7 }),
+  // the curtains: sheer linen, the view showing faintly through
+  curtain: physical({ color: 0xeee9e0, roughness: 0.95, sheen: 0.6, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.5, side: THREE.DoubleSide, transparent: true, opacity: 0.86 }),
   anth: physical({ color: 0x2c2c2d, roughness: 0.5, clearcoat: 0.25, clearcoatRoughness: 0.4 }),   // the coffee table
   ringBody: physical({ color: 0x18181a, roughness: 0.5, side: THREE.DoubleSide }),
   screen: physical({ color: 0x050506, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.03 }),
@@ -1146,8 +1166,9 @@ const E = {
   spot: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the downlights' lenses
   kdown: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the kitchen's spots
   ring: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the ring's diffuser
-  fascia: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the LED lines: in the fascia, under the uppers, in the
-  ucab: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // niche, under the floating units
+  island: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the island pendant's diffuser
+  curtain: new THREE.MeshBasicMaterial({ color: 0xffffff }),  // the LED lines: in the curtains' pocket, under the uppers,
+  ucab: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // in the niche, under the floating units
   niche: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   wash: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   skan: physical({ color: 0xf7f2ec, roughness: 0.3, emissive: 0xffffff, emissiveIntensity: 0 }),   // the Skan's diffusers
@@ -1223,6 +1244,28 @@ M.rug.map = M.rug.bumpMap = canvasTex(256, 0.08, (g, n, rnd) => {
   for (let y = 0; y < n; y += 4) for (let x = 0; x < n; x += 4) { const v = 175 + rnd() * 80 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x + (y / 4 % 2) * 2, y, 3, 3); }
 });
 M.rug.bumpScale = 2;
+// the LED line's wash down the curtains: a glow in the cloth, brightest at the top (applyMood sets how strong)
+{
+  const cv = document.createElement('canvas'), g = cv.getContext('2d');
+  cv.width = 4; cv.height = 256;
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  for (const [t, v] of [[0, 1], [0.06, 0.8], [0.25, 0.5], [0.55, 0.32], [1, 0.2]]) grad.addColorStop(t, `rgb(${v * 255 | 0},${v * 255 | 0},${v * 255 | 0})`);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 4, 256);
+  M.curtain.emissiveMap = new THREE.CanvasTexture(cv);
+  M.curtain.emissiveMap.repeat.set(0, 1 / CURTAIN.top);
+}
+// the curtains' linen: fine slubby threads both ways
+M.curtain.map = canvasTex(256, 0.12, (g, n, rnd) => {
+  g.fillStyle = '#f4f4f4';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < n; i += 2) {
+    const v = 215 + rnd() * 40 | 0, w = rnd() < 0.08 ? 2 : 1;
+    g.fillStyle = `rgba(${v},${v},${v},0.55)`;
+    g.fillRect(0, i, n, w);
+    g.fillRect(i, 0, w, n);
+  }
+});
 const NO_AO = new Set([M.windowGlass, M.slideGlass, M.mirrorEdge, M.railGlass, M.clearAcrylic]);
 // small tiling canvases (n px over `size` metres; the UVs are in metres); draw(g, n, rnd, wrap) paints it, wrap(x, y, f)
 // repeating a mark over the edges so the tile is seamless
@@ -1490,6 +1533,14 @@ function mulberry(a) {
 // ---------------------------------------------------------------- build the room
 const groups = { ceiling: new THREE.Group(), pendants: new THREE.Group(), room: new THREE.Group() };
 for (const g of Object.values(groups)) R.add(g);
+// what moves with the layout (setLayout): the living room's furniture (and its ring, with the pendants), the dining's
+// (its pendants likewise), the lounge chair; the dining wall as drawn and, swapped, its cabinets on the east wall (in
+// the dining's frame) and the plastered TV wall in its place
+const zones = { living: new THREE.Group(), ring: new THREE.Group(), dining: new THREE.Group(), skan: new THREE.Group(), lounge: new THREE.Group(),
+  wall: new THREE.Group(), wallE: new THREE.Group(), tvWall: new THREE.Group() };
+for (const k of ['living', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
+groups.pendants.add(zones.ring, zones.skan);
+for (const g of Object.values(zones)) g.matrixAutoUpdate = false;
 let floorMesh, mirrorMesh, frontMesh;
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // a wall: plaster on the faces asked for, poché on its cut top (seen from the plan view)
@@ -1531,7 +1582,7 @@ function buildArchitecture() {
   wall(BUILT.x1, BED.wall[1], Y0, BED.cor[1], 0, WT, 'Y');
   wall(BED.wall[1], BED.end, BED.cor[0], BED.cor[1], 0, WT, 'Y');
   // the steel column inside the corner of the glazing
-  add(M.frame, box(COLUMN.x0, COLUMN.x1, COLUMN.y0, COLUMN.y1, 0, H, { faces: 'xXyY' }));
+  add(M.frame, box(COLUMN.x0, COLUMN.x1, COLUMN.y0, COLUMN.y1, 0, CURTAIN.pk, { faces: 'xXyY' }));
   // the floor: one plane (the planar reflector) through the room, the lobby and on along the bedroom's corridor, the
   // kitchen, the pantry, into the glazings' reveals and the openings
   const fl = mergeGeometries([
@@ -1554,18 +1605,20 @@ function buildGlazing() {
     add(F, box(x0, x1, fy0, fy1, head, H, { faces: 'yYz' }));
     add(F, box(x0, x1, fy0, fy1, 0, sill, { faces: 'yYZ' }));
   }
-  // B: one fixed pane; A: the fixed pane on the outer track, its stile at the meeting (the sliding sash: buildDoors)
+  // B: one fixed pane; A: the fixed pane (the northern one) on the outer track, its stile at the meeting (the sliding
+  // sash: buildDoors)
   add(M.windowGlass, box(EG_B.x0 + EG_B.j, EG_B.x1 - EG_B.j, EG.glass - 0.012, EG.glass + 0.012, sill, head, { faces: 'yY' }));
   add(F, box(EG_A.mull[0], EG_A.mull[1], fy0, 9.88, sill, head, { faces: 'xXyY' }));
-  add(M.windowGlass, box(EG_A.x0 + EG_A.j, EG_A.mull[0], 9.83, 9.85, sill, head, { faces: 'yY' }));
-  // the south glazing, flush with the wall inside: jambs, two mullions, head and sill, three fixed panes
+  add(M.windowGlass, box(EG_A.mull[1], EG_A.x1 - EG_A.j, 9.83, 9.85, sill, head, { faces: 'yY' }));
+  // the south glazing, flush with the wall inside: jambs, head and sill; the fixed pane (the eastern one) on the outer
+  // track, its stile at the meeting (the sliding sash: buildDoors)
   {
     const S = SG, g = S.glass;
-    for (const [a, b] of [...S.jambs, ...S.mulls]) add(F, box(XS, X0, a, b, 0, H, { faces: 'xXyY' }));
+    for (const [a, b] of S.jambs) add(F, box(XS, X0, a, b, 0, H, { faces: 'xXyY' }));
     add(F, box(XS, X0, S.y0, S.y1, S.head, H, { faces: 'xXz' }));
     add(F, box(XS, X0, S.y0, S.y1, 0, S.sill, { faces: 'xXZ' }));
-    const edges = [S.jambs[0][1], S.mulls[0][0], S.mulls[0][1], S.mulls[1][0], S.mulls[1][1], S.jambs[1][0]];
-    for (let i = 0; i < 6; i += 2) add(M.windowGlass, box(g - 0.012, g + 0.012, edges[i], edges[i + 1], S.sill, S.head, { faces: 'xX' }));
+    add(F, box(XS, 42.985, S.mull[0], S.mull[1], S.sill, S.head, { faces: 'xXyY' }));
+    add(M.windowGlass, box(g - 0.01, g + 0.01, S.jambs[0][1], S.mull[0], S.sill, S.head, { faces: 'xX' }));
   }
   // the kitchen's window strip over the worktop: a fixed pane, the mullion, a tilt-and-turn sash with its lever
   {
@@ -1592,9 +1645,37 @@ function buildCeiling() {
   roof.userData.noAO = roof.userData.occluder = true;
   R.add(roof);
   // the living room's ceiling (into the glazings' reveals), the lobby's and on along the bedroom's corridor; the
-  // pantry's and the kitchen's, lowered, the fascia between the kitchen's and the living room's, a slot in the
-  // kitchen's for its spots over the worktop
-  put(M.ceiling, box(X0, X1, EG.fy1, YK, H, WT, { faces: 'z' }));
+  // pantry's and the kitchen's, lowered, the fascia between the kitchen's and the living room's (an air vent in it), a
+  // slot in the kitchen's for its spots over the worktop. The living room's has the curtains' pocket cut out of it: over
+  // the east glazings' reveals (A; B running round the corner into S along the south glazing, 15 cm wide), up to pk
+  const SX = X0 + 0.15, P = CURTAIN.pk, c = (geo) => put(M.ceiling, geo);
+  c(box(SX, X1, Y0, YK, H, WT, { faces: 'z' }));
+  c(box(EG_B.x1, EG_A.x0, EG.fy1, Y0, H, WT, { faces: 'z' }));
+  c(box(EG_A.x1, X1, EG.fy1, Y0, H, WT, { faces: 'z' }));
+  c(box(EG_A.x0, EG_A.x1, EG.fy1, Y0, P, P + 0.01, { faces: 'z' }));
+  c(box(EG_A.x0, EG_A.x1, Y0, Y0 + 0.01, H, P, { faces: 'y' }));
+  c(box(EG_A.x0, EG_A.x1, EG.fy1 - 0.01, EG.fy1, H, P, { faces: 'Y' }));
+  c(box(EG_A.x0 - 0.01, EG_A.x0, EG.fy1, Y0, H, P, { faces: 'X' }));
+  c(box(EG_A.x1, EG_A.x1 + 0.01, EG.fy1, Y0, H, P, { faces: 'x' }));
+  c(box(X0, EG_B.x1, EG.fy1, Y0, P, P + 0.01, { faces: 'z' }));
+  c(box(X0, SX, Y0, SG.y1, P, P + 0.01, { faces: 'z' }));
+  c(box(X0, EG_B.x1, EG.fy1 - 0.01, EG.fy1, H, P, { faces: 'Y' }));
+  c(box(SX, EG_B.x1, Y0, Y0 + 0.01, H, P, { faces: 'y' }));
+  c(box(EG_B.x1, EG_B.x1 + 0.01, EG.fy1, Y0, H, P, { faces: 'x' }));
+  c(box(X0 - 0.01, X0, EG.fy1, SG.y1, H, P, { faces: 'X' }));
+  c(box(SX, SX + 0.01, Y0, SG.y1, H, P, { faces: 'x' }));
+  c(box(X0, SX, SG.y1, SG.y1 + 0.01, H, P, { faces: 'y' }));
+  // in the pocket: each run's black track, an LED line along the room-side edge
+  for (const { a, b } of CURTAIN.runs) {
+    const lo = (i) => Math.min(a[i], b[i]), hi = (i) => Math.max(a[i], b[i]);
+    if (a[1] === b[1]) {
+      put(M.trim, box(lo(0) - 0.03, hi(0) + 0.03, a[1] - 0.006, a[1] + 0.006, P - 0.012, P, { faces: 'xXyYz' }));
+      put(E.curtain, box(lo(0) - 0.05, hi(0) + 0.05, Y0 - 0.022, Y0 - 0.012, P - 0.002, P, { faces: 'z' }));
+    } else {
+      put(M.trim, box(a[0] - 0.006, a[0] + 0.006, lo(1) - 0.03, hi(1) + 0.03, P - 0.012, P, { faces: 'xXyYz' }));
+      put(E.curtain, box(SX - 0.022, SX - 0.012, lo(1) - 0.05, hi(1) + 0.02, P - 0.002, P, { faces: 'z' }));
+    }
+  }
   put(M.ceiling, box(X1, 52.0, BUILT.y1, YK, H, WT, { faces: 'z' }));
   put(M.ceiling, box(PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1, HK, WT, { faces: 'z' }));
   const s0 = KSLOT.y - KSLOT.w / 2, s1 = KSLOT.y + KSLOT.w / 2, zt = HK + KSLOT.d;
@@ -1612,9 +1693,13 @@ function buildCeiling() {
     put(E.kdown, cyl(0.016, 0.002, 'z', [x, KSLOT.y, HK + 0.0068]));
   }
   put(M.plaster, box(KX0, KX1, YK, YK + 0.05, HK, H, { faces: 'y' }));
-  // the LED line in the fascia: a graphite profile, its opal diffuser facing the room
-  put(M.skanGraphite, box(FASCIA.x0, FASCIA.x1, YK - 0.015, YK, FASCIA.z0, FASCIA.z1, { faces: 'xXyzZ' }));
-  put(E.fascia, box(FASCIA.x0 + 0.01, FASCIA.x1 - 0.01, YK - 0.0155, YK - 0.015, FASCIA.z0 + 0.007, FASCIA.z1 - 0.007, { faces: 'y' }));
+  // the air vent in the fascia: a black frame flush with the plaster round the slot's dark throat, two blades along it
+  {
+    const { x0, x1, z0, z1 } = FASCIA, f = 0.004, yf = YK - 0.003;
+    for (const [a, b, d0, d1] of [[x0, x1, z0, z0 + f], [x0, x1, z1 - f, z1], [x0, x0 + f, z0, z1], [x1 - f, x1, z0, z1]]) put(M.trim, box(a, b, yf, YK, d0, d1, { faces: 'xXyzZ' }));
+    put(M.dark, box(x0 + f, x1 - f, YK - 0.001, YK, z0 + f, z1 - f, { faces: 'y' }));
+    for (const z of [z0 + 0.0115, z1 - 0.0135]) put(M.trim, box(x0 + f, x1 - f, YK - 0.002, YK - 0.001, z, z + 0.002, { faces: 'yzZ' }));
+  }
   // two tracks flush in the ceiling along the room, square spots on them
   for (const y of ROWS) {
     put(M.trim, box(43.7, 49.42, y - 0.0125, y + 0.0125, H - 0.001, H, { faces: 'z' }));
@@ -1624,14 +1709,14 @@ function buildCeiling() {
       put(E.spot, cyl(0.017, 0.002, 'z', [x, y, H - 0.0115]));
     }
   }
-  // the ring over the sofa: black, its diffuser underneath
+  // the ring over the sofa: black, its diffuser underneath (it moves with the living room: zones.ring)
   {
-    const { x, y, r, r0, h } = RING, zb = H - h, c = [x, y, 0];
-    put(M.ringBody, lathe([[r0, H], [r0, zb]], c, 72));
-    put(M.ringBody, lathe([[r, zb], [r, H]], c, 72));
-    put(M.ringBody, lathe([[r0, zb], [r0 + 0.012, zb]], c, 72));
-    put(M.ringBody, lathe([[r - 0.012, zb], [r, zb]], c, 72));
-    put(E.ring, lathe([[r0 + 0.012, zb + 0.002], [r - 0.012, zb + 0.002]], c, 72));
+    const { x, y, r, r0, h } = RING, zb = H - h, c = [x, y, 0], ring = (mat, geo) => zones.ring.add(put(mat, geo));
+    ring(M.ringBody, lathe([[r0, H], [r0, zb]], c, 72));
+    ring(M.ringBody, lathe([[r, zb], [r, H]], c, 72));
+    ring(M.ringBody, lathe([[r0, zb], [r0 + 0.012, zb]], c, 72));
+    ring(M.ringBody, lathe([[r - 0.012, zb], [r, zb]], c, 72));
+    ring(E.ring, lathe([[r0 + 0.012, zb + 0.002], [r - 0.012, zb + 0.002]], c, 72));
   }
 }
 
@@ -1808,11 +1893,60 @@ function buildIsland() {
   }
 }
 
+// the linear pendant over the island (with the pendants: hidden in the plan view)
+function buildIslandLight() {
+  const { x, y, len, w, h, z, drop } = ISLAND_LIGHT, top = z + h;
+  add(M.ringBody, rbox(len, w, h, 0.004, [x, y, z + h / 2]));
+  add(E.island, box(x - len / 2 + 0.01, x + len / 2 - 0.01, y - w / 2 + 0.004, y + w / 2 - 0.004, z - 0.001, z, { faces: 'z' }), { shadow: false });
+  for (const sgn of [-1, 1]) {
+    const cx = x + sgn * (len / 2 - drop);
+    add(M.blackMetal, cyl(0.0009, HK - top, 'z', [cx, y, (top + HK) / 2], 6));
+    add(M.ringBody, cyl(0.03, 0.012, 'z', [cx, y, HK - 0.006], 32));
+  }
+  flush(groups.pendants);
+}
+
 // ---------------------------------------------------------------- the dining wall and table
 function buildDining() {
-  const B = BUILT, r = B.r, [n0, n1] = B.niche, xa = B.x0 + r;
-  // the tall cabinets either side of the niche, floor to ceiling, their edges at the niche and the corridor rounded
-  add(M.built, box(B.x0, B.x1, B.y0, n0 - r, 0, H, { faces: 'x' }));
+  flush(groups.room);
+  // the dining wall as drawn (north); swapped, its cabinets on the east wall (built as drawn, shortened, moved there with
+  // the dining) and a plastered wall for the TV in its place
+  zones.wall.add(buildDiningWall(BUILT, SIDEBOARD, false));
+  flush(zones.wall);
+  zones.wallE.add(buildDiningWall(BUILT_E, SIDEBOARD_E, true));
+  flush(zones.wallE);
+  zones.wallE.matrix.copy(layoutMatrix(LAYOUT.diningWall));
+  add(M.plaster, box(X1, BUILT.x1, Y0, BUILT.y1, 0, H, { faces: 'xY' }));
+  flush(zones.tvWall);
+  zones.wallE.visible = zones.tvWall.visible = false;
+  // the dining table: the wood, four square legs flush at its corners
+  {
+    const T = TABLE, l = T.leg;
+    add(M.veneer, box(T.x0, T.x1, T.y0, T.y1, T.z - T.t, T.z));
+    for (const [x, y] of [[T.x0, T.y0], [T.x1 - l, T.y0], [T.x0, T.y1 - l], [T.x1 - l, T.y1 - l]]) add(M.veneer, box(x, x + l, y, y + l, 0, T.z - T.t, { faces: 'xXyY' }));
+  }
+  // the dining table: a vase of dried grasses, candles in brass holders
+  {
+    const z = TABLE.z, x = (TABLE.x0 + TABLE.x1) / 2, y = (TABLE.y0 + TABLE.y1) / 2;
+    add(M.pottery, lathe(VASE.map(([r, h]) => [r * 1.2, h * 1.15]), [x, y, z], 40));
+    twigs(x, y, z + 0.24, 14, 0.5, 9, M.grass);
+    for (const dy of [-0.36, 0.34]) {
+      add(M.metal, lathe([[0.001, 0], [0.032, 0], [0.032, 0.008], [0.01, 0.014], [0.008, 0.09], [0.016, 0.1], [0.012, 0.104], [0.001, 0.104]], [x + 0.02, y + dy, z], 28));
+      add(M.wax, cyl(0.0105, 0.2, 'z', [x + 0.02, y + dy, z + 0.2], 20));
+    }
+  }
+  flush(zones.dining);
+}
+// the dining wall (B, its sideboard S); free: both its ends stand free (else the first runs into the east wall). Returns
+// the niche's mirror
+function buildDiningWall(B, S, free) {
+  const r = B.r, [n0, n1] = B.niche, xa = B.x0 + r;
+  // the tall cabinets either side of the niche, floor to ceiling, their edges at the niche and the free ends rounded
+  if (free) {
+    add(M.built, arcWall(xa, B.y0 + r, r, Math.PI, 1.5 * Math.PI, 0, H));
+    add(M.built, box(xa, B.x1, B.y0, B.y0 + 0.01, 0, H, { faces: 'y' }));
+  }
+  add(M.built, box(B.x0, B.x1, free ? B.y0 + r : B.y0, n0 - r, 0, H, { faces: 'x' }));
   add(M.built, arcWall(xa, n0 - r, r, Math.PI / 2, Math.PI, 0, H));
   add(M.built, box(xa, B.x1, n0 - 0.01, n0, 0, H, { faces: 'Y' }));
   add(M.built, arcWall(xa, n1 + r, r, Math.PI, 1.5 * Math.PI, 0, H));
@@ -1820,18 +1954,18 @@ function buildDining() {
   add(M.built, arcWall(xa, B.y1 - r, r, Math.PI / 2, Math.PI, 0, H));
   add(M.built, box(xa, B.x1, n1, n1 + 0.01, 0, H, { faces: 'y' }));
   add(M.built, box(xa, B.x1, B.y1 - 0.01, B.y1, 0, H, { faces: 'Y' }));
-  for (const y of [SIDEBOARD.y0, SIDEBOARD.y1]) add(M.joint, box(B.x0 - 0.0005, B.x0, y - 0.0012, y + 0.0012, 0, H, { faces: 'x' }), { shadow: false });
+  for (const y of [S.y0, S.y1]) add(M.joint, box(B.x0 - 0.0005, B.x0, y - 0.0012, y + 0.0012, 0, H, { faces: 'x' }), { shadow: false });
   // the niche: mirror at its back over the sideboard, three black steel shelves, an LED line at its head
-  mirrorMesh = new THREE.Mesh(box(B.mirror, B.mirror + 0.006, n0 + 0.002, n1 - 0.002, SIDEBOARD.top.z, H - 0.002, { faces: 'x' }), M.mirror);
-  mirrorMesh.receiveShadow = true;
-  groups.room.add(mirrorMesh);
-  mirrorRefl.meshes.push(mirrorMesh);
+  const mirror = new THREE.Mesh(box(B.mirror, B.mirror + 0.006, n0 + 0.002, n1 - 0.002, S.top.z, H - 0.002, { faces: 'x' }), M.mirror);
+  mirror.receiveShadow = true;
+  mirrorRefl.meshes.push(mirror);
+  if (!free) mirrorMesh = mirror;
   for (const z of B.shelves) add(M.shelf, box(B.x0 + 0.008, B.mirror, n0, n1, z - 0.01, z));
   add(E.niche, box(B.x0 + 0.02, B.x0 + 0.032, n0 + 0.01, n1 - 0.01, H - 0.002, H, { faces: 'z' }), { shadow: false });
   // the floating sideboard: four handleless fronts in the wood across the niche and the cabinets, back into the niche,
   // under a black top; the LED line under it washing the floor
   {
-    const S = SIDEBOARD, f = S.x0, n = 4, w = (S.y1 - S.y0) / n, g = RUN.gap / 2, T = S.top;
+    const f = S.x0, n = 4, w = (S.y1 - S.y0) / n, g = RUN.gap / 2, T = S.top;
     add(M.veneer, box(f + 0.02, B.x0, S.y0, S.y1, S.z0, S.z1, { faces: 'yYz' }));
     add(M.veneer, box(B.x0, S.x1, n0, n1, S.z0, S.z1, { faces: 'z' }));
     for (let i = 0; i < n; i++) add(M.veneer, box(f, f + 0.02, S.y0 + i * w + g, S.y0 + (i + 1) * w - g, S.z0 + g, S.z1 - g, { faces: 'xyYzZ' }));
@@ -1840,12 +1974,21 @@ function buildDining() {
     add(M.blackTop, box(B.x0, B.mirror, n0, n1, S.z1, T.z, { faces: 'Z' }));
     add(E.wash, box(f + 0.03, f + 0.042, S.y0 + 0.04, S.y1 - 0.04, S.z0 - 0.002, S.z0, { faces: 'z' }), { shadow: false });
   }
-  // the dining table: the wood, four square legs flush at its corners
+  // the sideboard and the niche's shelves: a big bowl, books, pottery
   {
-    const T = TABLE, l = T.leg;
-    add(M.veneer, box(T.x0, T.x1, T.y0, T.y1, T.z - T.t, T.z));
-    for (const [x, y] of [[T.x0, T.y0], [T.x1 - l, T.y0], [T.x0, T.y1 - l], [T.x1 - l, T.y1 - l]]) add(M.veneer, box(x, x + l, y, y + l, 0, T.z - T.t, { faces: 'xXyY' }));
+    const z = S.top.z, xm = (B.x0 + B.mirror) / 2 + 0.02;
+    add(M.potteryDark, lathe(BOWL.map(([r, h]) => [r * 1.15, h * 1.2]), [xm, 11.45, z], 40));
+    book(xm, 12.05, z, 0.24, 0.3, 0.03, 0.05, M.book2);
+    book(xm, 12.05, z + 0.03, 0.22, 0.28, 0.025, -0.08, M.book1);
+    add(M.pottery, lathe(VASE.map(([r, h]) => [r * 0.8, h * 0.8]), [xm, 12.05, z + 0.055], 36));
+    const [s1, s2, s3] = B.shelves;
+    add(M.potteryWhite, lathe(VASE.map(([r, h]) => [r * 0.9, h * 1.0]), [xm, 11.45, s1], 36));
+    for (let i = 0; i < 5; i++) add([M.book1, M.book2, M.book3][i % 3], box(xm - 0.1, xm + 0.1, 11.85 + i * 0.032, 11.88 + i * 0.032, s1, s1 + 0.22 + (i % 2) * 0.02));
+    add(M.terracotta, lathe(BOWL.map(([r, h]) => [r * 0.7, h * 1.4]), [xm, 11.75, s2], 32));
+    add(M.potteryDark, lathe(JAR.map(([r, h]) => [r * 1.3, h * 1.1]), [xm, 12.1, s2], 28));
+    add(M.potteryWhite, lathe(VASE.map(([r, h]) => [r * 0.6, h * 0.7]), [xm, 11.55, s3], 28));
   }
+  return mirror;
 }
 
 // ---------------------------------------------------------------- the living room
@@ -1905,6 +2048,22 @@ function buildLiving() {
     add(M.trim, box(TV.x0, TV.x1, Y0, Y0 + 0.03, TV.z0, TV.z1, { faces: 'xXzZ' }));
     add(M.screen, box(TV.x0 + 0.004, TV.x1 - 0.004, Y0, Y0 + 0.0305, TV.z0 + 0.004, TV.z1 - 0.004, { faces: 'Y' }));
   }
+  // the coffee table: books, a candle in a dark vessel
+  {
+    const { x, y, h } = COFFEE_TABLE;
+    book(x - 0.1, y + 0.08, h, 0.25, 0.31, 0.028, 0.4, M.book3);
+    book(x - 0.1, y + 0.08, h + 0.028, 0.22, 0.28, 0.022, 0.55, M.book2);
+    add(M.potteryDark, lathe([[0.001, 0], [0.05, 0], [0.052, 0.09], [0.046, 0.09], [0.044, 0.01], [0.001, 0.01]], [x + 0.17, y - 0.1, h], 32));
+    add(M.wax, cyl(0.043, 0.06, 'z', [x + 0.17, y - 0.1, h + 0.04], 32));
+  }
+  // the TV unit: a vase, books
+  {
+    const z = TV_UNIT.z1;
+    add(M.pottery, lathe(VASE, [45.0, 10.33, z], 36));
+    twigs(45.0, 10.33, z + 0.2, 7, 0.5, 13);
+    book(46.95, 10.3, z, 0.17, 0.24, 0.03, 0.0, M.book1);
+  }
+  flush(zones.living);
 }
 
 // ---------------------------------------------------------------- things
@@ -1948,45 +2107,6 @@ function buildProps() {
     book(47.95, 14.52, z, 0.22, 0.28, 0.025, 0.25, M.book1);
     book(47.95, 14.52, z + 0.025, 0.2, 0.26, 0.022, 0.1, M.book3);
   }
-  // the dining table: a vase of dried grasses, candles in brass holders
-  {
-    const z = TABLE.z, x = (TABLE.x0 + TABLE.x1) / 2, y = (TABLE.y0 + TABLE.y1) / 2;
-    add(M.pottery, lathe(VASE.map(([r, h]) => [r * 1.2, h * 1.15]), [x, y, z], 40));
-    twigs(x, y, z + 0.24, 14, 0.5, 9, M.grass);
-    for (const dy of [-0.36, 0.34]) {
-      add(M.metal, lathe([[0.001, 0], [0.032, 0], [0.032, 0.008], [0.01, 0.014], [0.008, 0.09], [0.016, 0.1], [0.012, 0.104], [0.001, 0.104]], [x + 0.02, y + dy, z], 28));
-      add(M.wax, cyl(0.0105, 0.2, 'z', [x + 0.02, y + dy, z + 0.2], 20));
-    }
-  }
-  // the sideboard and the niche's shelves: a big bowl, books, pottery
-  {
-    const B = BUILT, z = SIDEBOARD.top.z, xm = (B.x0 + B.mirror) / 2 + 0.02;
-    add(M.potteryDark, lathe(BOWL.map(([r, h]) => [r * 1.15, h * 1.2]), [xm, 11.45, z], 40));
-    book(xm, 12.05, z, 0.24, 0.3, 0.03, 0.05, M.book2);
-    book(xm, 12.05, z + 0.03, 0.22, 0.28, 0.025, -0.08, M.book1);
-    add(M.pottery, lathe(VASE.map(([r, h]) => [r * 0.8, h * 0.8]), [xm, 12.05, z + 0.055], 36));
-    const [s1, s2, s3] = B.shelves;
-    add(M.potteryWhite, lathe(VASE.map(([r, h]) => [r * 0.9, h * 1.0]), [xm, 11.45, s1], 36));
-    for (let i = 0; i < 5; i++) add([M.book1, M.book2, M.book3][i % 3], box(xm - 0.1, xm + 0.1, 11.85 + i * 0.032, 11.88 + i * 0.032, s1, s1 + 0.22 + (i % 2) * 0.02));
-    add(M.terracotta, lathe(BOWL.map(([r, h]) => [r * 0.7, h * 1.4]), [xm, 11.75, s2], 32));
-    add(M.potteryDark, lathe(JAR.map(([r, h]) => [r * 1.3, h * 1.1]), [xm, 12.1, s2], 28));
-    add(M.potteryWhite, lathe(VASE.map(([r, h]) => [r * 0.6, h * 0.7]), [xm, 11.55, s3], 28));
-  }
-  // the coffee table: books, a candle in a dark vessel
-  {
-    const { x, y, h } = COFFEE_TABLE;
-    book(x - 0.1, y + 0.08, h, 0.25, 0.31, 0.028, 0.4, M.book3);
-    book(x - 0.1, y + 0.08, h + 0.028, 0.22, 0.28, 0.022, 0.55, M.book2);
-    add(M.potteryDark, lathe([[0.001, 0], [0.05, 0], [0.052, 0.09], [0.046, 0.09], [0.044, 0.01], [0.001, 0.01]], [x + 0.17, y - 0.1, h], 32));
-    add(M.wax, cyl(0.043, 0.06, 'z', [x + 0.17, y - 0.1, h + 0.04], 32));
-  }
-  // the TV unit: a vase, books
-  {
-    const z = TV_UNIT.z1;
-    add(M.pottery, lathe(VASE, [45.0, 10.33, z], 36));
-    twigs(45.0, 10.33, z + 0.2, 7, 0.5, 13);
-    book(46.95, 10.3, z, 0.17, 0.24, 0.03, 0.0, M.book1);
-  }
   // the kitchen: by the sink a soap bottle, a board leaning on the window, oil by the hob, canisters, a utensil pot
   {
     const z = TOP.z1;
@@ -2007,9 +2127,9 @@ function buildProps() {
       add(rnd() < 0.6 ? M.canister : M.amber, lathe(JAR.map(([r, h]) => [r, h * (0.7 + rnd() * 0.6)]), [43.3 + rnd() * 0.3, y, z], 20));
     }
   }
-  // an olive tree in a pot by the glazing, beside the pantry's wall
+  // an olive tree in a pot by the east glazing, between the lounge chair and the TV wall
   {
-    const x = 43.45, y = 14.12;
+    const x = 44.33, y = 10.5;
     add(M.potteryDark, lathe([[0.001, 0], [0.17, 0], [0.22, 0.42], [0.2, 0.42], [0.16, 0.04], [0.001, 0.04]], [x, y, 0], 40));
     add(M.soil, cyl(0.2, 0.01, 'z', [x, y, 0.38], 32), { shadow: false });
     const rnd = mulberry(31);
@@ -2025,8 +2145,8 @@ function buildProps() {
 }
 
 // ---------------------------------------------------------------- the furniture from the house model
-// The dining chairs, the pendants over the table (groups.pendants, with the lamps), the lounge chair, the tap and the
-// diffuser, as placed in the model; their materials by name
+// The dining chairs, the pendants over the table (with the lamps), the lounge chair, the tap and the diffuser (on the TV
+// unit), as placed in the model, each with its zone (zones); their materials by name
 const MESH_MATS = [
   [/Sky2d4leg_1$/, 'chair'], [/Sky2d4leg_Black/, 'blackMetal'],
   [/Skan.*GRAPHITE/, 'skanGraphite'], [/Skan.*White/, 'skanWhite'], [/Skan.*Methacrylate_transparent/, 'clearAcrylic'], [/Skan.*Methacrylate_semitransparent/, 'skanGlow'],
@@ -2061,27 +2181,44 @@ function buildMeshes({ meta, buf }) {
     const parts = [];
     walk(c[0], lift.clone().multiply(new THREE.Matrix4().fromArray(c, 2)), c[1], parts);
     for (const [mat, g] of parts) add(mat, g);
-    flush(parts.some(([mat]) => mat === E.skan) ? groups.pendants : groups.room);
+    const has = (m) => parts.some(([mat]) => mat === m);
+    flush(has(E.skan) ? zones.skan : has(M.chair) ? zones.dining : has(M.lounge) ? zones.lounge : has(M.reed) ? zones.living : groups.room);
   }
 }
 
 // ---------------------------------------------------------------- doors: open / close
-// The terrace door: the lift-and-slide sash of glazing A, on the inner track, slides south over the fixed pane; the
-// glass door to the hall slides along the lobby's side of the corridor wall
-const TDOOR = { open: false, t: 0, group: null, travel: EG_A.mull[0] - EG_A.x0 - EG_A.j };
+// The terrace doors: the lift-and-slide sashes on the inner tracks slide over the fixed panes, glazing A's (the southern
+// one) north and the south glazing's (the western one) east (TDOOR.sashes: [group, axis, travel]); the glass door to the
+// hall slides along the lobby's side of the corridor wall
+const TDOOR = { open: false, t: 0, sashes: [] };
 const GLASS = { open: false, t: 0, group: null };
 function buildDoors() {
+  // each sash: its frame (8 cm stiles and rails), the pane, a pull on the room side by the jamb
+  const sash = (axis, travel) => {
+    const g = new THREE.Group();
+    R.add(g);
+    flush(g);
+    TDOOR.sashes.push([g, axis, travel]);
+  };
   {
-    const { x1, j, mull } = EG_A, s = 0.08, y0 = 9.885, y1 = EG.fy1, z0 = EG.sill, z1 = EG.head, a = mull[0], b = x1 - j;
+    const { x0, x1, j, mull } = EG_A, s = 0.08, y0 = 9.885, y1 = EG.fy1, z0 = EG.sill, z1 = EG.head, a = x0 + j, b = mull[1];
     add(M.frame, box(a, a + s, y0, y1, z0, z1, { faces: 'xXyY' }));
     add(M.frame, box(b - s, b, y0, y1, z0, z1, { faces: 'xXyY' }));
     add(M.frame, box(a + s, b - s, y0, y1, z0, z0 + s, { faces: 'yYZ' }));
     add(M.frame, box(a + s, b - s, y0, y1, z1 - s, z1, { faces: 'yYz' }));
     add(M.windowGlass, box(a + s, b - s, 9.91, 9.93, z0 + s, z1 - s, { faces: 'yY' }));
-    add(M.metal, box(b - 0.052, b - 0.03, y1, y1 + 0.032, 0.95, 1.3));
-    TDOOR.group = new THREE.Group();
-    R.add(TDOOR.group);
-    flush(TDOOR.group);
+    add(M.metal, box(a + 0.03, a + 0.052, y1, y1 + 0.032, 0.95, 1.3));
+    sash('x', x1 - j - b);
+  }
+  {
+    const { jambs, mull, sglass: g, sill: z0, head: z1 } = SG, s = 0.08, x0 = 42.99, x1 = X0, a = mull[0], b = jambs[1][0];
+    add(M.frame, box(x0, x1, a, a + s, z0, z1, { faces: 'xXyY' }));
+    add(M.frame, box(x0, x1, b - s, b, z0, z1, { faces: 'xXyY' }));
+    add(M.frame, box(x0, x1, a + s, b - s, z0, z0 + s, { faces: 'xXZ' }));
+    add(M.frame, box(x0, x1, a + s, b - s, z1 - s, z1, { faces: 'xXz' }));
+    add(M.windowGlass, box(g - 0.01, g + 0.01, a + s, b - s, z0 + s, z1 - s, { faces: 'xX' }));
+    add(M.metal, box(x1, x1 + 0.032, b - 0.052, b - 0.03, 0.95, 1.3));
+    sash('y', jambs[0][1] - a);
   }
   // the glass door: its track under the lobby's ceiling; a frameless 10 mm pane, grey-tinted, round flush pulls
   add(M.track, box(SLIDE.track[0], SLIDE.track[1], SLIDE.y0 - 0.01, YK, H - 0.03, H, { faces: 'xXyz' }));
@@ -2104,7 +2241,7 @@ function chip(id, on, label) {
 }
 function setDoor(open) {
   TDOOR.open = open;
-  chip('t-door', open, open ? 'Close terrace door' : 'Open terrace door');
+  chip('t-door', open, open ? 'Close terrace doors' : 'Open terrace doors');
   dirty = true;
 }
 function setGlass(open) {
@@ -2112,13 +2249,93 @@ function setGlass(open) {
   chip('t-glass', open, open ? 'Close glass door' : 'Open glass door');
   dirty = true;
 }
+// The curtains (CURTAIN.runs): wave curtains whose folds deepen as they gather (the cloth's length stays the same).
+// CURT.t: 0 open (gathered at each run's a end), 1 drawn
+const CURT = { closed: false, t: 0, runs: [] };
+function buildCurtains() {
+  for (const r of CURTAIN.runs) {
+    const dx = r.b[0] - r.a[0], dy = r.b[1] - r.a[1], len = Math.hypot(dx, dy), n = Math.max(2, Math.round(len / CURTAIN.wave));
+    const cols = n * 8, geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array((cols + 1) * 6), 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array((cols + 1) * 6), 3));
+    const uv = [], idx = [];
+    for (let i = 0; i <= cols; i++) {
+      uv.push(i / cols * len * CURTAIN.full, 0.012, i / cols * len * CURTAIN.full, CURTAIN.top);
+      if (i < cols) idx.push(2 * i, 2 * i + 2, 2 * i + 3, 2 * i, 2 * i + 3, 2 * i + 1);
+    }
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    const mesh = new THREE.Mesh(geo, M.curtain);
+    mesh.castShadow = mesh.receiveShadow = true;
+    R.add(mesh);
+    CURT.runs.push({ ...r, len, n, cols, dir: [dx / len, dy / len], mesh });
+  }
+  shapeCurtains(0);
+}
+// k: 0 gathered .. 1 drawn
+function shapeCurtains(k) {
+  for (const r of CURT.runs) {
+    const span = THREE.MathUtils.lerp(r.n * CURTAIN.fold + 0.04, r.len, k), cloth = r.len * CURTAIN.full / (2 * r.n);
+    const A = 0.5 * Math.sqrt(Math.max(0, cloth * cloth - (span / (2 * r.n)) ** 2)), w = 2 * Math.PI * r.n;
+    const [ux, uy] = r.dir, [nx, ny] = [-uy, ux], P = r.mesh.geometry.attributes.position, N = r.mesh.geometry.attributes.normal;
+    for (let i = 0; i <= r.cols; i++) {
+      const s = i / r.cols, off = A * Math.sin(w * s), d = A * w * Math.cos(w * s);
+      const x = r.a[0] + ux * s * span + nx * off, y = r.a[1] + uy * s * span + ny * off;
+      let tx = ux * span + nx * d, ty = uy * span + ny * d;
+      const l = Math.hypot(tx, ty);
+      tx /= l; ty /= l;
+      for (const [j, z] of [[2 * i, 0.012], [2 * i + 1, CURTAIN.top]]) { P.setXYZ(j, x, y, z); N.setXYZ(j, -ty, tx, 0); }
+    }
+    P.needsUpdate = N.needsUpdate = true;
+    r.mesh.geometry.computeBoundingSphere();
+  }
+}
+function setCurtains(closed) {
+  CURT.closed = closed;
+  chip('t-curt', closed, closed ? 'Open curtains' : 'Close curtains');
+  dirty = true;
+}
+// the sky's light through the east and south glazing, softened by the drawn curtains (setSun sets L.skyLevel)
+function applySky() {
+  L.sky.forEach(([a, k], i) => { a.intensity = L.skyLevel * k * (i < 3 ? 1 - 0.6 * CURT.t : 1); });
+}
+// living and dining as drawn or swapped (LAYOUT): the zones move, the dining wall changes, the lamps and the mirror's
+// reflection go along
+let layoutSwapped = false;
+function setLayout(on) {
+  layoutSwapped = on;
+  const I = new THREE.Matrix4();
+  for (const [g, k] of [[zones.living, 'living'], [zones.ring, 'living'], [zones.dining, 'dining'], [zones.skan, 'dining'], [zones.lounge, 'lounge']]) {
+    g.matrix.copy(on ? layoutMatrix(LAYOUT[k]) : I);
+    g.matrixWorldNeedsUpdate = true;
+  }
+  zones.wall.visible = !on;
+  zones.wallE.visible = zones.tvWall.visible = on;
+  for (const { light, drawn, swapped } of L.layout) {
+    const q = on ? swapped : drawn;
+    light.position.copy(SU(...q.pos));
+    if (light.isSpotLight) light.target.position.copy(SU(q.pos[0], q.pos[1], 0));
+    else { light.width = q.w; light.height = q.h; }
+  }
+  // the mirror faces south on the dining wall, west on the east wall
+  const [mx, my] = on ? mapXY(LAYOUT.diningWall, BUILT.mirror, 11.75) : [BUILT.mirror, 11.75];
+  mirrorRefl.n.set(on ? 0 : -1, 0, on ? -1 : 0);
+  mirrorRefl.p.copy(SU(mx, my, 1.6));
+  MIRROR_BOX.copy(mirrorBox(on));
+  chip('t-layout', on, on ? 'Living & dining as drawn' : 'Swap living & dining');
+  if (current.swap) goTo(VIEWS.find((v) => v.key === current.key));
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
 // one animation step for the doors; true while something moved
 function animateOpenings(dt) {
   let moved = false;
   const ease = (x) => x * x * (3 - 2 * x);
-  if (TDOOR.group && TDOOR.t !== (TDOOR.open ? 1 : 0)) {
-    TDOOR.t = THREE.MathUtils.clamp(TDOOR.t + (TDOOR.open ? dt : -dt) / 1.8, 0, 1);
-    TDOOR.group.position.x = -TDOOR.travel * ease(TDOOR.t);
+  if (TDOOR.sashes.length && TDOOR.t !== (TDOOR.open ? 1 : 0)) {
+    TDOOR.t = THREE.MathUtils.clamp(TDOOR.t + (TDOOR.open ? dt : -dt) / 2.2, 0, 1);
+    for (const [g, axis, travel] of TDOOR.sashes) g.position[axis] = travel * ease(TDOOR.t);
     if (TDOOR.t === 0 || TDOOR.t === 1) envSoon();
     moved = true;
   }
@@ -2128,6 +2345,13 @@ function animateOpenings(dt) {
     if (GLASS.t === 0 || GLASS.t === 1) envSoon();
     moved = true;
   }
+  if (CURT.runs.length && CURT.t !== (CURT.closed ? 1 : 0)) {
+    CURT.t = THREE.MathUtils.clamp(CURT.t + (CURT.closed ? dt : -dt) / 2.4, 0, 1);
+    shapeCurtains(ease(CURT.t));
+    applySky();
+    if (CURT.t === 0 || CURT.t === 1) envSoon();
+    moved = true;
+  }
   if (moved) renderer.shadowMap.needsUpdate = true;
   return moved;
 }
@@ -2135,8 +2359,9 @@ function animateOpenings(dt) {
 // ---------------------------------------------------------------- surroundings
 const OUT = {}, LIVING = [];
 // the sun disc's and the photo's distance, the photo's horizontal field of view and the elevation of its top and bottom
-// edges (deg), the point they are seen from
-const VIEW = { r: 60, hfov: 180, top: 27.6, bottom: -32.5, centre: SU(46.6, 12.3, 1.5) };
+// edges (deg), the point they are seen from; the photo turned clockwise (seen from above, deg) and lowered (m), so it
+// lines up with the room upstairs
+const VIEW = { r: 60, hfov: 180, top: 27.6, bottom: -32.5, centre: SU(46.6, 12.3, 1.5), turn: 25, drop: 2 };
 let sky;
 function buildSurroundings(viewTex) {
   // beyond the lobby: the hall through its opening, and the bedroom's corridor running on north. Lambert surfaces, lit
@@ -2216,7 +2441,8 @@ function buildSurroundings(viewTex) {
   // all round: the panorama photographed from the plot (about 180 deg wide, looking east, the horizon 46 % down the
   // frame) on a whole sphere: the east half as taken, the west half its mirror image (the south and north windows see its
   // ends run on); above the frame its top row (sky) stretched, below it the grass mirrored. Unlit; setSun sets its
-  // brightness for the time of day. (u from the sphere's own: its seam lies due south, so the mirror image meets there)
+  // brightness for the time of day. (u from the sphere's own: its seam lies due south before VIEW.turn, so the mirror
+  // image meets there)
   {
     const g = new THREE.SphereGeometry(VIEW.r, 160, 64), P = g.attributes.position, uv = g.attributes.uv;
     for (let i = 0; i < P.count; i++) {
@@ -2228,7 +2454,8 @@ function buildSurroundings(viewTex) {
     viewTex.needsUpdate = true;
     OUT.view = new THREE.MeshBasicMaterial({ map: viewTex, side: THREE.BackSide, fog: false });
     const mesh = new THREE.Mesh(g, OUT.view);
-    mesh.position.copy(VIEW.centre);
+    mesh.position.copy(VIEW.centre).y -= VIEW.drop;
+    mesh.rotation.y = -THREE.MathUtils.degToRad(VIEW.turn);      // (three's y is up: negative turns clockwise from above)
     mesh.userData.noAO = true;
     OUT.outside.add(mesh);
   }
@@ -2247,7 +2474,7 @@ async function loadView() {
 }
 
 // ---------------------------------------------------------------- lights
-const L = { spot: [], kdown: [], skan: [], area: [], sky: [] };
+const L = { spot: [], kdown: [], skan: [], area: [], sky: [], layout: [] };
 function buildLights() {
   const spot = (x, y, z, angle, pen, shadow, list) => {
     const s = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(angle), pen, 2);
@@ -2269,8 +2496,14 @@ function buildLights() {
   // table, the ring's over the coffee table
   for (const y of ROWS) for (const x of SPOTS) spot(x, y, H - 0.012, 22, 0.6, false, L.spot);
   for (const x of KSLOT.spots) spot(x, KSLOT.y, HK + 0.006, 34, 0.7, true, L.kdown);
-  for (const [x, y, z] of SKAN) spot(x, y, z - 0.03, 58, 0.9, true, L.skan);
-  L.ring = spot(RING.x, RING.y, H - RING.h - 0.01, 68, 1, true);
+  // (the dining's and the living room's lamps keep where they are as drawn and swapped, for setLayout)
+  const moves = (light, drawn, swapped) => { L.layout.push({ light, drawn, swapped }); return light; };
+  const sw = (zone, x, y) => mapXY(LAYOUT[zone], x, y);
+  for (const [x, y, z] of SKAN) moves(spot(x, y, z - 0.03, 58, 0.9, true, L.skan), { pos: [x, y, z - 0.03] }, { pos: [...sw('dining', x, y), z - 0.03] });
+  {
+    const z = H - RING.h - 0.01;
+    L.ring = moves(spot(RING.x, RING.y, z, 68, 1, true), { pos: [RING.x, RING.y, z] }, { pos: [...sw('living', RING.x, RING.y), z] });
+  }
   // the LED lines as narrow area lights (each with its mood channel and a factor on the channel's base): aimed with lookAt
   // (from c towards at), or facing straight down (width along x, height along SketchUp y)
   const area = (ch, k, w, h, c, at) => {
@@ -2282,14 +2515,24 @@ function buildLights() {
     return a;
   };
   {
-    const x = (FASCIA.x0 + FASCIA.x1) / 2, z = (FASCIA.z0 + FASCIA.z1) / 2;
-    area('fascia', 1, FASCIA.x1 - FASCIA.x0 - 0.02, 0.016, SU(x, YK - 0.016, z), SU(x, YK - 1, z - 0.55));
+    const { x, y, len, w, z } = ISLAND_LIGHT;
+    area('island', 1, len - 0.02, w - 0.008, SU(x, y, z - 0.002));
   }
   area('ucab', 1, UPPER.x1 - UPPER.x0 - 0.08, 0.012, SU((UPPER.x0 + UPPER.x1) / 2, UPPER.y0 + 0.046, UPPER.z0 - 0.003));
   area('ucab', 0.5, 0.33, 0.012, SU((TALLS[3][0] + TALLS[3][1]) / 2, RUN.fy + 0.036, COFFEE.niche[1] - 0.021));
-  area('niche', 1, 0.012, BUILT.niche[1] - BUILT.niche[0] - 0.02, SU(BUILT.x0 + 0.026, (BUILT.niche[0] + BUILT.niche[1]) / 2, H - 0.003));
-  area('wash', 1, 0.012, SIDEBOARD.y1 - SIDEBOARD.y0 - 0.08, SU(SIDEBOARD.x0 + 0.036, (SIDEBOARD.y0 + SIDEBOARD.y1) / 2, SIDEBOARD.z0 - 0.003));
-  area('wash', 1, TV_UNIT.x1 - TV_UNIT.x0 - 0.08, 0.012, SU((TV_UNIT.x0 + TV_UNIT.x1) / 2, TV_UNIT.y1 - 0.054, TV_UNIT.z0 - 0.003));
+  // the niche's, the sideboard's and the TV unit's LED lines face down: swapped, they turn a quarter (width and height
+  // trade places); the sideboard is shorter on the east wall
+  const movesArea = (ch, zone, w, h, x, y, z, l2 = h, x2 = x, y2 = y) => moves(area(ch, 1, w, h, SU(x, y, z)), { pos: [x, y, z], w, h }, { pos: [...sw(zone, x2, y2), z], w: l2, h: w });
+  movesArea('niche', 'diningWall', 0.012, BUILT.niche[1] - BUILT.niche[0] - 0.02, BUILT.x0 + 0.026, (BUILT.niche[0] + BUILT.niche[1]) / 2, H - 0.003);
+  {
+    const S = SIDEBOARD, SE = SIDEBOARD_E, x = S.x0 + 0.036;
+    movesArea('wash', 'diningWall', 0.012, S.y1 - S.y0 - 0.08, x, (S.y0 + S.y1) / 2, S.z0 - 0.003, SE.y1 - SE.y0 - 0.08, x, (SE.y0 + SE.y1) / 2);
+  }
+  {
+    const T = TV_UNIT, l = T.x1 - T.x0 - 0.08;
+    moves(area('wash', 1, l, 0.012, SU((T.x0 + T.x1) / 2, T.y1 - 0.054, T.z0 - 0.003)), { pos: [(T.x0 + T.x1) / 2, T.y1 - 0.054, T.z0 - 0.003], w: l, h: 0.012 },
+      { pos: [...sw('living', (T.x0 + T.x1) / 2, T.y1 - 0.054), T.z0 - 0.003], w: 0.012, h: l });
+  }
   // daylight: the sun, with shadows over the room and the terrace; the sky's light coming in through each glazing as a
   // soft area light facing into the room (the kitchen's window strip, behind the battens, lets in less; setSun)
   L.sun = new THREE.DirectionalLight(0xffffff, 0);
@@ -2344,11 +2587,12 @@ function setSun(alt, az, day) {
   L.sun.position.copy(L.sun.target.position).addScaledVector(dir, 15);
   // the sky's light through the glazing
   const skyC = kelvin(6200, 5800);
-  for (const [a, k] of L.sky) {
+  L.skyLevel = day && up ? BASE.sky * skyL : 0;
+  for (const [a] of L.sky) {
     a.visible = day && up;
     a.color.copy(skyC);
-    a.intensity = day && up ? BASE.sky * skyL * k : 0;
   }
+  applySky();
   // beyond the lobby: the hall and the corridor, in daylight or under their lamps after dark
   const lamp = MOODS[moodKey].hall ?? 0, daylight = day && up ? skyL : 0;
   const lampC = new THREE.Color(MOODS[moodKey].tint), warm = new THREE.Color();
@@ -2384,18 +2628,18 @@ function kelvinRaw(k) {
 }
 
 // Four moods. The lamps: spot: the spots on the tracks; kdown: the kitchen's spots over the worktop; skan: the pendants
-// over the table; ring: the ring over the sofa; the LED lines: fascia (in the kitchen's fascia), ucab (under the wall
-// units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); hall: the hall's and
+// over the table; ring: the ring over the sofa; island: the linear pendant over the island; the LED lines: curtain (in
+// the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); hall: the hall's and
 // the corridor's lamps, seen beyond the lobby. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
 // horizon, for the dusk outside. Day: daylight only, the sun coming in through the east glazing in the morning, the south
 // at noon (and under the soffit in the evening, through the kitchen's battens)
 const MOODS = {
-  evening: { label: 'Evening', spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, fascia: 1, ucab: 1, niche: 1, wash: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
-  bright: { label: 'Bright', spot: 1, kdown: 1, skan: 1, ring: 1, fascia: 1, ucab: 1, niche: 0.7, wash: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
-  night: { label: 'Night', spot: 0, kdown: 0, skan: 0.3, ring: 0, fascia: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, spot: 0, kdown: 0, skan: 0, ring: 0, fascia: 0, ucab: 0, niche: 0, wash: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
+  bright: { label: 'Bright', spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
+  night: { label: 'Night', spot: 0, kdown: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, spot: 0, kdown: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, fascia: 60, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
+const BASE = { sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint);
   for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.skan, 'skan'], [[L.ring], 'ring']]) {
@@ -2403,8 +2647,9 @@ function applyMood(key) {
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * m[ch]; a.visible = m[ch] > 0; }
   for (const ch of ['spot', 'kdown']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.lens * (0.4 + 0.6 * m[ch]) : 0.02);
-  for (const ch of ['ring', 'fascia', 'ucab', 'niche', 'wash']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.strip * (0.4 + 0.6 * m[ch]) : 0.03);
+  for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.strip * (0.4 + 0.6 * m[ch]) : 0.03);
   E.skan.emissive.copy(c);
+  M.curtain.emissive.copy(c).multiply(M.curtain.color).multiplyScalar(m.curtain > 0 ? BASE.curtain * m.curtain : 0);
   E.skan.emissiveIntensity = m.skan > 0 ? BASE.skanGlow * (0.4 + 0.6 * m.skan) : 0;
   renderer.toneMappingExposure = m.exposure * roomEv();
   bloom.threshold = m.bloom;
@@ -2436,7 +2681,7 @@ async function applyPalette(key) {
   paletteKey = key;
   document.querySelectorAll('#palettes button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   // each style starts with its own stone, paint, wood, fronts and sofa (the pickers change them); the floor's kind stays,
-  // its wood or its tiles' colour come with the style
+  // its wood comes with the style
   frontsKey = p.fronts;
   await applyStoneChoice(p.stone, false);
   applyPaint(PAINTS[p.paint].color, p.paint, false);
@@ -2445,6 +2690,7 @@ async function applyPalette(key) {
   M.flute.color.set(p.flute);
   M.lounge.color.set(p.lounge);
   M.rug.color.set(p.rug);
+  M.curtain.color.set(p.curtain);
   const metal = METALS[p.metal];
   M.metal.color.set(metal.color);
   M.metal.roughness = metal.roughness;
@@ -2459,7 +2705,7 @@ async function applyPalette(key) {
   renderLegend();
 }
 function textureKeys() {
-  return new Set(['tile-matt/tiles', 'flutes/fluted', 'plaster/plaster']);
+  return new Set(['flutes/fluted', 'plaster/plaster']);
 }
 // the wood: the kitchen's and the island's wooden fronts, the dining table, the sideboard, the TV unit, the pantry
 async function applyWoodChoice(key, refresh = true) {
@@ -2606,28 +2852,18 @@ async function herringTex(key) {
   src.strip.width = src.strip.height = 0;
   return floorCanvasTex(cv, W, Hh);
 }
-// the floor: wooden planks or herringbone of the style's floor wood, or the hall's 120 x 120 cm tiles in its colour
+// the floor: wooden planks or herringbone of the style's floor wood
 let floorTex = null, floorTexKey = '';
 async function applyFloor() {
-  const f = M.floor, p = PALETTES[paletteKey];
-  if (floorKey === 'tiles') {
-    const st = TILE_STRUCTS.matt, set = await bakeSet('tile-matt', st.bake, 'tiles', 5);
-    applyStone(f, set, { polish: st.polish });
-    f.color.set(TILE_COLOURS[p.tile].color);
-    f.clearcoatRoughness = st.coat;
-    f.normalScale.setScalar(st.bump);
-    for (const t of [set.map, set.normalMap, set.roughnessMap]) t.offset.set(-FLOOR_AT[0] / FLOOR_W, -FLOOR_AT[1] / FLOOR_H);
-  } else {
-    const key = floorKey + '/' + p.floorWood;
-    if (floorTexKey !== key) {
-      const tex = await (floorKey === 'planks' ? plankTex : herringTex)(p.floorWood);
-      if (floorTex) floorTex.dispose();
-      floorTex = tex;
-      floorTexKey = key;
-    }
-    applyPhoto(f, floorTex, { rough: WOODS[p.floorWood].rough, polish: 0.35 });
-    f.clearcoatRoughness = 0.3;
+  const f = M.floor, p = PALETTES[paletteKey], key = floorKey + '/' + p.floorWood;
+  if (floorTexKey !== key) {
+    const tex = await (floorKey === 'planks' ? plankTex : herringTex)(p.floorWood);
+    if (floorTex) floorTex.dispose();
+    floorTex = tex;
+    floorTexKey = key;
   }
+  applyPhoto(f, floorTex, { rough: WOODS[p.floorWood].rough, polish: 0.35 });
+  f.clearcoatRoughness = 0.3;
   document.querySelectorAll('#floors button').forEach((b) => b.classList.toggle('on', b.dataset.key === floorKey));
 }
 async function setFloor(key) {
@@ -2657,19 +2893,20 @@ function dropPhotos() {
 function renderLegend() {
   const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), stone = STONES[stoneKey], fab = FABRICS[fabricKey];
   const fronts = { flat: wn + ' veneer', fluted: 'fluted ' + wn, paint: 'a lacquer of the wall colour' }[frontsKey], frontsC = frontsKey === 'paint' ? paintColor : wood.swatch;
-  const fw = WOODS[p.floorWood].short.toLowerCase(), tile = TILE_COLOURS[p.tile];
-  const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled', tiles: 'porcelain tiles, 120 × 120 cm, smooth matt, ' + tile.label.toLowerCase() + ', as in the hall' }[floorKey];
+  const fw = WOODS[p.floorWood].short.toLowerCase(), sw = layoutSwapped;
+  const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled' }[floorKey];
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven, the coffee machine in a lit niche), drawers under the hob, wall units over the window strip', frontsC],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
-    ['Dining', wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
-    ['Dining wall', 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
-    ['Living', 'an L-shaped sofa in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)', fab.color],
-    ['Floor', floor, floorKey === 'tiles' ? tile.color : WOODS[p.floorWood].swatch],
-    ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace; a frameless glass door to the hall', '#383b3e'],
-    ['Light', 'two tracks of square spots, a black ring over the sofa, three spots over the worktop; LED lines in the fascia, under the wall units, in the niche, under the floating units', '#ffe2c2'],
+    ['Dining', (sw ? 'at the south end, before the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
+    ['Dining wall', (sw ? 'on the east wall between the glazings, shortened to 2.6 m: ' : '') + 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
+    ['Living', (sw ? 'at the north end, facing the TV on a plastered wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an L-shaped sofa in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)', fab.color],
+    ['Floor', floor, WOODS[p.floorWood].swatch],
+    ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
+    ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); a frameless glass door to the hall', '#383b3e'],
+    ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
@@ -2736,8 +2973,8 @@ const VIEWS = [
   { key: 'living', label: 'Living room', pos: [49.7, 13.9, 1.6], tgt: [44.6, 10.9, 0.95], fov: 72 },
   { key: 'kitchen', label: 'Kitchen', pos: [47.0, 10.75, 1.6], tgt: [47.0, 16.2, 1.05], fov: 74 },
   { key: 'island', label: 'Island', pos: [49.1, 13.7, 1.6], tgt: [46.3, 15.6, 0.9], fov: 66 },
-  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64 },
-  { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72 },
+  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.2, 14.05, 1.6], tgt: [46.7, 9.6, 1.0] } },
+  { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.5, 13.75, 1.35], tgt: [50.2, 10.3, 1.1] } },
   { key: 'worktop', label: 'Worktop', pos: [46.9, 15.0, 1.62], tgt: [46.9, 16.6, 0.95], fov: 70 },
   { key: 'plan', label: 'Plan', pos: [46.65, 13.4, 15], tgt: [46.65, 13.42, 0], fov: 34, plan: true },
 ];
@@ -2750,6 +2987,7 @@ const fovFor = (fov) => {
 function sunGlintView() { return null; }     // (no glint view here)
 function goTo(view, instant = false) {
   if (view.sun) view = { ...view, ...(sunGlintView() || {}) };
+  if (layoutSwapped && view.swap) view = { ...view, ...view.swap };
   current = view;
   const toPos = SU(...view.pos), toT = SU(...view.tgt);
   document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('on', b.dataset.key === view.key));
@@ -2840,6 +3078,8 @@ function buildUI() {
   $('t-refl').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); setReflections(e.currentTarget.classList.contains('on')); });
   $('t-door').addEventListener('click', () => setDoor(!TDOOR.open));
   $('t-glass').addEventListener('click', () => setGlass(!GLASS.open));
+  $('t-curt').addEventListener('click', () => setCurtains(!CURT.closed));
+  $('t-layout').addEventListener('click', () => setLayout(!layoutSwapped));
   $('t-snap').addEventListener('click', () => saveImage());
   $('t-ao').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); postOn = e.currentTarget.classList.contains('on'); gtao.enabled = bloom.enabled = postOn; dirty = true; });
   // keys: the next choice in a picker
@@ -2850,6 +3090,8 @@ function buildUI() {
     if (k === 'p') { saveImage(); return; }
     if (k === 'd') { setDoor(!TDOOR.open); return; }
     if (k === 'g') { setGlass(!GLASS.open); return; }
+    if (k === 'c') { setCurtains(!CURT.closed); return; }
+    if (k === 'l') { setLayout(!layoutSwapped); return; }
     if (busy) return;
     if (k === 's') {
       const n = next(Object.keys(PALETTES), paletteKey);
@@ -2961,7 +3203,12 @@ window.addEventListener('resize', resize);
 const clock = new THREE.Clock();
 // the niche's mirror is only rendered when it can be seen
 const frustum = new THREE.Frustum(), projView = new THREE.Matrix4();
-const MIRROR_BOX = new THREE.Box3().setFromPoints([SU(BUILT.mirror - 0.01, BUILT.niche[0], SIDEBOARD.top.z), SU(BUILT.mirror + 0.01, BUILT.niche[1], H)]);
+// the niche's mirror, as drawn or swapped (with the dining wall)
+const mirrorBox = (on) => new THREE.Box3().setFromPoints([[BUILT.mirror - 0.01, BUILT.niche[0]], [BUILT.mirror + 0.01, BUILT.niche[1]]].flatMap(([x, y]) => {
+  const [a, b] = on ? mapXY(LAYOUT.diningWall, x, y) : [x, y];
+  return [SU(a, b, SIDEBOARD.top.z), SU(a, b, H)];
+}));
+const MIRROR_BOX = mirrorBox(false);
 function renderFrame() {
   const above = camera.position.y > H - 0.02;
   groups.ceiling.visible = groups.pendants.visible = !above;
@@ -2970,7 +3217,7 @@ function renderFrame() {
     floorRefl.update(renderer, scene, camera, [mirrorRefl]);
     camera.updateMatrixWorld();
     frustum.setFromProjectionMatrix(projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
-    const seen = !above && camera.position.x < BUILT.mirror && frustum.intersectsBox(MIRROR_BOX);
+    const seen = !above && camera.position.clone().sub(mirrorRefl.p).dot(mirrorRefl.n) > 0 && frustum.intersectsBox(MIRROR_BOX);
     if (seen) mirrorRefl.update(renderer, scene, camera, [floorRefl]);
     mirrorRefl.uniforms.planarOn.value = seen ? 1 : 0;
   }
@@ -3014,8 +3261,10 @@ try {
   buildProps();
   flush(groups.room);
   frontMesh = groups.room.children.find((o) => o.material === M.cab);
+  buildIslandLight();
   buildMeshes(skp);
   buildDoors();
+  buildCurtains();
   buildSurroundings(await loadView());
   buildLights();
   setStatus('Laying out the wood and the stone…');
@@ -3029,7 +3278,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, TDOOR, GLASS, OUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
