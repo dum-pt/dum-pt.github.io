@@ -67,16 +67,17 @@
   #mirrors { display: grid; grid-template-columns: repeat(3, 1fr); }
   .group.off .seg { opacity: 0.38; pointer-events: none; }
   #woods .dot { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); vertical-align: -0.5px; }
-  #paints { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
-  #paints button, #paint-pick, #glazes button { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
-  #paints button.on, #glazes button.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
+  #paints, #floortones { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
+  #floortones { margin-top: 8px; }
+  #paints button, #paint-pick, #glazes button, #floortones button, #floor-pick { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
+  #paints button.on, #glazes button.on, #floortones button.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
   #prewalls { display: grid; grid-template-columns: repeat(3, 1fr); }
   #glazes { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; margin-top: 8px; }
   #glazes.off { opacity: 0.38; pointer-events: none; }
-  #paint-pick { position: relative; overflow: hidden; cursor: pointer; background: conic-gradient(#c96b5b, #c9b45b, #7fae6e, #5b9bc9, #8e6bc9, #c96b5b); }
-  #paint-pick.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
-  #paint-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
-  #paint-name { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+  #paint-pick, #floor-pick { position: relative; overflow: hidden; cursor: pointer; background: conic-gradient(#c96b5b, #c9b45b, #7fae6e, #5b9bc9, #8e6bc9, #c96b5b); }
+  #paint-pick.on, #floor-pick.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
+  #paint-pick input, #floor-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+  #paint-name, #floor-name { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
   #credit { margin: 8px 0 0; font-size: 10.5px; line-height: 1.35; color: var(--muted); }
   #credit a { color: inherit; }
   #moods button { padding: 6px 2px; }
@@ -120,7 +121,8 @@
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The worktop, the island's top and its waterfall end; Carrara as drawn (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover; the cushions on it take a colour to go with it (U)"></div></div>
-  <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide oak planks (as drawn) or oak in herringbone; the wood comes with the style (F)"></div></div>
+  <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks (as drawn) or herringbone (F)"></div>
+    <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain); each style starts with its own"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="7.5" aria-label="Time of day"><span id="sunlabel">8:34</span></div>
   </div>
@@ -270,9 +272,11 @@ const ISLAND = { x0: 45.506, x1: 48.337, y0: 14.258, y1: 15.128, z0: 0.92, z1: 0
 const BUILT = { x0: X1, x1: 50.57, y0: Y0, y1: 13.545, niche: [11.155, 12.345], r: 0.1, mirror: 50.558, shelves: [1.701, 2.005, 2.301] };
 const SIDEBOARD = { x0: 50.13, x1: 50.55, y0: 10.605, y1: 12.895, z0: 0.2, z1: 0.85, top: { y0: 10.555, y1: 12.945, z: 0.88 } };
 const TABLE = { x0: 48.195, x1: 49.145, y0: 10.642, y1: 12.842, z: 0.76, t: 0.05, leg: 0.07 };
-// the living room: the L-shaped sofa (its back along y1, the chaise at the south end reaching to cy0; seat, back and
-// arm heights, its upholstered base from base0), the round coffee table on its pedestal, the floating TV unit, the TV
-const SOFA = { x0: 43.797, x1: 46.697, y0: 12.588, y1: 13.358, cx1: 44.757, cy0: 11.758, seat: 0.51, base0: 0.06, base: 0.28, back: 0.88, arm: 0.66, armS: 43.897, armN: 46.557, backY: 13.162 };
+// the living room: the sofa, an IKEA ÄPPLARYD with three seats and a chaise longue (290 x 93 cm, the chaise x0..cx1 at the
+// south end, 162 cm deep to cy0, its end open; the back along y1, the seat's front at y0): on slim black steel legs
+// (20 cm clear under it), its upholstered base to the seat cushions, seat 47 cm, the arm 72 (armW wide), the back 70 and
+// 82 with its cushions (the frame backD deep); the round coffee table on its pedestal, the floating TV unit, the TV
+const SOFA = { x0: 43.797, x1: 46.697, y0: 12.428, y1: 13.358, cx1: 44.727, cy0: 11.738, legs: 0.2, base: 0.35, seat: 0.47, back: 0.7, cushions: 0.82, arm: 0.72, armW: 0.17, backD: 0.17 };
 const COFFEE_TABLE = { x: 45.352, y: 11.53, r: 0.441, h: 0.297 };
 const TV_UNIT = { x0: 44.731, x1: 47.051, y1: 10.495, z0: 0.194, z1: 0.544 };
 const TV = { x0: 45.149, x1: 46.609, z0: 0.772, z1: 1.542 };
@@ -287,27 +291,29 @@ const KSLOT = { x0: 45.99, x1: 47.99, y: 16.0, w: 0.06, d: 0.045, spots: [46.04,
 const SKAN = [[48.679, 11.425, 1.71], [48.68, 11.965, 1.455]];
 // the layout: as drawn the dining is at the north end (the table before the dining wall) and the living room at the
 // south (the sofa facing the TV on the east wall between the glazings). Swapped (setLayout), the dining wall's cabinets
-// go (the room runs on 34 cm to the bedroom's wall), the TV hangs on that wall with a shorter sofa facing it (SOFA_E,
-// mirrored: its chaise at the west end, clear of the terrace door; a low cabinet in the wood behind it, BENCH), and plain
-// tall cabinets (BUILT_E: n flush doors, shortened to fit) stand on the east wall between the glazings, the table turned
-// across the room before them. Each zone moves as one: from / to / m take a point as drawn to its place swapped ((dx, dy)
-// to (m0 dx + m1 dy, m2 dx + m3 dy)): the TV unit centred on the north wall, the seating 2.6 m back from it, the coffee
-// table centred on it; the cabinets centred on the east wall, the table (with its chairs and pendants) towards the south
-// glazing, clear of the cabinet behind the sofa; the lounge chair goes by the TV's east end, turned (degrees) towards
-// the sofa
+// go (the room runs on 34 cm to the bedroom's wall), the TV hangs on that wall with the sofa facing it (mirrored: its
+// chaise at the west end, clear of the terrace door; a low cabinet in the wood behind it, BENCH), and plain tall
+// cabinets with a built-in fireplace at their north end (BUILT_E, FIRE) stand on the east wall between the glazings, the
+// table turned across the room before them. Each zone moves as one: from / to / m take a point as drawn to its place
+// swapped ((dx, dy) to (m0 dx + m1 dy, m2 dx + m3 dy)): the TV unit centred on the north wall, the seating 2.4 m back from
+// it, midway between the island and the east wall; the cabinets centred on the east wall, the table (with its chairs and
+// pendants) towards the south glazing, clear of the cabinet behind the sofa; the lounge chair goes by the TV's east end,
+// turned (degrees) towards the sofa
 const LAYOUT = {
   tv: { from: [45.879, Y0], to: [BUILT.x1, 11.825], m: [0, -1, -1, 0] },
-  living: { from: [45.879, Y0], to: [BUILT.x1 - 0.5, 11.3], m: [0, -1, -1, 0] },
+  living: { from: [45.879, Y0], to: [BUILT.x1 - 0.5, 11.55], m: [0, -1, -1, 0] },
   diningWall: { from: [X1, 11.75], to: [45.897, Y0 + 0.34], m: [0, 1, -1, 0] },
   dining: { from: [48.67, 11.742], to: [44.85, 12.35], m: [1, 0, 0, 1] },
   lounge: { from: [43.625, 10.425], to: [49.6, 10.6], turn: 60 },
 };
-// swapped: the sofa 50 cm shorter (its chaise as drawn), the low cabinet behind it (as drawn: along the sofa's back,
-// x0..x1, y0..y1, its top at z, on a recessed black plinth; n handleless fronts facing away from the sofa), the plain
-// cabinets on the east wall
-const SOFA_E = { ...SOFA, x1: SOFA.x1 - 0.5, armN: SOFA.armN - 0.5 };
-const BENCH = { x0: 43.9, x1: SOFA_E.x1 - 0.1, y0: SOFA.y1 + 0.01, y1: SOFA.y1 + 0.39, z: 0.46, plinth: 0.06, n: 4 };
-const BUILT_E = { ...BUILT, y0: 10.438, y1: 13.063, n: 5 };
+// swapped: the low cabinet behind the sofa (as drawn: along the sofa's back, x0..x1, y0..y1, its top at z, on a recessed
+// black plinth; n handleless fronts facing away from the sofa; short of its arm, clear of the fireplace), the plain
+// cabinets on the east wall: n flush doors' widths, the last fire of them (the north end) a built-in fireplace: a
+// plastered breast, its frameless firebox (FIRE) w wide, z0..z1, d deep, centred in it
+const BENCH = { x0: 43.9, x1: 46.2, y0: SOFA.y1 + 0.01, y1: SOFA.y1 + 0.39, z: 0.46, plinth: 0.06, n: 4 };
+const BUILT_E = { ...BUILT, y0: 10.438, y1: 13.063, n: 5, fire: 2 };
+const FIRE = { w: 0.7, z0: 0.45, z1: 0.9, d: 0.3 };
+const fireY = (B) => B.y1 - B.r - B.fire * (B.y1 - B.y0 - 2 * B.r) / B.n / 2;
 // a point (x, y) as drawn, swapped; the same move as a matrix
 function mapXY(z, x, y) {
   const [fx, fy] = z.from, [a, b, c, d] = z.m;
@@ -956,7 +962,7 @@ const PALETTES = {
     flute: '#252423', fluteLabel: 'black lacquer', metal: 'gunmetal', lounge: '#2a2826', rug: '#3b3835', curtain: '#a49c90', plaster: 'lime plaster', ev: 1.5 },
   cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', fabric: 'linen', floorWood: 'natoak',
     flute: '#cbbba6', fluteLabel: 'a sand lacquer', metal: 'brass', lounge: '#8a4e30', rug: '#b9a58c', curtain: '#dccdb6', plaster: 'clay plaster', ev: 0.75 },
-  jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'raffaello', fronts: 'paint', fabric: 'velvet', floorWood: 'natoak',
+  jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'raffaello', fronts: 'paint', fabric: 'linen', floorWood: 'natoak',
     flute: '#21392f', fluteLabel: 'a forest green lacquer', metal: 'brass', lounge: '#6e2229', rug: '#cdbfa8', curtain: '#e8e0cf', plaster: 'lime plaster', ev: 1.0 },
   japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'chalk', stone: 'carrara', fronts: 'flat', fabric: 'boucle', floorWood: 'whiteoak',
     flute: '#efebe4', fluteLabel: 'white lacquer', metal: 'black', lounge: '#6e2229', rug: '#d8d0c2', curtain: '#eee9e0', plaster: 'limewash', ev: 0.5 },
@@ -965,8 +971,6 @@ const PALETTES = {
 const FABRICS = {
   boucle: { label: 'Bouclé', desc: 'off-white bouclé', color: '#e4ded2', rough: 1, sheen: 0.8, nap: true, cushion: '#a88d6c', cushionLabel: 'camel' },
   linen: { label: 'Linen', desc: 'oatmeal linen', color: '#c6b9a3', rough: 0.92, sheen: 0.5, cushion: '#7c8670', cushionLabel: 'sage' },
-  velvet: { label: 'Velvet', desc: 'moss green velvet', color: '#4f5a3c', rough: 0.72, sheen: 1, cushion: '#c39549', cushionLabel: 'ochre' },
-  leather: { label: 'Leather', desc: 'cognac leather', color: '#87512f', rough: 0.42, coat: 0.25, cushion: '#ddd5c7', cushionLabel: 'cream' },
   charcoal: { label: 'Wool', desc: 'charcoal wool', color: '#3a3836', rough: 0.95, sheen: 0.5, cushion: '#9e543a', cushionLabel: 'rust' },
 };
 // the kitchen's fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour
@@ -993,6 +997,18 @@ const PAINTS = {
   ink: { label: 'Ink blue', color: '#26364a' },
   oxblood: { label: 'Oxblood', color: '#5b2b28' },
   charcoal: { label: 'Charcoal', color: '#4a433e' },
+};
+// the floor's colours in the picker: the photographed woods as they are, two stains on oak (the boards keep their grain,
+// recoloured: stainFloor); any other colour from its colour picker stains the wood on show
+const FLOOR_TONES = {
+  whiteoak: { label: 'Light oak, white-oiled', wood: 'whiteoak' },
+  limed: { label: 'Limed oak', wood: 'whiteoak', color: '#d6ccbc' },
+  natoak: { label: 'Natural oak, oiled', wood: 'natoak' },
+  teak: { label: 'Teak, oiled', wood: 'teak' },
+  grey: { label: 'Grey-stained oak', wood: 'natoak', color: '#8d877f' },
+  walnutPhoto: { label: 'American walnut, oiled', wood: 'walnutPhoto' },
+  smoked: { label: 'Smoked oak', wood: 'smoked' },
+  blackoak: { label: 'Black-stained oak', wood: 'blackoak' },
 };
 // the floor's pattern is laid from the corner by the south-east glazing
 const FLOOR_AT = [X0, Y0];
@@ -1280,6 +1296,44 @@ M.curtain.map = canvasTex(256, 0.12, (g, n, rnd) => {
   }
 });
 const NO_AO = new Set([M.windowGlass, M.slideGlass, M.mirrorEdge, M.railGlass, M.clearAcrylic]);
+// the fireplace (swapped): its firebox's black lining, charred logs; the flames, tongues of fire drawn additively (black
+// is clear), and the embers under the logs, both lit by the mood (applyMood)
+M.firebox = physical({ color: 0x111111, roughness: 0.9 });
+M.log = physical({ color: 0x33261c, roughness: 0.95 });
+E.fire = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+E.fire.map = (() => {
+  const cv = document.createElement('canvas'), n = 256, h = 128, g = cv.getContext('2d'), rnd = mulberry(5);
+  cv.width = n; cv.height = h;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, n, h);
+  g.globalCompositeOperation = 'lighter';
+  // soft tongues, each full-bodied low down and leaning to its tip; a glow along the logs under them
+  g.filter = 'blur(3px)';
+  for (let i = 0; i < 14; i++) {
+    const x = 16 + rnd() * (n - 32), t = 35 + rnd() * 70, w = 9 + rnd() * 13, lean = (rnd() - 0.5) * 20, gr = g.createLinearGradient(0, h, 0, h - t);
+    gr.addColorStop(0, 'rgba(255,200,110,0.75)');
+    gr.addColorStop(0.25, 'rgba(255,140,40,0.55)');
+    gr.addColorStop(0.7, 'rgba(210,60,10,0.22)');
+    gr.addColorStop(1, 'rgba(120,20,0,0)');
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(x - w, h);
+    g.bezierCurveTo(x - w * 1.15, h - t * 0.45, x + lean - w * 0.35, h - t * 0.75, x + lean, h - t);
+    g.bezierCurveTo(x + lean + w * 0.35, h - t * 0.75, x + w * 1.15, h - t * 0.45, x + w, h);
+    g.fill();
+  }
+  g.filter = 'blur(6px)';
+  const eg = g.createLinearGradient(0, h, 0, h - 32);
+  eg.addColorStop(0, 'rgba(255,150,50,0.6)');
+  eg.addColorStop(1, 'rgba(255,100,20,0)');
+  g.fillStyle = eg;
+  g.fillRect(12, h - 32, n - 24, 32);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+})();
+E.ember = new THREE.MeshBasicMaterial({ color: 0x000000 });
+NO_AO.add(E.fire).add(E.ember);
 // small tiling canvases (n px over `size` metres; the UVs are in metres); draw(g, n, rnd, wrap) paints it, wrap(x, y, f)
 // repeating a mark over the edges so the tile is seamless
 function canvasTex(n, size, draw) {
@@ -1546,13 +1600,13 @@ function mulberry(a) {
 // ---------------------------------------------------------------- build the room
 const groups = { ceiling: new THREE.Group(), pendants: new THREE.Group(), room: new THREE.Group() };
 for (const g of Object.values(groups)) R.add(g);
-// what moves with the layout (setLayout): the living room's coffee table (and its ring, with the pendants), its TV unit,
-// its sofa as drawn and, swapped, the shorter one with the cabinet behind it, the dining's furniture (its pendants
-// likewise), the lounge chair; the dining wall as drawn and, swapped, the plain cabinets on the east wall (in their own
-// frame) and the bedroom's wall bare in its place
-const zones = { living: new THREE.Group(), sofa: new THREE.Group(), livingE: new THREE.Group(), ring: new THREE.Group(), tv: new THREE.Group(), dining: new THREE.Group(),
+// what moves with the layout (setLayout): the living room's sofa and coffee table (and its ring, with the pendants), its
+// TV unit, the cabinet behind the sofa (swapped only), the dining's furniture (its pendants likewise), the lounge chair;
+// the dining wall as drawn and, swapped, the plain cabinets with the fireplace on the east wall (in their own frame) and
+// the bedroom's wall bare in its place
+const zones = { living: new THREE.Group(), livingE: new THREE.Group(), ring: new THREE.Group(), tv: new THREE.Group(), dining: new THREE.Group(),
   skan: new THREE.Group(), lounge: new THREE.Group(), wall: new THREE.Group(), wallE: new THREE.Group(), tvWall: new THREE.Group() };
-for (const k of ['living', 'sofa', 'livingE', 'tv', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
+for (const k of ['living', 'livingE', 'tv', 'dining', 'lounge', 'wall', 'wallE', 'tvWall']) groups.room.add(zones[k]);
 groups.pendants.add(zones.ring, zones.skan);
 for (const g of Object.values(zones)) g.matrixAutoUpdate = false;
 let floorMesh, mirrorMesh, frontMesh;
@@ -1952,18 +2006,33 @@ function buildDining() {
   }
   flush(zones.dining);
 }
-// swapped: the dining wall's cabinets made plain (B): floor to ceiling, n flush handleless doors, both ends standing free
-// and rounded
+// swapped: the dining wall's cabinets made plain (B): floor to ceiling, flush handleless doors, both ends standing free
+// and rounded; the north end (B.fire doors' widths) a built-in fireplace: a plastered breast flush with the doors, its
+// frameless firebox black inside, logs on a bed of embers, the flames (lit by the mood: applyMood)
 function buildCabinets(B) {
-  const r = B.r, xa = B.x0 + r, w = (B.y1 - B.y0 - 2 * r) / B.n;
+  const r = B.r, xa = B.x0 + r, w = (B.y1 - B.y0 - 2 * r) / B.n, yf = B.y1 - r - B.fire * w;
   add(M.built, arcWall(xa, B.y0 + r, r, Math.PI, 1.5 * Math.PI, 0, H));
   add(M.built, box(xa, B.x1, B.y0, B.y0 + 0.01, 0, H, { faces: 'y' }));
-  add(M.built, box(B.x0, B.x1, B.y0 + r, B.y1 - r, 0, H, { faces: 'x' }));
-  add(M.built, arcWall(xa, B.y1 - r, r, Math.PI / 2, Math.PI, 0, H));
-  add(M.built, box(xa, B.x1, B.y1 - 0.01, B.y1, 0, H, { faces: 'Y' }));
-  for (let i = 1; i < B.n; i++) {
+  add(M.built, box(B.x0, B.x1, B.y0 + r, yf, 0, H, { faces: 'x' }));
+  for (let i = 1; i <= B.n - B.fire; i++) {
     const y = B.y0 + r + i * w;
     add(M.joint, box(B.x0 - 0.0005, B.x0, y - 0.0012, y + 0.0012, 0, H, { faces: 'x' }), { shadow: false });
+  }
+  const F = FIRE, c = fireY(B), f0 = c - F.w / 2, f1 = c + F.w / 2, d = B.x0 + F.d;
+  for (const [y0, y1, z0, z1] of [[yf, f0, 0, H], [f1, B.y1 - r, 0, H], [f0, f1, 0, F.z0], [f0, f1, F.z1, H]]) add(M.plaster, box(B.x0, B.x1, y0, y1, z0, z1, { faces: 'x' }));
+  add(M.plaster, arcWall(xa, B.y1 - r, r, Math.PI / 2, Math.PI, 0, H));
+  add(M.plaster, box(xa, B.x1, B.y1 - 0.01, B.y1, 0, H, { faces: 'Y' }));
+  add(M.firebox, box(B.x0, d, f0, f1, F.z0 - 0.01, F.z0, { faces: 'Z' }));
+  add(M.firebox, box(B.x0, d, f0, f1, F.z1, F.z1 + 0.01, { faces: 'z' }));
+  add(M.firebox, box(B.x0, d, f0 - 0.01, f0, F.z0, F.z1, { faces: 'Y' }));
+  add(M.firebox, box(B.x0, d, f1, f1 + 0.01, F.z0, F.z1, { faces: 'y' }));
+  add(M.firebox, box(d, d + 0.01, f0, f1, F.z0, F.z1, { faces: 'x' }));
+  add(E.ember, box(B.x0 + 0.08, d - 0.05, c - 0.26, c + 0.26, F.z0, F.z0 + 0.006, { faces: 'Z' }), { shadow: false });
+  for (const [x, dy, z, rr, l] of [[0.13, -0.03, 0.045, 0.042, 0.54], [0.22, 0.04, 0.042, 0.038, 0.5], [0.17, 0.0, 0.112, 0.034, 0.44]]) add(M.log, cyl(rr, l, 'y', [B.x0 + x, c + dy, F.z0 + z], 14));
+  for (const [x, h, flip] of [[0.11, 0.26, false], [0.17, 0.32, true], [0.24, 0.24, false]]) {
+    const g = new THREE.PlaneGeometry(F.w - 0.16, h).rotateX(Math.PI / 2).rotateZ(Math.PI / 2);
+    if (flip) g.scale(1, -1, 1);
+    add(E.fire, g.translate(B.x0 + x, c, F.z0 + 0.04 + h / 2), { shadow: false });
   }
 }
 // the dining wall (B, its sideboard S), its south end running into the east wall. Returns the niche's mirror
@@ -2032,34 +2101,34 @@ function pillow(w, t, h) {
   g.computeVertexNormals();
   return g;
 }
-// the sofa (S) and the rug before it
-function buildSofa(S) {
-  const F = M.fabric;
+// the sofa and the rug before it
+function buildSofa() {
+  const S = SOFA, F = M.fabric, xa = S.x1 - S.armW, yb = S.y1 - S.backD;
   const ub = (mat, x0, x1, y0, y1, z0, z1, r = 0.035) => add(mat, projectUV(rbox(x1 - x0, y1 - y0, z1 - z0, Math.min(r, (z1 - z0) / 2 - 0.002, (y1 - y0) / 2 - 0.002), [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2])));
-  // the sofa: an L, its upholstered base on a recessed black plinth, the arms, the back; the chaise's long seat cushion
-  // and two along the rest, three loose back cushions leaning on the back, scatter cushions, a throw
-  add(M.trim, box(S.x0 + 0.05, S.x1 - 0.05, S.y0 + 0.05, S.y1 - 0.05, 0, S.base0, { faces: 'xXyY' }));
-  add(M.trim, box(S.armS + 0.05, S.cx1 - 0.05, S.cy0 + 0.05, S.y0 + 0.05, 0, S.base0, { faces: 'xXyY' }));
-  ub(F, S.x0, S.x1, S.y0, S.y1, S.base0, S.base);
-  ub(F, S.armS, S.cx1, S.cy0, S.y0 + 0.1, S.base0, S.base);
-  ub(F, S.x0, S.armS, S.y0 + 0.04, S.y1, S.base0, S.arm, 0.03);
-  ub(F, S.armN, S.x1, S.y0, S.y1, S.base0, S.arm, 0.04);
-  ub(F, S.armS, S.armN, S.backY, S.y1, S.base, S.back, 0.05);
-  ub(F, S.armS + 0.005, S.cx1 - 0.005, S.cy0 + 0.005, S.backY, S.base, S.seat, 0.06);
-  const w = (S.armN - S.cx1) / 2;
-  for (let i = 0; i < 2; i++) ub(F, S.cx1 + i * w + 0.005, S.cx1 + (i + 1) * w - 0.005, S.y0 + 0.005, S.backY, S.base, S.seat, 0.06);
-  const bw = (S.armN - S.armS) / 3, bh = S.back - 0.03 - S.seat;
-  for (let i = 0; i < 3; i++) add(F, projectUV(pillow(bw - 0.012, 0.2, bh).rotateX(-0.22).translate(S.armS + (i + 0.5) * bw, S.backY - 0.085, S.seat + bh / 2)));
-  for (const [x, rz, tilt, s, mat] of [[S.x0 + 0.323, 0.12, -0.42, 0.46, M.cushion], [S.x0 + 0.803, -0.1, -0.36, 0.42, M.throw], [S.armN - 0.377, -0.16, -0.4, 0.5, M.cushion], [S.armN - 0.837, 0.08, -0.33, 0.4, M.cushion]]) {
-    add(mat, projectUV(pillow(s, 0.16, s).rotateX(tilt).rotateZ(rz).translate(x, S.backY - 0.24, S.seat + s / 2 * Math.cos(tilt) - 0.01)));
+  // the two sections (the sofa's, the chaise's) each on four slim tapered legs, their upholstered bases; the arm at the
+  // north end, the back's frame along the whole L
+  for (const [a, b, c, d] of [[S.cx1, S.x1, S.y0, S.y1], [S.x0, S.cx1, S.cy0, S.y1]]) {
+    for (const x of [a + 0.07, b - 0.07]) for (const y of [c + 0.07, d - 0.07]) add(M.shelf, cyl(0.009, S.legs + 0.01, 'z', [x, y, (S.legs + 0.01) / 2], 12, 0.013));
+    ub(F, a + 0.002, b - 0.002, c, d, S.legs, S.base, 0.04);
   }
-  ub(M.throw, S.armS + 0.04, S.cx1 - 0.04, S.cy0 + 0.12, S.cy0 + 0.5, S.seat - 0.005, S.seat + 0.028, 0.012);
-  // the rug under the coffee table, as long as the sofa
-  add(M.rug, box(S.x0 + 0.183, S.x1 - 0.077, 10.78, 12.74, 0, 0.012, { faces: 'xXyYZ' }));
+  ub(F, xa, S.x1, S.y0, S.y1, S.legs, S.arm, 0.05);
+  ub(F, S.x0, xa - 0.002, yb, S.y1, S.legs, S.back, 0.05);
+  // puffy seat cushions: two on the sofa, a long one on the chaise; three back cushions leaning on the back, rising
+  // over it
+  const w = (xa - S.cx1) / 2, bh = S.cushions - S.seat;
+  for (let i = 0; i < 2; i++) ub(F, S.cx1 + i * w + 0.004, S.cx1 + (i + 1) * w - 0.004, S.y0 + 0.004, yb, S.base, S.seat, 0.05);
+  ub(F, S.x0 + 0.004, S.cx1 - 0.004, S.cy0 + 0.004, yb, S.base, S.seat, 0.05);
+  for (const [a, b] of [[S.x0, S.cx1], [S.cx1, S.cx1 + w], [S.cx1 + w, xa]]) add(F, projectUV(pillow(b - a - 0.012, 0.17, bh + 0.02).rotateX(-0.16).translate((a + b) / 2, yb - 0.08, S.seat + bh / 2)));
+  // scatter cushions, a throw on the chaise
+  for (const [x, rz, tilt, s, mat] of [[S.x0 + 0.323, 0.12, -0.42, 0.46, M.cushion], [S.x0 + 0.803, -0.1, -0.36, 0.42, M.throw], [xa - 0.377, -0.16, -0.4, 0.5, M.cushion], [xa - 0.837, 0.08, -0.33, 0.4, M.cushion]]) {
+    add(mat, projectUV(pillow(s, 0.16, s).rotateX(tilt).rotateZ(rz).translate(x, yb - 0.27, S.seat + s / 2 * Math.cos(tilt) - 0.01)));
+  }
+  ub(M.throw, S.x0 + 0.04, S.cx1 - 0.04, S.cy0 + 0.12, S.cy0 + 0.5, S.seat - 0.005, S.seat + 0.028, 0.012);
+  // the rug under the coffee table
+  add(M.rug, box(43.98, 46.62, 10.78, 12.74, 0, 0.012, { faces: 'xXyYZ' }));
 }
 function buildLiving() {
-  buildSofa(SOFA);
-  flush(zones.sofa);
+  buildSofa();
   // the coffee table: a round anthracite top on a pedestal
   {
     const { x, y, r, h } = COFFEE_TABLE, c = [x, y, 0];
@@ -2094,9 +2163,8 @@ function buildLiving() {
     book(46.95, 10.3, z, 0.17, 0.24, 0.03, 0.0, M.book1);
   }
   flush(zones.tv);
-  // swapped (zones.livingE, shown only then): the shorter sofa; the low cabinet behind it: the wood, four handleless fronts
-  // facing away from the sofa, a recessed black plinth; a bowl and books on it
-  buildSofa(SOFA_E);
+  // swapped (zones.livingE, shown only then): the low cabinet behind the sofa: the wood, four handleless fronts facing
+  // away from the sofa, a recessed black plinth; a bowl and books on it
   {
     const B = BENCH, w = (B.x1 - B.x0) / B.n, g = RUN.gap / 2, p = B.plinth, f = B.y1 - 0.02, zt = B.z - 0.02, y = (B.y0 + B.y1) / 2;
     add(M.trim, box(B.x0 + 0.04, B.x1 - 0.04, B.y0 + 0.03, B.y1 - 0.05, 0, p, { faces: 'xXyY' }));
@@ -2419,7 +2487,7 @@ function setLayout(on) {
     g.matrix.copy(on ? layoutMatrix(LAYOUT[k]) : I);
     g.matrixWorldNeedsUpdate = true;
   }
-  zones.wall.visible = zones.sofa.visible = !on;
+  zones.wall.visible = !on;
   zones.wallE.visible = zones.tvWall.visible = zones.livingE.visible = on;
   for (const { light, drawn, swapped } of L.layout) {
     const q = on ? swapped : drawn;
@@ -2427,10 +2495,11 @@ function setLayout(on) {
     if (light.isSpotLight) light.target.position.copy(SU(q.pos[0], q.pos[1], 0));
     else { light.width = q.w; light.height = q.h; }
   }
-  // the niche's and the sideboard's LED lines go dark with the dining wall (kept, not hidden: that would recompile every
-  // shader)
+  // the niche's and the sideboard's LED lines go dark with the dining wall, the fire's glow comes on (kept, not hidden:
+  // that would recompile every shader)
   const m = MOODS[moodKey];
   for (const [a, ch, k] of L.area) if (a.userData.drawnOnly) a.intensity = on ? 0 : BASE[ch] * k * m[ch];
+  L.fire.intensity = on ? BASE.fire * m.fire : 0;
   chip('t-layout', on, on ? 'Living & dining as drawn' : 'Swap living & dining');
   if (current.swap) goTo(VIEWS.find((v) => v.key === current.key));
   renderer.shadowMap.needsUpdate = true;
@@ -2652,6 +2721,14 @@ function buildLights() {
     moves(area('wash', 1, l, 0.012, SU((T.x0 + T.x1) / 2, T.y1 - 0.054, T.z0 - 0.003)), { pos: [(T.x0 + T.x1) / 2, T.y1 - 0.054, T.z0 - 0.003], w: l, h: 0.012 },
       { pos: [...sw('tv', (T.x0 + T.x1) / 2, T.y1 - 0.054), T.z0 - 0.003], w: 0.012, h: l });
   }
+  // the fire's glow out of the firebox into the room (swapped only: setLayout, applyMood)
+  {
+    const B = BUILT_E, c = fireY(B), [x, y] = mapXY(LAYOUT.diningWall, B.x0 + 0.06, c), [tx, ty] = mapXY(LAYOUT.diningWall, B.x0 - 2, c);
+    L.fire = new THREE.SpotLight(0xff8a40, 0, 0, THREE.MathUtils.degToRad(80), 1, 2);
+    L.fire.position.copy(SU(x, y, FIRE.z0 + 0.18));
+    L.fire.target.position.copy(SU(tx, ty, 0.2));
+    scene.add(L.fire, L.fire.target);
+  }
   // daylight: the sun, with shadows over the room and the terrace; the sky's light coming in through each glazing as a
   // soft area light facing into the room (the kitchen's window strip, in its deep reveal, a little less; setSun, applySky)
   L.sun = new THREE.DirectionalLight(0xffffff, 0);
@@ -2748,17 +2825,17 @@ function kelvinRaw(k) {
 
 // Four moods. The lamps: spot: the spots on the tracks; kdown: the kitchen's spots over the worktop; skan: the pendants
 // over the table; ring: the ring over the sofa; island: the linear pendant over the island; the LED lines: curtain (in
-// the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); hall: the hall's and
+// the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); fire: the fireplace (swapped); hall: the hall's and
 // the corridor's lamps, seen beyond the lobby. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
 // horizon, for the dusk outside. Day: daylight only, the sun coming in through the east glazing in the morning, the south
 // at noon (and under the soffit in the evening, through the kitchen's window)
 const MOODS = {
-  evening: { label: 'Evening', spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
-  bright: { label: 'Bright', spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
-  night: { label: 'Night', spot: 0, kdown: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, spot: 0, kdown: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
+  bright: { label: 'Bright', spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
+  night: { label: 'Night', spot: 0, kdown: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, spot: 0, kdown: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
+const BASE = { fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint);
   for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.skan, 'skan'], [[L.ring], 'ring']]) {
@@ -2768,6 +2845,9 @@ function applyMood(key) {
   for (const ch of ['spot', 'kdown']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.lens * (0.4 + 0.6 * m[ch]) : 0.02);
   for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash']) E[ch].color.copy(c).multiplyScalar(m[ch] > 0 ? BASE.strip * (0.4 + 0.6 * m[ch]) : 0.03);
   E.skan.emissive.copy(c);
+  E.fire.color.setScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
+  E.ember.color.set(0xff5a1e).multiplyScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
+  L.fire.intensity = layoutSwapped ? BASE.fire * m.fire : 0;
   M.curtain.emissive.copy(c).multiply(M.curtain.color).multiplyScalar(m.curtain > 0 ? BASE.curtain * m.curtain : 0);
   E.skan.emissiveIntensity = m.skan > 0 ? BASE.skanGlow * (0.4 + 0.6 * m.skan) : 0;
   renderer.toneMappingExposure = m.exposure * roomEv();
@@ -2793,14 +2873,14 @@ function setSunHour(h) {
 
 // ---------------------------------------------------------------- palettes
 let paletteKey = 'japandi', stoneKey = PALETTES.japandi.stone, woodKey = PALETTES.japandi.wood, frontsKey = PALETTES.japandi.fronts;
-let fabricKey = PALETTES.japandi.fabric, floorKey = 'planks';
+let fabricKey = PALETTES.japandi.fabric, floorKey = 'planks', floorWood = PALETTES.japandi.floorWood, floorColor = null;
 let paintKey = PALETTES.japandi.paint, paintColor = PAINTS[paintKey].color;      // (paintKey null: a colour from the picker)
 async function applyPalette(key) {
   const p = PALETTES[key];
   paletteKey = key;
   document.querySelectorAll('#palettes button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
-  // each style starts with its own stone, paint, wood, fronts and sofa (the pickers change them); the floor's kind stays,
-  // its wood comes with the style
+  // each style starts with its own stone, paint, wood, fronts, sofa and floor colour (the pickers change them); the
+  // floor's pattern stays
   frontsKey = p.fronts;
   await applyStoneChoice(p.stone, false);
   applyPaint(PAINTS[p.paint].color, p.paint, false);
@@ -2813,6 +2893,8 @@ async function applyPalette(key) {
   const metal = METALS[p.metal];
   M.metal.color.set(metal.color);
   M.metal.roughness = metal.roughness;
+  floorWood = p.floorWood;
+  floorColor = null;
   await applyFloor();
   const plaster = await bakeSet('plaster', PLASTER, 'plaster', 2);
   applyStone(M.plaster, plaster, { polish: 0 });
@@ -2971,19 +3053,64 @@ async function herringTex(key) {
   src.strip.width = src.strip.height = 0;
   return floorCanvasTex(cv, W, Hh);
 }
-// the floor: wooden planks or herringbone of the style's floor wood
-let floorTex = null, floorTexKey = '';
+// the floor: wooden planks or herringbone of the floor's wood (floorWood), as photographed or stained (floorColor); the
+// boards as drawn are kept (floorGrain), so a new stain only recolours them
+let floorTex = null, floorTexKey = '', floorGrain = null;
 async function applyFloor() {
-  const f = M.floor, p = PALETTES[paletteKey], key = floorKey + '/' + p.floorWood;
+  const f = M.floor, key = floorKey + '/' + floorWood, stain = floorColor ?? '';
   if (floorTexKey !== key) {
-    const tex = await (floorKey === 'planks' ? plankTex : herringTex)(p.floorWood);
+    const tex = await (floorKey === 'planks' ? plankTex : herringTex)(floorWood);
     if (floorTex) floorTex.dispose();
     floorTex = tex;
     floorTexKey = key;
+    floorGrain = tex.image.getContext('2d').getImageData(0, 0, tex.image.width, tex.image.height);
+    tex.userData.stain = '';
   }
-  applyPhoto(f, floorTex, { rough: WOODS[p.floorWood].rough, polish: 0.35 });
+  if (floorTex.userData.stain !== stain) {
+    stainFloor(floorTex, floorGrain, floorColor);
+    floorTex.userData.stain = stain;
+  }
+  applyPhoto(f, floorTex, { rough: WOODS[floorWood].rough, polish: 0.35 });
   f.clearcoatRoughness = 0.3;
   document.querySelectorAll('#floors button').forEach((b) => b.classList.toggle('on', b.dataset.key === floorKey));
+  markFloorTone();
+}
+// a stain (color; null: the wood as photographed): each pixel keeps its brightness against the floor's mean (the grain a
+// little softened), in the stain's colour
+function stainFloor(tex, grain, color) {
+  const g = tex.image.getContext('2d');
+  if (color) {
+    const src = grain.data, out = g.createImageData(grain.width, grain.height), d = out.data, lum = (i) => 0.2126 * src[i] + 0.7152 * src[i + 1] + 0.0722 * src[i + 2];
+    let sum = 0;
+    for (let i = 0; i < src.length; i += 4) sum += lum(i);
+    const mean = sum / (src.length / 4), rgb = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
+    for (let i = 0; i < src.length; i += 4) {
+      const k = 1 + 0.75 * (lum(i) / mean - 1);
+      d[i] = rgb[0] * k; d[i + 1] = rgb[1] * k; d[i + 2] = rgb[2] * k; d[i + 3] = 255;
+    }
+    g.putImageData(out, 0, 0);
+  } else g.putImageData(grain, 0, 0);
+  tex.needsUpdate = true;
+}
+// the floor colour's picker: the swatch of the wood or stain on show (or the picker's, for any other colour), its name
+function floorTone() {
+  return Object.entries(FLOOR_TONES).find(([, t]) => t.wood === floorWood && (t.color ?? null) === floorColor);
+}
+function markFloorTone() {
+  const tone = floorTone();
+  document.querySelectorAll('#floortones button').forEach((b) => b.classList.toggle('on', !!tone && b.dataset.key === tone[0]));
+  $('floor-pick').classList.toggle('on', !tone);
+  $('floor-custom').value = floorColor ?? WOODS[floorWood].swatch;
+  $('floor-name').textContent = tone ? tone[1].label : 'Your colour, ' + floorColor;
+}
+// the floor's colour: a wood (its photograph) and a stain over it, or none
+async function setFloorTone(wood, color = null) {
+  floorWood = wood;
+  floorColor = color;
+  await applyFloor();
+  renderer.shadowMap.needsUpdate = true;
+  renderLegend();
+  dirty = true;
 }
 async function setFloor(key) {
   floorKey = key;
@@ -3012,7 +3139,7 @@ function dropPhotos() {
 function renderLegend() {
   const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), stone = STONES[stoneKey], fab = FABRICS[fabricKey];
   const fronts = { flat: wn + ' veneer', fluted: 'fluted ' + wn, paint: 'a lacquer of the wall colour' }[frontsKey], frontsC = frontsKey === 'paint' ? paintColor : wood.swatch;
-  const fw = WOODS[p.floorWood].short.toLowerCase(), sw = layoutSwapped;
+  const tone = floorTone(), fw = !floorColor ? WOODS[floorWood].short.toLowerCase() : tone ? tone[1].label.toLowerCase() : 'oak stained ' + floorColor, sw = layoutSwapped;
   const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled' }[floorKey];
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
@@ -3020,9 +3147,9 @@ function renderLegend() {
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
     ['Dining', (sw ? 'at the south end by the south glazing, across the room towards the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
-    ['Dining wall', sw ? 'on the east wall between the glazings: plain cabinets floor to ceiling a shade lighter than the walls, five flush handleless doors, the ends rounded' : 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
-    ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an L-shaped sofa' + (sw ? ' (2.4 m long)' : '') + ' in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
-    ['Floor', floor, WOODS[p.floorWood].swatch],
+    ['Dining wall', sw ? 'on the east wall between the glazings: plain cabinets floor to ceiling a shade lighter than the walls, three flush handleless doors; at the north end a built-in fireplace, a frameless firebox in a plastered breast; the ends rounded' : 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
+    ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an IKEA ÄPPLARYD sofa, three seats and a chaise longue (290 cm) on slim black legs, in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
+    ['Floor', floor, floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); a frameless glass door to the hall', '#383b3e'],
     ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
@@ -3092,7 +3219,7 @@ const VIEWS = [
   { key: 'living', label: 'Living room', pos: [49.7, 13.9, 1.6], tgt: [44.6, 10.9, 0.95], fov: 72 },
   { key: 'kitchen', label: 'Kitchen', pos: [47.0, 10.75, 1.6], tgt: [47.0, 16.2, 1.05], fov: 74 },
   { key: 'island', label: 'Island', pos: [49.1, 13.7, 1.6], tgt: [46.3, 15.6, 0.9], fov: 66 },
-  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.9, 14.15, 1.6], tgt: [45.7, 9.9, 1.0] } },
+  { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.9, 14.15, 1.6], tgt: [46.0, 9.9, 1.0] } },
   { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.2, 13.85, 1.35], tgt: [50.5, 10.7, 1.1] } },
   { key: 'worktop', label: 'Worktop', pos: [46.9, 15.0, 1.62], tgt: [46.9, 16.6, 0.95], fov: 70 },
   { key: 'plan', label: 'Plan', pos: [46.65, 13.4, 15], tgt: [46.65, 13.42, 0], fov: 34, plan: true },
@@ -3180,6 +3307,18 @@ function buildUI() {
     withBusy(async () => { applyPaint(PAINTS[b.dataset.key].color, b.dataset.key); captureEnv(); });
   });
   $('paint-custom').value = paintColor;
+  // the floor's colours likewise (any colour restains the boards as you drag, a moment after each move)
+  $('floor-pick').insertAdjacentHTML('beforebegin', Object.entries(FLOOR_TONES).map(([k, v]) => `<button data-key="${k}" style="background:${v.color ?? WOODS[v.wood].swatch}" title="${v.label}" aria-label="${v.label}"></button>`).join(''));
+  markFloorTone();
+  $('floortones').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || busy || b.classList.contains('on')) return;
+    const t = FLOOR_TONES[b.dataset.key];
+    withBusy(async () => { await setFloorTone(t.wood, t.color ?? null); captureEnv(); });
+  });
+  let floorTimer = 0;
+  $('floor-custom').addEventListener('input', (e) => { clearTimeout(floorTimer); floorTimer = setTimeout(() => { if (!busy) setFloorTone(floorWood, e.target.value); }, 120); });
+  $('floor-custom').addEventListener('change', (e) => { clearTimeout(floorTimer); if (!busy) withBusy(async () => { await setFloorTone(floorWood, e.target.value); captureEnv(); }); });
   $('paint-custom').addEventListener('input', (e) => { if (!busy) applyPaint(e.target.value); });
   $('paint-custom').addEventListener('change', (e) => { if (!busy) withBusy(async () => { applyPaint(e.target.value); captureEnv(); }); });
   seg($('moods'), MOODS, (k) => setMood(k), moodKey);
@@ -3397,7 +3536,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setBlinds, BLINDS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setBlinds, BLINDS, setFloorTone, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
