@@ -90,7 +90,7 @@
   #tile-name { margin: 6px 0 8px; font-size: 11.5px; color: var(--muted); }
   #designs, #tilestructs, #hookwalls { display: grid; grid-template-columns: repeat(3, 1fr); }
   #fronts { display: grid; grid-template-columns: repeat(3, 1fr); }
-  #floors, #fabrics { display: grid; grid-template-columns: repeat(2, 1fr); }
+  #floors, #fabrics, #windows { display: grid; grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 1500px) { #hint { bottom: 74px; } }   /* clear of the view bar */
   @media (max-width: 760px) {
     #title { left: 12px; top: 12px; padding: 10px 12px; }
@@ -121,6 +121,7 @@
   <div class="group"><h2>Style</h2><div class="seg" id="palettes" title="The four characters of the bathrooms and the hall: dark and intimate, warm and cosy, a deep green jewel box, calm Japandi (as drawn) (S)"></div></div>
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the kitchen and the island (with wooden fronts), the dining table, the sideboard and the TV unit; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Kitchen fronts</h2><div class="seg" id="fronts" title="The kitchen's and the island's handleless fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour (R)"></div></div>
+  <div class="group"><h2>Kitchen window</h2><div class="seg" id="windows" title="The kitchen's window strip over the worktop: as drawn, a fixed pane and on the right a tilt-and-turn sash (its lever on its left); or all fixed, one pane in a slim, almost invisible profile (K)"></div></div>
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The worktop, the island's top and its waterfall end; Carrara as drawn (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover, ÄPPLARYD's Lejde in light grey or grey-black; the cushions on it take a colour to go with it (U)"></div></div>
@@ -243,8 +244,8 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs:
 // the facade
 const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.365, tall: [43.89, 44.49, 16.1] };
 // the west facade: the kitchen's window strip (its frame x0..x1, y0..y1, z0..z1: a fixed pane, the mullion, a tilt-and-
-// turn sash; the panes at glass); outside, the facade's battens (9.2 cm on a 10.2 cm pitch, y0..y1) stop round it, its
-// reveal lined out to their face, a granite sill
+// turn sash on the right, its lever on its left; or, WINDOWS, all fixed; the panes at glass); outside, the facade's
+// battens (9.2 cm on a 10.2 cm pitch, y0..y1) stop round it, its reveal lined out to their face, a granite sill
 const KW = { x0: 45.445, x1: 48.385, y0: 16.88, y1: 17.03, z0: 0.879, z1: 1.599, mull: [47.695, 47.781], glass: 16.955 };
 const BATTENS = { y0: 17.29, y1: 17.31, w: 0.092, pitch: 0.102, x0: 44.413, x1: 49.45 };
 // exterior venetian blinds in the window's outer reveal, as in the bathrooms: guide rails on the reveal faces (x0, x1),
@@ -354,6 +355,11 @@ const RAIL = { y: [8.444, 8.464], x: [40.24, 40.26], h: 1.0 };
 const SOFFIT = { x0: 40.345, y0: 8.555 };
 const POST = [40.49, 40.63, 8.634, 8.774];
 const FINS = [40.496, 40.761, 41.026, 41.291, 41.556];
+// the garden west of the house, outside the kitchen window (buildGarden), its ground at z (22 cm under the floor, the
+// front door's step): the lawn from x0 to x1, gravel along the facade to y gravel, a bed under the window (bed, x) edged
+// with a low box hedge (box, y), the path to the front door in slabs (path, x) to a gate (gate, x) in the boundary hedge
+// (hedge, y; clipped hornbeam, its top at top)
+const GARDEN = { z: -0.22, x0: 40.2, x1: 60, gravel: 17.6, bed: [43.3, 49.4], box: [19.25, 19.6], path: [49.62, 51.05], gate: [49.45, 51.22], hedge: [23.0, 23.8], top: 1.78 };
 
 // ---------------------------------------------------------------- renderer
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
@@ -1280,6 +1286,145 @@ M.battenWall.map = M.battenWall.emissiveMap = canvasTex(512, 0.51, (g, n, rnd) =
   }
 });
 OUTDOOR.push([M.battenWall, 0.4]);
+// the garden (buildGarden), lit as OUTDOOR: the lawn, the gravel along the facade, the bark mulch in the bed, the path's
+// concrete slabs, the bark of the serviceberries and of the birches; the clipped hedges (hornbeam, box: small leaves
+// packed, the outer ones lighter; also their bump); the trees' leaves in sprays on cards, cut out by their alpha
+const leafPath = (g, L, W, half = false) => {
+  g.beginPath();
+  g.moveTo(-L / 2, 0);
+  g.quadraticCurveTo(0, -W, L / 2, 0);
+  if (half) g.closePath();
+  else g.quadraticCurveTo(0, W, -L / 2, 0);
+};
+function clippedTex(px, size, len, [hue, sat, light], base) {
+  return canvasTex(px, size, (g, n, rnd, wrap) => {
+    g.fillStyle = base;
+    g.fillRect(0, 0, n, n);
+    const count = Math.round(n * n / (len * len * 0.22)), T = 2 * Math.PI / n;
+    const tuft = (x, y) => Math.sin(2 * T * x + 1.3) * Math.sin(3 * T * y + 0.4) + 0.6 * Math.sin(T * (5 * x + 4 * y) + 2.1);
+    for (let i = 0; i < count; i++) {
+      const x = rnd() * n, y = rnd() * n, a = rnd() * Math.PI * 2, L = len * (0.7 + rnd() * 0.6);
+      const l = light - 7 + 14 * i / count + 3.5 * tuft(x, y) + (rnd() - 0.5) * 8;
+      const c = `hsl(${hue + (rnd() - 0.5) * 14},${sat + (rnd() - 0.5) * 10}%,${l}%)`, hi = `hsla(${hue},${sat}%,${l + 7}%,0.45)`;
+      wrap(x, y, (u, v) => {
+        g.save();
+        g.translate(u, v);
+        g.rotate(a);
+        g.fillStyle = c;
+        leafPath(g, L, L * 0.5);
+        g.fill();
+        g.fillStyle = hi;
+        leafPath(g, L, L * 0.5, true);
+        g.fill();
+        g.restore();
+      });
+    }
+  });
+}
+// a spray of leaves on a clear ground: seven twigs out from the middle, leaves along them, each a shade of its own
+function sprayTex(seed, len, [hue, sat, light]) {
+  const S = 512, cv = document.createElement('canvas'), rnd = mulberry(seed);
+  cv.width = cv.height = S;
+  const g = cv.getContext('2d'), twigs = [];
+  g.lineCap = 'round';
+  g.strokeStyle = '#4a3f35';
+  g.lineWidth = 3;
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + rnd() * 0.6, r = S * (0.26 + rnd() * 0.12);
+    twigs.push([a, r]);
+    g.beginPath();
+    g.moveTo(S / 2, S / 2);
+    g.lineTo(S / 2 + Math.cos(a) * r, S / 2 + Math.sin(a) * r);
+    g.stroke();
+  }
+  const n = 300;
+  for (let i = 0; i < n; i++) {
+    const [a, r] = twigs[i % 7], t = 0.12 + rnd() * 0.88, ang = a + (rnd() < 0.5 ? -1 : 1) * (0.45 + rnd() * 0.7);
+    const L = len * (0.75 + rnd() * 0.5), l = light - 7 + 14 * i / n + (rnd() - 0.5) * 9;
+    g.save();
+    g.translate(S / 2 + Math.cos(a) * r * t + Math.cos(ang) * L * 0.5, S / 2 + Math.sin(a) * r * t + Math.sin(ang) * L * 0.5);
+    g.rotate(ang);
+    g.fillStyle = `hsl(${hue + (rnd() - 0.5) * 14},${sat + (rnd() - 0.5) * 10}%,${l}%)`;
+    leafPath(g, L, L * 0.52);
+    g.fill();
+    g.fillStyle = `hsla(${hue},${sat}%,${l + 7}%,0.4)`;
+    leafPath(g, L, L * 0.52, true);
+    g.fill();
+    g.restore();
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = maxAniso;
+  return tex;
+}
+M.lawn = physical({ color: 0xffffff, roughness: 0.95 });
+M.lawn.map = M.lawn.emissiveMap = canvasTex(512, 0.8, (g, n, rnd, wrap) => {
+  g.fillStyle = '#323f20';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 7000; i++) {
+    const x = rnd() * n, y = rnd() * n, a = rnd() * Math.PI * 2, l = 5 + rnd() * 12, w = 1 + rnd() * 1.2;
+    const c = `hsl(${72 + rnd() * 24},${24 + rnd() * 16}%,${17 + rnd() * 17}%)`;
+    wrap(x, y, (u, v) => { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(u, v); g.lineTo(u + Math.cos(a) * l, v + Math.sin(a) * l); g.stroke(); });
+  }
+});
+M.gravel = physical({ color: 0xffffff, roughness: 0.9 });
+M.gravel.map = M.gravel.emissiveMap = canvasTex(256, 0.35, (g, n, rnd, wrap) => {
+  g.fillStyle = '#7d7972';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 1400; i++) {
+    const x = rnd() * n, y = rnd() * n, r = 1.5 + rnd() * 3.5, v = 120 + rnd() * 90 | 0, t = rnd() * 16 - 8, a = rnd() * 3;
+    wrap(x, y, (u, w) => {
+      g.fillStyle = 'rgba(40,36,32,0.5)';
+      g.beginPath(); g.ellipse(u + 1, w + 1, r, r * 0.8, a, 0, 7); g.fill();
+      g.fillStyle = `rgb(${v + t},${v},${v - t})`;
+      g.beginPath(); g.ellipse(u, w, r, r * 0.8, a, 0, 7); g.fill();
+    });
+  }
+});
+M.mulch = physical({ color: 0xffffff, roughness: 0.95 });
+M.mulch.map = M.mulch.emissiveMap = canvasTex(256, 0.5, (g, n, rnd, wrap) => {
+  g.fillStyle = '#2a1e16';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 1600; i++) {
+    const x = rnd() * n, y = rnd() * n, a = rnd() * Math.PI, l = 4 + rnd() * 10, v = rnd(), c = `rgb(${60 + v * 60 | 0},${40 + v * 38 | 0},${26 + v * 24 | 0})`;
+    wrap(x, y, (u, w) => { g.save(); g.translate(u, w); g.rotate(a); g.fillStyle = c; g.fillRect(-l / 2, -1.2, l, 2.4); g.restore(); });
+  }
+});
+M.slab = physical({ color: 0xffffff, roughness: 0.85 });
+M.slab.map = M.slab.emissiveMap = canvasTex(256, 1.0, (g, n, rnd) => {
+  g.fillStyle = '#b1ada5';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 5000; i++) { g.fillStyle = rnd() < 0.5 ? `rgba(255,255,250,${rnd() * 0.12})` : `rgba(40,36,30,${rnd() * 0.12})`; g.fillRect(rnd() * n, rnd() * n, 1 + rnd() * 2, 1 + rnd() * 2); }
+});
+M.sbBark = physical({ color: 0xffffff, roughness: 0.8 });
+M.sbBark.map = M.sbBark.emissiveMap = canvasTex(128, 0.3, (g, n, rnd) => {
+  g.fillStyle = '#6d6862';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 300; i++) { g.fillStyle = rnd() < 0.5 ? `rgba(200,195,185,${rnd() * 0.15})` : `rgba(30,26,22,${rnd() * 0.2})`; g.fillRect(rnd() * n, rnd() * n, 1 + rnd() * 2, 6 + rnd() * 30); }
+});
+// birch bark: white, dark lenticels across it (u runs round the trunk)
+M.birchBark = physical({ color: 0xffffff, roughness: 0.7 });
+M.birchBark.map = M.birchBark.emissiveMap = canvasTex(256, 0.5, (g, n, rnd, wrap) => {
+  g.fillStyle = '#e4e0d8';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(150,140,130,${rnd() * 0.15})`; g.fillRect(rnd() * n, rnd() * n, 2 + rnd() * 10, 1); }
+  for (let i = 0; i < 240; i++) {
+    const x = rnd() * n, y = rnd() * n, l = 6 + rnd() * 26, t = 1 + rnd() * 2.5, c = `rgba(40,34,30,${0.4 + rnd() * 0.5})`;
+    wrap(x, y, (u, v) => { g.fillStyle = c; g.fillRect(u, v, l, t); });
+  }
+});
+M.hornbeam = physical({ color: 0xffffff, roughness: 0.85, bumpScale: 3 });
+M.hornbeam.map = M.hornbeam.emissiveMap = M.hornbeam.bumpMap = clippedTex(1024, 1.1, 46, [86, 30, 23], '#121a0d');
+M.boxwood = physical({ color: 0xffffff, roughness: 0.6, bumpScale: 3 });
+M.boxwood.map = M.boxwood.emissiveMap = M.boxwood.bumpMap = clippedTex(512, 0.25, 30, [96, 30, 18], '#0b130a');
+M.sbLeaves = physical({ color: 0xffffff, roughness: 0.7, alphaTest: 0.5 });
+M.sbLeaves.map = M.sbLeaves.emissiveMap = sprayTex(41, 36, [86, 30, 26]);
+M.birchLeaves = physical({ color: 0xffffff, roughness: 0.7, alphaTest: 0.5 });
+M.birchLeaves.map = M.birchLeaves.emissiveMap = sprayTex(43, 28, [78, 34, 30]);
+for (const [m, k] of [[M.lawn, 0.4], [M.gravel, 0.4], [M.mulch, 0.35], [M.slab, 0.45], [M.sbBark, 0.35], [M.birchBark, 0.35], [M.hornbeam, 0.32], [M.boxwood, 0.32], [M.sbLeaves, 0.38], [M.birchLeaves, 0.38]]) {
+  m.defines = { OUTDOOR: '' };
+  OUTDOOR.push([m, k]);
+}
 // the rug: a dense wool weave in fine rows (its colour tints it), also its bump
 M.rug.map = M.rug.bumpMap = canvasTex(256, 0.08, (g, n, rnd) => {
   g.fillStyle = '#d0d0d0';
@@ -1635,6 +1780,10 @@ const FIRE_ENDS = { square: new THREE.Group(), round: new THREE.Group() };
 zones.tv.add(TVSETS.full, TVSETS.short);
 zones.fire.add(FIRE_ENDS.square, FIRE_ENDS.round);
 groups.pendants.add(zones.ring, zones.skan);
+// the kitchen's window strip as drawn (a tilt-and-turn sash) and all fixed (setWindow)
+const KWIN = { tilt: new THREE.Group(), fixed: new THREE.Group() };
+groups.room.add(KWIN.tilt, KWIN.fixed);
+KWIN.fixed.visible = false;
 for (const g of Object.values(zones)) g.matrixAutoUpdate = false;
 let floorMesh, mirrorMesh, frontMeshes = [];
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -1715,19 +1864,33 @@ function buildGlazing() {
     add(F, box(XS, 42.985, S.mull[0], S.mull[1], S.sill, S.head, { faces: 'xXyY' }));
     add(M.windowGlass, box(g - 0.01, g + 0.01, S.jambs[0][1], S.mull[0], S.sill, S.head, { faces: 'xX' }));
   }
-  // the kitchen's window strip over the worktop: a fixed pane, the mullion, a tilt-and-turn sash with its lever
+  // the kitchen's window strip over the worktop, built both ways (KWIN, setWindow): as drawn, a fixed pane, the mullion
+  // and on the right a tilt-and-turn sash hinged at the jamb, its lever on its left by the mullion; or all fixed, one
+  // pane in a slim profile (15 mm) set in the reveal, the worktop running on under it to the glass
+  flush(groups.room);
   {
-    const { x0, x1, y0, y1, z1, mull, glass: gy } = KW, j = 0.06, s = 0.05, zs = TOP.z1;
+    const { x0, x1, y0, y1, z0, z1, mull, glass: gy } = KW, j = 0.06, s = 0.05, zs = TOP.z1;
     add(F, box(x0, x0 + j, y0, y1, zs, z1, { faces: 'Xy' }));
     add(F, box(x1 - j, x1, y0, y1, zs, z1, { faces: 'xy' }));
     add(F, box(x0, x1, y0, y1, z1 - j, z1, { faces: 'yz' }));
     add(F, box(x0, x1, y0, y1, zs, zs + j, { faces: 'yZ' }));
     add(F, box(mull[0], mull[1], y0, y1, zs, z1, { faces: 'xXy' }));
-    const a = mull[1], b = x1 - j, c = zs + j, d = z1 - j, ys = y0 - 0.008;
+    const a = mull[1], b = x1 - j, c = zs + j, d = z1 - j, ys = y0 - 0.008, h = a + s / 2;
     for (const [p, q, r, t] of [[a, a + s, c, d], [b - s, b, c, d], [a + s, b - s, c, c + s], [a + s, b - s, d - s, d]]) add(F, box(p, q, ys, y0 + 0.04, r, t, { faces: 'xXyzZ' }));
-    add(M.stainless, box(b - s / 2 - 0.009, b - s / 2 + 0.009, ys - 0.03, ys, 1.2, 1.33));
+    add(M.stainless, box(h - 0.014, h + 0.014, ys - 0.008, ys, 1.235, 1.305));      // the lever: its rosette, the grip down
+    add(M.stainless, box(h - 0.009, h + 0.009, ys - 0.03, ys - 0.008, 1.13, 1.29));
     add(M.windowGlass, box(x0 + j, mull[0], gy - 0.01, gy + 0.01, zs + j, z1 - j, { faces: 'yY' }));
     add(M.windowGlass, box(a + s, b - s, gy - 0.01, gy + 0.01, c + s, d - s, { faces: 'yY' }));
+    flush(KWIN.tilt);
+    const p = 0.015, f0 = gy - 0.025, f1 = gy + 0.025;
+    add(M.counter, box(x0, x1, y0, f0, TOP.z0, zs, { faces: 'Z' }));
+    add(F, box(x0, x0 + p, f0, f1, zs, z1, { faces: 'yYX' }));
+    add(F, box(x1 - p, x1, f0, f1, zs, z1, { faces: 'yYx' }));
+    add(F, box(x0, x1, f0, f1, z1 - p, z1, { faces: 'yYz' }));
+    add(F, box(x0, x1, f0, f1, zs, zs + p, { faces: 'yYZ' }));
+    add(F, box(x0, x1, f1, y1, z0, zs, { faces: 'ZY' }));
+    add(M.windowGlass, box(x0 + p, x1 - p, gy - 0.01, gy + 0.01, zs + p, z1 - p, { faces: 'yY' }));
+    flush(KWIN.fixed);
   }
 }
 
@@ -2701,6 +2864,19 @@ function setFire(on) {
   renderLegend();
   dirty = true;
 }
+// the kitchen's window strip: as drawn, a fixed pane and a tilt-and-turn sash; or all fixed in a slim profile
+const WINDOWS = { tilt: { label: 'Tilt & turn' }, fixed: { label: 'All fixed' } };
+let windowKey = 'tilt';
+function setWindow(k) {
+  windowKey = k;
+  KWIN.tilt.visible = k === 'tilt';
+  KWIN.fixed.visible = k === 'fixed';
+  document.querySelectorAll('#windows button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
 // one animation step for the doors; true while something moved
 function animateOpenings(dt) {
   let moved = false;
@@ -2846,6 +3022,179 @@ function buildSurroundings(viewTex) {
     mesh.rotation.y = -THREE.MathUtils.degToRad(VIEW.turn);      // (three's y is up: negative turns clockwise from above)
     mesh.userData.noAO = true;
     OUT.outside.add(mesh);
+  }
+}
+// ---------------------------------------------------------------- the garden outside the kitchen window
+// smooth value noise in 3D (0..1)
+function noise3(seed) {
+  const h = (i, j, k) => {
+    let n = Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(k, 1274126177) + Math.imul(seed, 974711);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
+  const s = (t) => t * t * (3 - 2 * t), L = (a, b, t) => a + (b - a) * t;
+  return (x, y, z) => {
+    const i = Math.floor(x), j = Math.floor(y), k = Math.floor(z), u = s(x - i), v = s(y - j), w = s(z - k);
+    return L(L(L(h(i, j, k), h(i + 1, j, k), u), L(h(i, j + 1, k), h(i + 1, j + 1, k), u), v),
+      L(L(h(i, j, k + 1), h(i + 1, j, k + 1), u), L(h(i, j + 1, k + 1), h(i + 1, j + 1, k + 1), u), v), w);
+  };
+}
+// a clipped hedge or topiary over x0..x1, y0..y1, z0..z1: a box with its edges rounded (r; half its size makes a ball),
+// finely divided, its surface lumpy (lump); UVs in metres
+function clipped(x0, x1, y0, y1, z0, z1, r, seed, lump = 0.03) {
+  const hx = (x1 - x0) / 2, hy = (y1 - y0) / 2, hz = (z1 - z0) / 2, k = Math.min(0.07, Math.min(hx, hy, hz) / 4);
+  const g = new THREE.BoxGeometry(2 * hx, 2 * hy, 2 * hz, Math.ceil(2 * hx / k), Math.ceil(2 * hy / k), Math.ceil(2 * hz / k));
+  g.deleteAttribute('normal');
+  g.deleteAttribute('uv');
+  const P = g.attributes.position, N = noise3(seed), C = THREE.MathUtils.clamp, p = new THREE.Vector3(), q = new THREE.Vector3();
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2, ix = hx - r, iy = hy - r, iz = hz - r;
+  for (let i = 0; i < P.count; i++) {
+    p.fromBufferAttribute(P, i);
+    q.set(C(p.x, -ix, ix), C(p.y, -iy, iy), C(p.z, -iz, iz));
+    const x = p.x + cx, y = p.y + cy, z = p.z + cz;
+    const d = r + lump * ((N(x * 1.6, y * 1.6, z * 1.6) - 0.5) * 1.8 + (N(x * 7, y * 7, z * 7) - 0.5) * 0.7);
+    p.sub(q).normalize();
+    P.setXYZ(i, q.x + p.x * d + cx, q.y + p.y * d + cy, q.z + p.z * d + cz);
+  }
+  const m = mergeVertices(g, 1e-4);
+  m.computeVertexNormals();
+  return projectUV(m);
+}
+// a stem or a branch from p to q, tapering from r0 to r1, its bark's UVs in metres
+function limb(p, q, r0, r1, seg = 7) {
+  const d = new THREE.Vector3().subVectors(q, p), len = d.length();
+  const g = new THREE.CylinderGeometry(r1, r0, len, seg, 1, true).translate(0, len / 2, 0), uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * Math.PI * (r0 + r1), uv.getY(i) * len);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.normalize()));
+  return g.translate(p.x, p.y, p.z);
+}
+// the leaves: sprays on cards scattered through the clumps (c, radii r), each card two-sided; their normals point out of
+// the clump and of the whole crown (from o), so the crown shades as a round mass, lit on the sun's side
+function crown(clumps, o, n, size, seed) {
+  const rnd = mulberry(seed), pos = [], nrm = [], uv = [], q = new THREE.Quaternion(), e = new THREE.Euler();
+  const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (const { c, r } of clumps) for (let i = 0; i < n; i++) {
+    let a, b, w;
+    do { a = rnd() * 2 - 1; b = rnd() * 2 - 1; w = rnd() * 2 - 1; } while (a * a + b * b + w * w > 1);
+    const m = V3(c.x + a * r[0], c.y + b * r[1], c.z + w * r[2]), s = size * (0.75 + rnd() * 0.5) / 2;
+    q.setFromEuler(e.set(rnd() * 6.3, rnd() * 6.3, rnd() * 6.3));
+    const P = C.map(([u, v]) => V3(u * s, v * s, 0).applyQuaternion(q).add(m));
+    const N = P.map((p) => p.clone().sub(c).normalize().add(p.clone().sub(o).normalize()).normalize());
+    for (const k of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) {
+      pos.push(P[k].x, P[k].y, P[k].z);
+      nrm.push(N[k].x, N[k].y, N[k].z);
+      uv.push((C[k][0] + 1) / 2, (C[k][1] + 1) / 2);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
+// a multi-stem serviceberry (Amelanchier) at x, y, h tall: n stems from the ground, splayed, rising steeper as they go;
+// branches from knee height up out to clumps of leaves
+function serviceberry(x, y, h, n, seed) {
+  const rnd = mulberry(seed), base = V3(x, y, GARDEN.z), limbs = [], clumps = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rnd() * 0.7, lean = 0.22 + rnd() * 0.2, len = h * (0.72 + rnd() * 0.2);
+    let p = base.clone().add(V3(Math.cos(a) * 0.07, Math.sin(a) * 0.07, 0)), r = 0.045;
+    const pts = [p];
+    for (let k = 0; k < 3; k++) {
+      const t = lean * (1.3 - k * 0.35) + (rnd() - 0.5) * 0.1, b = a + (rnd() - 0.5) * 0.3;
+      const q = p.clone().add(V3(Math.cos(b) * Math.sin(t), Math.sin(b) * Math.sin(t), Math.cos(t)).multiplyScalar(len / 3));
+      limbs.push(limb(p, q, r, r * 0.65));
+      p = q;
+      r *= 0.65;
+      pts.push(p);
+    }
+    clumps.push({ c: p.clone().add(V3(0, 0, 0.1)), r: [0.6, 0.6, 0.42] });
+    for (let k = 0; k < 5; k++) {
+      const f = 0.55 + rnd() * 2.4, j = Math.floor(f), s = pts[j].clone().lerp(pts[Math.min(3, j + 1)], f - j);
+      const b = a + (rnd() - 0.5) * 2.4, out = 0.45 + rnd() * 0.55, e = s.clone().add(V3(Math.cos(b) * out, Math.sin(b) * out, 0.2 + rnd() * 0.35));
+      limbs.push(limb(s, e, 0.014, 0.006, 5));
+      clumps.push({ c: e, r: [0.5, 0.5, 0.36] });
+    }
+  }
+  return { limbs: mergeGeometries(limbs), leaves: crown(clumps, base.clone().add(V3(0, 0, h * 0.6)), 18, 0.7, seed + 1) };
+}
+// a birch at x, y, h tall: a slender white trunk, a little crooked; branches from a third of its height up, rising, the
+// leaves hanging in clumps along them and at their ends; the crown an upright oval
+function birch(x, y, h, seed) {
+  const rnd = mulberry(seed), limbs = [], clumps = [], pts = [V3(x, y, GARDEN.z)];
+  let r = 0.13;
+  for (let k = 0; k < 4; k++) {
+    const q = pts[k].clone().add(V3((rnd() - 0.5) * 0.12, (rnd() - 0.5) * 0.12, 1).normalize().multiplyScalar(h / 4));
+    limbs.push(limb(pts[k], q, r, r * 0.68, 10));
+    r *= 0.68;
+    pts.push(q);
+  }
+  const on = (t) => { const f = t * 4, k = Math.min(3, Math.floor(f)); return pts[k].clone().lerp(pts[k + 1], f - k); };
+  for (let i = 0, n = 24; i < n; i++) {
+    const t = 0.34 + 0.62 * i / n, s = on(t), a = i * 2.4 + rnd() * 0.6;
+    const R = 0.35 + h * 0.2 * Math.sin(Math.PI * (t - 0.3) / 0.72), e = s.clone().add(V3(Math.cos(a) * R, Math.sin(a) * R, 0.25 + rnd() * 0.35));
+    limbs.push(limb(s, e, 0.008 + 0.03 * (1 - t), 0.005, 5));
+    clumps.push({ c: e.clone().add(V3(0, 0, -0.3)), r: [0.7, 0.7, 0.75] }, { c: s.clone().lerp(e, 0.55), r: [0.5, 0.5, 0.5] });
+  }
+  clumps.push({ c: pts[4].clone(), r: [0.5, 0.5, 0.6] });
+  return { limbs: mergeGeometries(limbs), leaves: crown(clumps, on(0.66), 14, 0.75, seed + 1) };
+}
+// West of the house, level with the front door's step (GARDEN): gravel along the facade, a lawn; under the window a bed
+// of box balls edged with a low clipped box hedge (on north of the path too); multi-stem serviceberries, a large one
+// before the window, a smaller one south of it and another past the path; the path to the front door in concrete slabs to a slatted gate in the boundary hedge
+// (clipped hornbeam, 80 cm thick, round to the terrace's end on the south); birches beyond it. Lit as OUTDOOR
+function buildGarden() {
+  const G = OUT.garden = new THREE.Group();
+  R.add(G);
+  const put = (mat, geo, cast = true) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = cast;
+    m.receiveShadow = true;
+    if (mat.alphaTest) m.userData.noAO = true;      // (the AO pass would see the cards whole)
+    G.add(m);
+    return m;
+  };
+  const { z, x0, x1, gravel, bed, box: bx, path, gate, hedge, top } = GARDEN;
+  // the ground: the lawn, the gravel along the facade (and before the terrace's end, its anthracite edge), the bed
+  put(M.lawn, box(x0, x1, gravel, 29, z - 0.02, z, { faces: 'Z' }), false);
+  put(M.gravel, box(x0, x1, TERRACE.y1, gravel, z - 0.02, z + 0.008, { faces: 'ZY' }), false);
+  put(M.anthOut, box(TERRACE.x0, XS, TERRACE.y1 - 0.02, TERRACE.y1, -0.4, -0.01, { faces: 'YZ' }), false);
+  put(M.mulch, box(bed[0], bed[1], gravel, bx[0], z, z + 0.015, { faces: 'Z' }), false);
+  // the path: a step before the front door, slabs on to the gate
+  {
+    const g = [box(gate[0], gate[1], BATTENS.y1, 18.25, z, -0.03, { faces: 'xXYZ' })];
+    for (let y = 18.37; y + 0.55 < hedge[0]; y += 0.67) g.push(box(path[0], path[1], y, y + 0.55, z - 0.02, z + 0.025, { faces: 'xXyYZ' }));
+    put(M.slab, mergeGeometries(g));
+  }
+  // the box: a low hedge round the bed and on north of the path, balls in the bed
+  put(M.boxwood, mergeGeometries([
+    clipped(bed[0], bed[1], bx[0], bx[1], z - 0.06, z + 0.48, 0.1, 5),
+    clipped(bed[0], bed[0] + bx[1] - bx[0], gravel, bx[0] + 0.05, z - 0.06, z + 0.48, 0.1, 6),
+    clipped(gate[1] + 0.1, 57.5, bx[0], bx[1], z - 0.06, z + 0.48, 0.1, 7),
+    ...[[44.25, 18.35, 0.62], [45.4, 18.8, 0.46], [46.55, 18.3, 0.7], [47.75, 18.75, 0.5], [48.8, 18.25, 0.58]]
+      .map(([x, y, d], i) => clipped(x - d / 2, x + d / 2, y - d / 2, y + d / 2, z - 0.05, z - 0.05 + d, d / 2, 11 + i, 0.02)),
+  ]));
+  // the boundary hedge, clipped hornbeam, and its gate: anthracite posts and slats
+  put(M.hornbeam, mergeGeometries([
+    clipped(x0, gate[0], hedge[0], hedge[1], z - 0.15, top, 0.14, 21, 0.06),
+    clipped(gate[1], x1, hedge[0], hedge[1], z - 0.15, top, 0.14, 22, 0.06),
+    clipped(x0, x0 + 0.8, gravel - 0.3, hedge[0] + 0.1, z - 0.15, top, 0.14, 23, 0.06),
+  ]));
+  {
+    const [a, b] = gate, y = (hedge[0] + hedge[1]) / 2, g = [box(a, a + 0.06, y - 0.03, y + 0.03, z, 1.45), box(b - 0.06, b, y - 0.03, y + 0.03, z, 1.45)];
+    for (let x = a + 0.08; x + 0.03 < b - 0.07; x += 0.055) g.push(box(x, x + 0.03, y - 0.015, y + 0.015, z + 0.06, 1.4));
+    put(M.anthOut, mergeGeometries(g));
+  }
+  // the trees
+  for (const [x, y, h, n, seed] of [[46.2, 20.5, 4.6, 5, 3], [43.7, 21.7, 3.6, 4, 5], [53.6, 20.9, 4.2, 4, 8]]) {
+    const t = serviceberry(x, y, h, n, seed);
+    put(M.sbBark, t.limbs);
+    put(M.sbLeaves, t.leaves);
+  }
+  for (const [x, y, h, seed] of [[43.3, 25.5, 9.5, 31], [45.7, 26.7, 11, 32], [48.8, 25.3, 9, 33], [55.4, 25.9, 10.5, 34]]) {
+    const t = birch(x, y, h, seed);
+    put(M.birchBark, t.limbs);
+    put(M.birchLeaves, t.leaves);
   }
 }
 // the photo seen from the windows: taken on the plot looking east at dusk (24 Aug 2024), embedded as base64
@@ -3348,6 +3697,7 @@ function renderLegend() {
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven, the coffee machine in a lit niche), drawers under the oven and the hob (a click opens any drawer, in the island too), wall units over the window strip', frontsC],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
+    ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
     ['Dining', (sw ? 'at the south end by the south glazing, across the room towards the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
     ['Dining wall', sw ? 'on the east wall between the glazings: plain cabinets floor to ceiling a shade lighter than the walls, ' + (fireOn ? 'three flush handleless doors up to the fireplace, the south end rounded' : 'five flush handleless doors, the ends rounded') : 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
@@ -3356,6 +3706,7 @@ function renderLegend() {
     ['Floor', floor, floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); a frameless glass door to the hall', '#383b3e'],
+    ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
     ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
@@ -3501,6 +3852,7 @@ function buildUI() {
   seg($('fronts'), FRONTS, (k) => withBusy(async () => { applyFronts(k); captureEnv(); }), frontsKey);
   seg($('fabrics'), FABRICS, (k) => withBusy(async () => { applyFabric(k); captureEnv(); }), fabricKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
+  seg($('windows'), WINDOWS, (k) => setWindow(k), windowKey);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
   // closes)
   $('paint-pick').insertAdjacentHTML('beforebegin', Object.entries(PAINTS).map(([k, v]) => `<button data-key="${k}" class="${k === paintKey ? 'on' : ''}" style="background:${v.color}" title="${v.label}" aria-label="${v.label}"></button>`).join(''));
@@ -3558,6 +3910,7 @@ function buildUI() {
     if (k === 'c') { setCurtains(!CURT.closed); return; }
     if (k === 'l') { setLayout(!layoutSwapped); return; }
     if (k === 'h') { setFire(!fireOn); return; }
+    if (k === 'k') { setWindow(windowKey === 'tilt' ? 'fixed' : 'tilt'); return; }
     if (k === 'b') { setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true); return; }
     if (busy) return;
     if (k === 's') {
@@ -3751,6 +4104,7 @@ try {
   buildDoors();
   buildCurtains();
   buildSurroundings(await loadView());
+  buildGarden();
   buildBlinds();
   buildLights();
   applyWalls();
@@ -3765,7 +4119,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setFire, setBlinds, BLINDS, setFloorTone, toggleDrawer, DRAWERS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setFire, setWindow, KWIN, GARDEN, setBlinds, BLINDS, setFloorTone, toggleDrawer, DRAWERS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
