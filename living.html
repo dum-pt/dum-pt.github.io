@@ -130,7 +130,7 @@
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="7.5" aria-label="Time of day"><span id="sunlabel">8:34</span></div>
   </div>
   <div class="group"><h2>Open &amp; close</h2>
-    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide the terrace doors open or shut (D)">Open terrace doors</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the hall open or shut (G)">Open glass door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-layout" aria-pressed="false" title="Swap the living room and the dining: the TV to the north wall, the dining wall's cabinets to the east wall between the glazings (L)">Swap living &amp; dining</button><button class="chip on" id="t-fire" aria-pressed="true" title="A built-in fireplace on the east wall by the terrace door, at the same spot in either layout (H)">Remove fireplace</button></div>
+    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide the terrace doors open or shut (D)">Open terrace doors</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the hall open or shut (G)">Open glass door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-layout" aria-pressed="false" title="Swap the living room and the dining: the TV to the north wall, the dining wall's cabinets to the east wall between the glazings (L)">Swap living &amp; dining</button><button class="chip" id="t-fire" aria-pressed="false" title="A built-in fireplace on the east wall by the terrace door, at the same spot in either layout (H)">Add fireplace</button></div>
     <div class="winrow" title="The kitchen window's exterior venetian blinds: retracted (left) to let down to the sill (right); B lets them down or retracts them"><span>Blinds</span><input type="range" id="blind" min="0" max="1" step="0.01" value="0" aria-label="Kitchen window's exterior blinds, retracted to down"></div>
     <div class="winrow" title="Slat angle of the kitchen window's exterior blinds: open (left) to closed (right)"><span>Slats</span><input type="range" id="slats" min="0" max="1" step="0.01" value="0.3" aria-label="Slat angle, open to closed"></div>
   </div>
@@ -2671,7 +2671,7 @@ function setLayout(on) {
 // what shows by the layout and the fireplace: swapped, the plain cabinets with five doors or three up to the fireplace,
 // its south side square against them; as drawn it stands free (rounded), the TV unit short (its LED line, placed here as
 // drawn, and the diffuser on it along)
-let fireOn = true;
+let fireOn = false;                // off by default (the chip, H, adds it)
 function applyWalls() {
   const on = layoutSwapped, short = fireOn && !on;
   zones.wallE.visible = on && !fireOn;
