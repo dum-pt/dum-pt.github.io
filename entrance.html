@@ -87,6 +87,7 @@
   #tile-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
   #tile-name { margin: 6px 0 8px; font-size: 11.5px; color: var(--muted); }
   #tilestructs, #hookwalls { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #designs { display: grid; grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 1500px) { #hint { bottom: 74px; } }   /* clear of the view bar */
   @media (max-width: 760px) {
     #title { left: 12px; top: 12px; padding: 10px 12px; }
@@ -114,19 +115,25 @@
 </div>
 
 <div id="side" class="panel">
+  <div class="group"><h2>Design</h2><div class="seg" id="designs" title="The hall as drawn (oak slats with hooks, the floating wardrobe, the bench out of the open shelving) or one of three alternatives after the inspiration board: one volume of flush wood, a stone wall, soft curves in plaster; each starts with its own look (A)"></div></div>
   <div class="group"><h2>Style</h2><div class="seg" id="palettes" title="The powder room's four characters, carried over: dark and intimate, warm and cosy, a deep green jewel box, calm Japandi (S)"></div></div>
-  <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the slats, the key shelf and the niche, of wooden wardrobe doors and of a wooden floor; each style starts with its own (O)"></div></div>
+  <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the slats, the niche and the bench, of wooden wardrobe doors and of a wooden floor; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls and the ceiling, and of painted wardrobe doors; each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Wardrobe</h2><div class="seg" id="fronts" title="The wardrobe's three handleless doors: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour so the wardrobe recedes into the wall (R)"></div></div>
-  <div class="group"><h2>Hook wall</h2><div class="seg" id="hookwalls" title="The corridor wall behind the hooks and the key shelf, floor to ceiling: oak slats on felt as drawn, fluted wood, flat wood, the stone (the shelf top's), or plastered and painted like the walls (H)"></div></div>
-  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The stone of the key shelf's top and of the open shoe rack under the wardrobe, and of the hook wall when it is in stone; each style starts with its own (T)"></div></div>
+  <div class="group"><h2>Glass door</h2><div class="seg" id="halldoors" title="The glass door to the corridor and the living room: as drawn, a frameless pane sliding along the corridor's side of the wall; or a pivot door in the opening, the same grey glass in a slim anthracite steel frame, turning on a pivot near one jamb (V)"></div>
+    <div id="pivotrows" hidden>
+      <div class="winrow" title="Which way the pivot door's longer part swings: into the hall or into the living room; the short part beyond the pivot swings the other way (I)"><span>Opens</span><div class="seg" id="swings"></div></div>
+      <div class="winrow" title="The jamb the pivot is by, seen from the hall: left, by the coat hooks, or right, by the mirror (J)"><span>Pivot</span><div class="seg" id="pivots"></div></div>
+    </div></div>
+  <div class="group" id="g-hook"><h2>Hook wall</h2><div class="seg" id="hookwalls" title="The corridor wall behind the hooks and the bench, floor to ceiling: oak slats on felt as drawn, fluted wood, flat wood, the stone (the shoe rack's), or plastered and painted like the walls (H)"></div></div>
+  <div class="group" id="g-stone"><h2>Stone</h2><div class="seg" id="stones" title="The stone: of the shoe rack (and a stone hook wall) in the hall as drawn, of the wood box's slab, of the stone wall and its bench; each style starts with its own (T)"></div></div>
   <div class="group"><h2>Floor tiles</h2><div id="tiles" title="The colour of the 120 × 120 cm porcelain tiles; each style starts with its own"><label id="tile-pick" title="Any colour"><input type="color" id="tile-custom" aria-label="Any tile colour"></label></div><div id="tile-name"></div>
     <div class="seg" id="tilestructs" title="The tiles' structure: smooth matt, polished, or a concrete, limestone or marble look (F)"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="18.75" aria-label="Time of day"><span id="sunlabel">19:49</span></div>
   </div>
   <div class="group"><h2>Open &amp; close</h2>
-    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the front door (D)">Open front door</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the corridor open or shut (G)">Open glass door</button><button class="chip" id="t-ward" aria-pressed="false" title="Open or close the wardrobe (C)">Open wardrobe</button></div>
+    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the front door, or click the door itself (D)">Open front door</button><button class="chip" id="t-glass" aria-pressed="false" title="Open or shut the glass door to the corridor, or click the door itself (G)">Open glass door</button><button class="chip" id="t-ward" aria-pressed="false" title="Open or close the wardrobe (C)">Open wardrobe</button></div>
   </div>
   <div class="group"><h2>Render</h2>
     <div class="chips">
@@ -141,7 +148,7 @@
 
 <button id="opts" class="panel" aria-expanded="false" aria-controls="side">Options</button>
 <div id="views" class="panel"></div>
-<div id="hint">Drag to look around · scroll to move closer · double-click to focus</div>
+<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a door to open it</div>
 <div id="busy" class="panel">Updating…</div>
 
 <div id="loading"><div class="box"><div class="ring"></div><div id="status">Loading…</div></div></div>
@@ -189,9 +196,9 @@ const SU = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
 // The entrance hall on the upper floor, between the kitchen and the stairs, in the coordinates of the house model
 // ('Projekt Rozp model.skp') with its floor at 0; +x runs north (towards the stairs), +y west (out of the front door).
 // The front door with a glass sidelight in the facade (the north wall here, y = Y1), a mirror over the whole kitchen-side
-// wall (x = X0), oak slats with coat hooks and a floating key shelf on the corridor wall (y = Y0) beside the opening to
-// the corridor and its glass sliding door, and a floating wardrobe along the stair wall (x = X1) that ends, at the
-// corridor wall, in an open niche in front of the flue stack.
+// wall (x = X0), oak slats with coat hooks on the corridor wall (y = Y0) beside the opening to the corridor and its glass
+// sliding door, and a floating wardrobe along the stair wall (x = X1) that ends, at the corridor wall, in an open niche in
+// front of the flue stack, its board at the wardrobe's bottom running on along the corridor wall as the bench's seat.
 const X0 = 49.515, X1 = 52.545;        // kitchen (mirror) / stair (wardrobe) wall faces
 const Y0 = 14.795, Y1 = 16.73;         // corridor / facade wall faces
 const XW0 = 49.375, XW1 = 52.685;      // outer faces of the side walls
@@ -208,6 +215,11 @@ const FD = { x0: 49.585, x1: 51.087, y0: 16.88, y1: 17.03, leaf: [49.665, 50.617
 // the frameless glass sliding door on the corridor side of the opening, hung from a track under the corridor's ceiling:
 // its pane (y0..y1), width, where its edge stands shut and open, its height, the track
 const SLIDE = { y0: 14.525, y1: 14.545, w: 1.018, shut: 49.566, open: 50.475, z0: 0.035, z1: 2.6, track: [49.375, 51.493] };
+// or (HDOORS, setHallDoor) a pivot door in the opening, as in the living room's page: the leaf x0..x1, z0..z1, t thick in
+// the wall's middle (y), its steel frame f wide round the glass; it turns on its pivot d in from either jamb (setPivot: by
+// the mirror, on the right seen from the hall, or by the coat hooks, on the left), the longer part into the hall or into
+// the living room (open, rad); round pulls through the glass, pull in from the free edge
+const PIVOT = { x0: DOOR_S[0] + 0.005, x1: DOOR_S[1] - 0.005, d: 0.18, y: 14.67, t: 0.04, f: 0.035, z0: 0.008, z1: DOOR_H - 0.006, pull: 0.11, open: Math.PI / 2 };
 // the wardrobe along the stair wall: its front (x), 60 cm deep, floating 50 cm off the floor (z0) over an open shoe rack,
 // up to the ceiling (z1); three equal handleless doors (push to open, hinged on their corridor side, 4 mm apart), each
 // over a compartment of its own (partitions at parts); at the corridor end an open niche, 40 cm wide between the slats
@@ -221,22 +233,24 @@ const WR = { x: 51.945, t: 0.02, z0: 0.5, z1: 2.601, side: [15.22, 15.24], back:
 }
 // the open shoe rack under the wardrobe: a slab of the stone (z..z + t, honed) from just behind the doors' face (x0) to the
 // wall, between the niche's side panel and the facade wall, over a base of the same stone on the floor (base thick);
-// shoes on both. The niche's LED profile runs from above the rack's height to the top (NICHE_LED)
+// shoes on both
 const RACK = { z: 0.22, t: 0.03, base: 0.02, x0: WR.x + 0.02 };
-const NICHE_LED = [RACK.z + RACK.t + 0.03, WR.z1 - 0.04];
-// the bench: the open shelving's board at the wardrobe's bottom (its top at seat) and its lowest board (low) carried on out
-// of the niche along the hook wall to x0, floating, as deep as the niche is wide: a seat (t thick, a cushion on it outside
-// the niche) over a shoe shelf (lowT thick)
-const BENCH = { x0: 51.27, seat: WR.z0 + 0.02, t: 0.04, low: WR.shelves[0], lowT: 0.03, cushion: 0.045 };
+// the bench: the open shelving's board at the wardrobe's bottom (its top at seat, t thick) carried on out of the niche
+// along the hook wall to x0, 2 cm short of the opening, as deep as the niche is wide, a cushion on it outside the niche;
+// under it, enclosed, a box floating z0 off the floor (its end panel, the bottom, the niche's part of it closed off) with
+// three handleless drawers, their fronts flush with the seat's edge, 3 mm apart
+const BENCH = { x0: 50.545, seat: WR.z0 + 0.02, t: 0.04, z0: 0.12, cushion: 0.045, gap: 0.003 };
+// the niche's LED profile, from just above the seat to the top
+const NICHE_LED = [BENCH.seat + 0.03, WR.z1 - 0.04];
 // the corridor wall: oak slats (2.5 x 1.5 cm, 4 cm apart) on black felt, floor to ceiling, in three 60.5 cm panels from
 // the opening on (the last one running on into the niche, as its side); the coat hooks on the slats, in two staggered
 // rows [x, z]
 const SLATS = { x0: 50.525, x1: 52.145, panels: [50.525, 51.13, 51.729], felt: 0.01, w: 0.025, d: 0.015, pitch: 0.04, first: 0.015 };
 const SLAT_FACE = Y0 + SLATS.felt + SLATS.d;
 const HOOKS = [[50.8325, 1.528], [51.0725, 1.53], [51.3135, 1.529], [51.5585, 1.527], [51.7985, 1.526], [50.9525, 1.341], [51.1975, 1.339], [51.4375, 1.338], [51.6785, 1.336]];
-// the corridor wall's finish behind the hooks and the shelf, from the opening into the niche, floor to ceiling, 2.5 cm deep
-// in every finish (the hooks, the shelf and the niche's shelves stay where they are): the oak slats on felt as drawn,
-// fluted wood, flat wood, the stone of the shelf's top, or plastered and painted like the walls
+// the corridor wall's finish behind the hooks and the bench, from the opening into the niche, floor to ceiling, 2.5 cm
+// deep in every finish (the hooks, the bench and the niche's shelves stay where they are): the oak slats on felt as drawn,
+// fluted wood, flat wood, the shoe rack's stone, or plastered and painted like the walls
 const HOOK_WALLS = {
   slats: { label: 'Slats' },
   fluted: { label: 'Fluted' },
@@ -245,8 +259,36 @@ const HOOK_WALLS = {
   paint: { label: 'Paint' },
 };
 let hookKey = 'slats';
-// the floating key shelf on the slats: an oak box with a drawer under a 2 cm stone top that overhangs it (the grip)
-const SHELF = { x0: 50.64, x1: 51.22, y1: 15.045, z0: 0.634, z1: 0.804, top: 0.02 };
+// The designs: the hall as drawn (slats: the oak slats with the hooks, the floating wardrobe over its stone shoe rack, the
+// open shelving carried on as the bench) and three alternatives after the user's inspiration board, each with its own look
+// (a style, and what it changes: the wood, the stone, the paint, the wardrobe's doors, the tiles' colour and structure,
+// the cushion). The alternatives share a wardrobe to the floor (TALL: its doors over a lit gap of z0, under a reveal at
+// the top). box: one volume of flush wood over the corridor wall and the wardrobe, the niche closed, a stone slab for the
+// bench; stone: the corridor wall clad in the stone, a floating block of it for the bench, running into the open niche;
+// curves: plaster, a column with a rounded corner and a lit arched niche at the wardrobe's end, a rounded built-in bench.
+// hook, stone: the pickers that apply
+const DESIGNS = {
+  slats: { label: 'Slats', hook: true, stone: true, look: { style: 'japandi', struct: 'matt' },
+    desc: 'as drawn: oak slats with hooks on the corridor wall, the floating wardrobe over its stone shoe rack, the open shelving carried on as the bench' },
+  box: { label: 'Wood box', stone: true, look: { style: 'japandi', wood: 'natoak', stone: 'greenq', fronts: 'flat', paint: 'bone', floor: 'ivory', struct: 'limestone', pouf: 'boucle' },
+    desc: 'one volume of flush wood over the corridor wall and the wardrobe, light at its head and its foot, a stone slab floating along it (after the board\'s oak-panelled hallways)' },
+  stone: { label: 'Stone wall', stone: true, look: { style: 'japandi', wood: 'whiteoak', stone: 'travertino', fronts: 'paint', paint: 'chalk', floor: 'white', struct: 'limestone' },
+    desc: 'the corridor wall in stone, a floating block of it for the bench, the wardrobe receding in the wall colour beside an open niche in wood (after the board\'s travertine walls and stone benches)' },
+  curves: { label: 'Soft curves', look: { style: 'japandi', wood: 'whiteoak', fronts: 'flat', paint: 'chalk', floor: 'ivory', struct: 'matt', pouf: 'boucle' },
+    desc: 'limewashed plaster and rounded forms: a column with a lit arched niche, a soft built-in bench, round wooden knobs (after the board\'s curved plaster hallways)' },
+};
+const ALT = ['box', 'stone', 'curves'];
+let designKey = 'slats';
+const TALL = { z0: 0.04, top: H - 0.045 };
+// box: the slab (its top at seat, t thick), the joints between the wall's three panels
+const SLAB = { x0: 50.545, seat: 0.46, t: 0.06, joints: [51.0, 51.475] };
+// stone: the block, floating z0..z1
+const BLOCK = { x0: 50.545, z0: 0.1, z1: 0.46 };
+// curves: the column at the wardrobe's end, proud of the doors by d, its corner by them rounded (r); the arched niche in it
+// (y0..y1, from its sill to the arch's top, the arch's radius half its width, back: how deep it goes, short of the pipes)
+const COLUMN = { d: 0.08, r: 0.08, y0: 14.875, y1: 15.115, sill: 0.78, top: 2.17, back: WR.back - 0.02 };
+// curves: the bench, built in (to y1, floating z0..z1), its corner by the opening rounded in plan (r), its edges (bevel)
+const SOFT = { x0: 50.545, y1: 15.18, z0: 0.1, z1: 0.42, r: 0.2, bevel: 0.03, cushion: 0.07 };
 const BOARD = { x0: 51.335, x1: 51.885, z0: 0.95, z1: 1.9 };        // the fuse board's flush door, on the facade wall
 const SWITCHES = [51.225, 1.056];                                   // the light switches by the front door (a double frame)
 const MIRROR = { y0: Y0, y1: Y1, z0: 0.004, z1: H - 0.006, x: X0 + 0.006 };   // over the whole kitchen wall (x: its face)
@@ -884,8 +926,8 @@ const METALS = {
   brass: { label: 'brushed brass', color: '#b8955a', roughness: 0.3, swatch: '#b08d57' },
   black: { label: 'matte black', color: '#262524', roughness: 0.55, swatch: '#262524' },
 };
-// the powder room's four characters, carried over to the hall: the wood of the slats, the key shelf and the niche (and
-// of wooden wardrobe doors and floor) to start with, the wall paint, the stone of the shelf's top, the wardrobe's doors
+// the powder room's four characters, carried over to the hall: the wood of the slats, the niche and the bench (and of
+// wooden wardrobe doors and floor) to start with, the wall paint, the stone of the shoe rack, the wardrobe's doors
 // (FRONTS), the felt behind the slats, the fittings (the hooks, the door's lever), the bench cushion's cover (POUFS), the floor
 // tiles' colour (TILE_COLOURS), the mirror's tint, the switches' plates, the plaster; ev: the exposure (the pale halls
 // throw far more light back)
@@ -1072,7 +1114,7 @@ const M = {
   fluted: physical({ clearcoat: 0.3, clearcoatRoughness: 0.35 }),
   veneer: physical({ clearcoat: 0.35, clearcoatRoughness: 0.3 }),
   door: physical({ color: 0xf2f0eb, roughness: 0.42, clearcoat: 0.2, clearcoatRoughness: 0.4 }),   // entrance door: flush, white lacquer
-  street: physical({ clearcoat: 0.6, clearcoatRoughness: 0.12 }),   // the key shelf's top: the style's stone
+  street: physical({ clearcoat: 0.6, clearcoatRoughness: 0.12 }),   // (not used in the hall)
   art: physical({ roughness: 0.85 }),                                 // the print (a canvas texture)
   artFrame: physical({ color: 0x1b1a19, metalness: 0.4, roughness: 0.45 }),   // its frame: black, the style's wood or gilt
   cab: physical({ clearcoat: 0.3, clearcoatRoughness: 0.3 }),         // the cabinet's front: the style's wood or paint
@@ -1134,7 +1176,7 @@ const M = {
   umbrella: physical({ color: 0x1f2022, roughness: 0.55, sheen: 0.4, sheenColor: new THREE.Color(0x6a6d72) }),
   book1: physical({ color: 0x8c6f5a, roughness: 0.8 }),
   book2: physical({ color: 0xd8d0c2, roughness: 0.85 }),
-  stoneWall: physical({ clearcoat: 0.12, clearcoatRoughness: 0.35 }),                   // a stone hook wall: the shelf top's stone, honed
+  stoneWall: physical({ clearcoat: 0.12, clearcoatRoughness: 0.35 }),                   // the shoe rack and a stone hook wall: the style's stone, honed
 };
 // emissive surfaces, driven by the light mood
 const E = {
@@ -1142,7 +1184,7 @@ const E = {
   globe: physical({ color: 0xffffff, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 1 }),
   led: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   // the LED profiles (each its own, as the moods dim them apart): grazing the slats, washing the floor under the
-  // wardrobe, under the key shelf, in the niche; and the lenses of the porch's downlights
+  // wardrobe, under the bench (shelf), in the niche; and the lenses of the porch's downlights
   graze: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   wash: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   shelf: new THREE.MeshBasicMaterial({ color: 0xffffff }),
@@ -1454,6 +1496,10 @@ function findInstance(skp, test) {
 // ---------------------------------------------------------------- build the room
 const groups = { ceiling: new THREE.Group(), pendants: new THREE.Group(), room: new THREE.Group() };
 for (const g of Object.values(groups)) R.add(g);
+// each design's own things in a group of its own (applyDesign shows one), the alternatives' wardrobe in another
+const DESIGN_G = {}, TALL_G = new THREE.Group();
+for (const k of Object.keys(DESIGNS)) R.add(DESIGN_G[k] = new THREE.Group());
+R.add(TALL_G);
 let floorMesh, mirrorMesh;
 
 function buildArchitecture() {
@@ -1490,10 +1536,19 @@ function buildArchitecture() {
 
 // ---------------------------------------------------------------- doors: open / close
 // The front door opens in, hinged on the jamb by the mirror (its leaf is drawn shut and turned about the hinge); the
-// glass door slides along the corridor face of its wall; the wardrobe's three doors open together
+// glass door slides along the corridor face of its wall (GLASS.group) or, as a pivot door, turns in the opening
+// (GLASS.leaves: mirror, hooks); the wardrobe's three doors open together. DOORS: the two doors' meshes, glass and all (a
+// click on one opens or shuts it: userData.door on its group, 'front' or 'glass')
 const DOOR = { open: false, t: 0, pivot: null, max: THREE.MathUtils.degToRad(88) };
-const GLASS = { open: false, t: 0, group: null };
-const WARDROBE = { open: false, t: 0, max: THREE.MathUtils.degToRad(96), doors: [], fronts: {} };
+const GLASS = { open: false, t: 0, group: null, leaves: {} };
+const DOORS = [];
+// the glass door as drawn (the slider and its track) and as a pivot door (setHallDoor), its pivot by either jamb
+// (setPivot)
+const HDOOR = { slide: new THREE.Group(), pivot: new THREE.Group(), mirror: new THREE.Group(), hooks: new THREE.Group() };
+groups.room.add(HDOOR.slide, HDOOR.pivot);
+HDOOR.pivot.add(HDOOR.mirror, HDOOR.hooks);
+HDOOR.pivot.visible = HDOOR.hooks.visible = false;
+const WARDROBE = { open: false, t: 0, max: THREE.MathUtils.degToRad(90), doors: [], fronts: {} };   // (90: clear of the bench)
 const WINDOW = { mode: 'closed', turnG: null };                        // (no window)
 const hampers = [], HAMPER = { open: false, t: 0, max: 0 };           // (no hampers)
 function buildDoors() {
@@ -1524,19 +1579,50 @@ function buildDoors() {
   holder.position.set(-hx, -hy, 0);
   pivot.add(holder);
   R.add(pivot);
-  flush(holder);
+  pivot.userData.door = 'front';
+  DOORS.push(...flush(holder));
   DOOR.pivot = pivot;
   // the glass door: its track on the corridor face of the wall over the opening; a frameless 10 mm pane with round flush
   // pulls on both faces, drawn shut (GLASS.group moves it)
   add(M.track, box(SLIDE.track[0], SLIDE.track[1], SLIDE.y0 - 0.01, YW0, SLIDE.z1, SLIDE.z1 + 0.03));
-  flush(groups.room);
+  flush(HDOOR.slide);
   const g0 = SLIDE.shut, g1 = g0 + SLIDE.w, gy0 = SLIDE.y0 + 0.005, gy1 = SLIDE.y1 - 0.005;
   add(M.slideGlass, box(g0, g1, gy0, gy1, SLIDE.z0, SLIDE.z1 - 0.004, { faces: 'yY' }));
   add(M.glassEdge, box(g0, g1, gy0, gy1, SLIDE.z0, SLIDE.z1 - 0.004, { faces: 'xXzZ' }), { shadow: false });
   for (const [y, s] of [[gy1, 1], [gy0, -1]]) add(M.metal, cyl(0.022, 0.004, 'y', [g1 - 0.06, y + s * 0.002, 1.05], 28));
   GLASS.group = new THREE.Group();
-  R.add(GLASS.group);
-  flush(GLASS.group);
+  GLASS.group.userData.door = 'glass';
+  HDOOR.slide.add(GLASS.group);
+  DOORS.push(...flush(GLASS.group));
+  // or the pivot door, built for either jamb (HDOOR.mirror / hooks): the pivots' round plates in the floor and the head;
+  // the leaf, the same grey glass in a slim anthracite steel frame (the front door's RAL 7016), a long round pull through
+  // the glass on each side by the free edge (GLASS.leaves turn about the pivot: each leaf is built in place in an inner
+  // group set back by it)
+  {
+    const { x0, x1, d, y, t, f, z0, z1 } = PIVOT, y0 = y - t / 2, y1 = y + t / 2;
+    for (const [side, px, bx] of [['mirror', DOOR_S[0] + d, x1 - PIVOT.pull], ['hooks', DOOR_S[1] - d, x0 + PIVOT.pull]]) {
+      add(M.metal, cyl(0.032, 0.002, 'z', [px, y, 0.001], 28));
+      add(M.metal, cyl(0.032, 0.002, 'z', [px, y, DOOR_H - 0.001], 28));
+      flush(HDOOR[side]);
+      add(M.frontDoor, box(x0, x0 + f, y0, y1, z0, z1));
+      add(M.frontDoor, box(x1 - f, x1, y0, y1, z0, z1));
+      add(M.frontDoor, box(x0 + f, x1 - f, y0, y1, z0, z0 + f, { faces: 'yYzZ' }));
+      add(M.frontDoor, box(x0 + f, x1 - f, y0, y1, z1 - f, z1, { faces: 'yYzZ' }));
+      add(M.slideGlass, box(x0 + f, x1 - f, y - 0.005, y + 0.005, z0 + f, z1 - f, { faces: 'yY' }));
+      for (const s of [1, -1]) {
+        add(M.metal, cyl(0.0125, 1.2, 'z', [bx, y + s * 0.065, 1.1], 28));
+        for (const z of [0.58, 1.62]) add(M.metal, cyl(0.007, 0.06, 'y', [bx, y + s * 0.035, z], 16));
+      }
+      const leaf = GLASS.leaves[side] = new THREE.Group();
+      leaf.position.set(px, y, 0);
+      leaf.userData.door = 'glass';
+      const inner = new THREE.Group();
+      inner.position.set(-px, -y, 0);
+      leaf.add(inner);
+      HDOOR[side].add(leaf);
+      DOORS.push(...flush(inner));
+    }
+  }
 }
 let envTimer = 0;
 const envSoon = () => { clearTimeout(envTimer); envTimer = setTimeout(() => { captureEnv(); dirty = true; }, 150); };
@@ -1554,6 +1640,43 @@ function setDoor(open) {
 function setGlass(open) {
   GLASS.open = open;
   chip('t-glass', open, open ? 'Close glass door' : 'Open glass door');
+  dirty = true;
+}
+// the glass door: as drawn, the frameless slider; or the glass pivot door in the opening (open or shut as the other was)
+const HDOORS = { slide: { label: 'Sliding' }, pivot: { label: 'Pivot' } };
+let hallKey = 'slide';
+function setHallDoor(k) {
+  hallKey = k;
+  HDOOR.slide.visible = k === 'slide';
+  HDOOR.pivot.visible = k === 'pivot';
+  document.querySelectorAll('#halldoors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  $('pivotrows').hidden = k !== 'pivot';
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
+// the pivot door: which way its longer part swings (into the hall or the living room) and the jamb its pivot is by
+// (seen from the hall: left, by the coat hooks; right, by the mirror). An open door swings open again the new way
+const SWINGS = { hall: { label: 'Into hall' }, room: { label: 'Into room' } };
+const PIVOTS = { hooks: { label: 'Left' }, mirror: { label: 'Right' } };
+let swingKey = 'hall', pivotSide = 'mirror';
+// k: 0 shut .. 1 open
+function poseLeaves(k) {
+  for (const [side, leaf] of Object.entries(GLASS.leaves)) leaf.rotation.z = (side === 'mirror' ? 1 : -1) * (swingKey === 'hall' ? 1 : -1) * PIVOT.open * k;
+}
+function setPivot(swing = swingKey, side = pivotSide) {
+  swingKey = swing;
+  pivotSide = side;
+  HDOOR.mirror.visible = side === 'mirror';
+  HDOOR.hooks.visible = side === 'hooks';
+  if (GLASS.open) GLASS.t = 0;
+  poseLeaves(GLASS.t * GLASS.t * (3 - 2 * GLASS.t));
+  document.querySelectorAll('#swings button').forEach((b) => b.classList.toggle('on', b.dataset.key === swing));
+  document.querySelectorAll('#pivots button').forEach((b) => b.classList.toggle('on', b.dataset.key === side));
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
   dirty = true;
 }
 function setWardrobe(open, look = false) {
@@ -1580,8 +1703,9 @@ function animateOpenings(dt) {
     moved = true;
   }
   if (GLASS.group && GLASS.t !== (GLASS.open ? 1 : 0)) {
-    GLASS.t = THREE.MathUtils.clamp(GLASS.t + (GLASS.open ? dt : -dt) / 1.0, 0, 1);
+    GLASS.t = THREE.MathUtils.clamp(GLASS.t + (GLASS.open ? dt : -dt) / (hallKey === 'pivot' ? 1.4 : 1.0), 0, 1);
     GLASS.group.position.x = (SLIDE.open - SLIDE.shut) * ease(GLASS.t);
+    poseLeaves(ease(GLASS.t));
     L.living.intensity = OUT.living * (0.75 + 0.25 * GLASS.t);
     if (GLASS.t === 0 || GLASS.t === 1) envSoon();
     moved = true;
@@ -1674,7 +1798,7 @@ function setFilm(frosted) {
   dirty = true;
 }
 
-// ---------------------------------------------------------------- the ceiling, the slat wall, the key shelf, the wardrobe
+// ---------------------------------------------------------------- the ceiling, the slat wall, the wardrobe and the bench
 // The ceiling: flat plaster with two trimless downlights and, along the slats, the recessed LED profile whose light grazes
 // them from the top (its black sides, the opal diffuser 4 cm up). The ceiling is hidden for the plan view, so the sun's
 // shadow over the hall comes from an invisible roof that is always there
@@ -1706,8 +1830,9 @@ function slatCentres() {
   return c;
 }
 const onSlat = (x) => slatCentres().reduce((a, b) => (Math.abs(b - x) < Math.abs(a - x) ? b : a));
-// The coat hooks: short pegs in the fittings' finish, on the slats' centres (in every finish of the wall)
-function buildSlats() {
+// The coat hooks: short pegs in the fittings' finish, on the slats' centres (in every finish of the wall; on the
+// alternatives' walls in the same places, so the things hang the same)
+function pegs() {
   for (const [hx, hz] of HOOKS) {
     const x = onSlat(hx);
     add(M.metal, cyl(0.0105, 0.04, 'y', [x, SLAT_FACE + 0.02, hz], 20));
@@ -1730,21 +1855,9 @@ function buildHookWall() {
       add(k === 'fluted' ? M.veneer : face, box(SLATS.x0, SLATS.x1, Y0, SLAT_FACE, 0, H, { faces: 'x' }));
     }
     const G = HOOK_WALL[k] = new THREE.Group();
-    groups.room.add(G);
+    DESIGN_G.slats.add(G);
     flush(G);
   }
-}
-// The key shelf, floating on the slats: an oak box with a drawer (3 mm gaps), under its stone top, which overhangs it by
-// 2 cm as the drawer's grip; an LED line under its front edge
-function buildShelf() {
-  const { x0, x1, y1, z0, z1, top } = SHELF, yb = SLAT_FACE, yf = y1 - 0.02, t = 0.016;
-  add(M.street, box(x0, x1, yb, y1, z1, z1 + top, { faces: 'xXYzZ' }));
-  add(M.veneer, box(x0, x0 + t, yb, yf, z0, z1, { faces: 'xXY' }));
-  add(M.veneer, box(x1 - t, x1, yb, yf, z0, z1, { faces: 'xXY' }));
-  add(M.veneer, box(x0 + t, x1 - t, yb, yf, z0, z0 + t, { faces: 'zZY', swap: true }));
-  add(M.dark, box(x0 + t, x1 - t, yb, yf - 0.018, z0 + t, z1, { faces: 'Y' }), { shadow: false });
-  add(M.veneer, box(x0 + t + 0.003, x1 - t - 0.003, yf - 0.018, yf, z0 + t + 0.003, z1 - 0.003, { faces: 'xXyYzZ', swap: true }));
-  add(E.shelf, box(x0 + 0.03, x1 - 0.03, yf - 0.04, yf - 0.028, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
 }
 
 // a coat or a jacket, shoulders across x (w), its thickness along y (t), hanging len from its collar at (cx, cy, top): a
@@ -1821,54 +1934,16 @@ const SNEAKER = { len: 0.275, w: 0.1, h: 0.072, collar: 0.08, sole: 0.028 };
 const LOAFER = { len: 0.27, w: 0.094, h: 0.06, collar: 0.055, sole: 0.018 };
 const BOOT = { len: 0.28, w: 0.098, h: 0.085, sole: 0.022, boot: true };
 
-// The wardrobe: a carcass floating WR.z0 off the floor up to the ceiling, lined inside, in three compartments behind its
-// three doors (built flat and fluted, each kind in a group of its own: applyFronts shows one); its underside in the doors'
-// finish, with an LED line along the front washing the shoe rack under it. The rack: the stone slab, its own LED line
-// under its front edge for the stone base on the floor. At the corridor end the open niche: its side panel (from the floor up) and its back
-// in the wood, its boards, a top, an LED profile down the side panel's front edge; its boards at the wardrobe's bottom and at
-// the rack's height carried on out along the hook wall as the bench (BENCH). Inside: shoes, baskets, scarves and a blanket on the shelves of the first compartment; a hat shelf
-// and a rail of coats and jackets on wooden hangers in the other two, sneakers and boots on their floors
-function buildWardrobe() {
-  const { x, t, z0, z1 } = WR, xi = x + t, xb = X1 - 0.018, bt = 0.019, ys = WR.side[1], [p1, p2] = WR.parts, xm = (xi + xb) / 2;
-  const G = new THREE.Group();
-  R.add(G);
-  // the underside and its LED line; the top (seen only in the plan, the ceiling hides it)
-  add(M.cab, box(x, X1, ys, Y1, z0, z0 + bt, { faces: 'z' }));
-  add(E.wash, box(x + 0.024, x + 0.036, ys + 0.03, Y1 - 0.03, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
-  add(M.cab, box(x, X1, WR.side[0], Y1, z1 - 0.002, z1, { faces: 'Z' }));
-  // the lining: bottom, top, back, ends, partitions
-  add(M.cabInside, box(xi, xb, ys, Y1, z0, z0 + bt, { faces: 'Z' }));
-  add(M.cabInside, box(xi, xb, ys, Y1, z1 - bt, z1, { faces: 'z' }));
-  add(M.cabInside, box(xb, X1, ys, Y1, z0, z1, { faces: 'x' }));
-  add(M.cabInside, box(xi, xb, ys, ys + 0.001, z0, z1, { faces: 'Y' }));
-  add(M.cabInside, box(xi, xb, Y1 - bt, Y1, z0, z1, { faces: 'y' }));
-  for (const yp of WR.parts) add(M.cabInside, box(xi, xb, yp - bt / 2, yp + bt / 2, z0 + bt, z1 - bt, { faces: 'xyY' }));
-  // the niche, in the wood
-  const nb = WR.back, ns = WR.side[0];
-  add(M.veneer, box(x, nb, ns, ys, 0, z1, { faces: 'xy' }));
-  add(M.veneer, box(x, nb, ns, ys, 0, z0, { faces: 'Y' }));
-  add(M.veneer, box(nb, nb + 0.02, SLAT_FACE, ns, 0, z1, { faces: 'x' }));
-  // (its boards at the wardrobe's bottom and at the rack's height run on out of the niche as the bench, below)
-  for (const z of [...WR.shelves.slice(1), z1 - 0.02]) add(M.veneer, box(x + 0.02, nb, SLAT_FACE, ns, z, z + 0.02, { faces: 'xzZ', swap: true }));
-  // the bench: the seat and the shoe shelf under it, from the niche's back out to BENCH.x0, the grain along them; the cushion
-  // on the seat outside the niche; an LED line under the seat's front edge
-  {
-    const { x0: bx0, seat, t: st, low, lowT, cushion } = BENCH, cx0 = bx0 + 0.01, cx1 = x - 0.005;
-    add(M.veneer, box(bx0, nb, SLAT_FACE, ns, seat - st, seat, { faces: 'xYzZ', swap: true }));
-    add(M.veneer, box(bx0 + 0.02, nb, SLAT_FACE, ns, low, low + lowT, { faces: 'xYzZ', swap: true }));
-    add(M.pouf, projectUV(rbox(cx1 - cx0, ns - SLAT_FACE - 0.012, cushion, 0.018, [(cx0 + cx1) / 2, (SLAT_FACE + ns) / 2 + 0.002, seat + cushion / 2])));
-    add(E.wash, box(bx0 + 0.03, x - 0.01, ns - 0.032, ns - 0.02, seat - st - 0.002, seat - st, { faces: 'z' }), { shadow: false });
-  }
-  add(E.niche, box(x + 0.012, x + 0.022, ns - 0.003, ns, NICHE_LED[0], NICHE_LED[1], { faces: 'y' }), { shadow: false });
-  // the shoe rack
-  add(M.stoneWall, box(RACK.x0, X1, ys, Y1, RACK.z, RACK.z + RACK.t, { faces: 'xzZ' }));
-  add(M.stoneWall, box(RACK.x0, X1, ys, Y1, 0, RACK.base, { faces: 'xZ' }));
-  add(E.wash, box(RACK.x0 + 0.02, RACK.x0 + 0.032, ys + 0.03, Y1 - 0.03, RACK.z - 0.002, RACK.z, { faces: 'z' }), { shadow: false });
-  // the first compartment: five shelves; black sneakers on its floor, loafers, a basket, scarves, a basket, a blanket
+// The wardrobe's compartments (in both wardrobes, their floor at zf): five shelves in the first, black sneakers on its floor,
+// loafers, a basket, folded knitwear, a basket, a blanket; a hat shelf and a rail of coats and jackets on wooden hangers in
+// the other two, sneakers and boots on their floors; low: a shoe shelf at that height in each, with more shoes (the tall
+// wardrobe)
+function wardrobeInside(zf, low = 0) {
+  const xi = WR.x + WR.t, xb = X1 - 0.018, bt = 0.019, ys = WR.side[1], [p1, p2] = WR.parts, xm = (xi + xb) / 2;
   const c1 = [ys, p1 - bt / 2], c2 = [p1 + bt / 2, p2 - bt / 2], c3 = [p2 + bt / 2, Y1 - bt], ym1 = (c1[0] + c1[1]) / 2;
   const sh1 = [0.86, 1.22, 1.58, 1.94, 2.28], onShelf = (i) => sh1[i] + bt;
   for (const z of sh1) add(M.cabInside, box(xi + 0.02, xb, c1[0], c1[1], z, z + bt, { faces: 'xzZ' }));
-  pair(SNEAKER, xb - 0.03, ym1, Math.PI, M.sole, M.soleWhite, z0 + bt);
+  pair(SNEAKER, xb - 0.03, ym1, Math.PI, M.sole, M.soleWhite, zf);
   pair(LOAFER, xb - 0.03, ym1, Math.PI, M.leather, M.sole, onShelf(0));
   add(M.rattan, rbox(0.3, 0.4, 0.2, 0.01, [xm, ym1, onShelf(1) + 0.1]));
   ['coat5', 'coat1', 'coat3', 'knit'].forEach((k, i) => add(M[k], rbox(0.28, 0.33, 0.032, 0.012, [xm + 0.01 * (i % 2), ym1, onShelf(2) + 0.016 + i * 0.032], 0.02 * (i - 1.5))));
@@ -1886,31 +1961,91 @@ function buildWardrobe() {
     hanger(xm, y, 1.98);
     add(M[k], garment(xm, y, 1.98 - 0.03, 0.44, th, len, seed));
   }
-  pair(SNEAKER, xb - 0.03, (c2[0] + c2[1]) / 2, Math.PI, M.knit, M.soleWhite, z0 + bt);
-  pair(BOOT, xb - 0.03, (c3[0] + c3[1]) / 2, Math.PI, M.leather, M.sole, z0 + bt);
+  pair(SNEAKER, xb - 0.03, (c2[0] + c2[1]) / 2, Math.PI, M.knit, M.soleWhite, zf);
+  pair(BOOT, xb - 0.03, (c3[0] + c3[1]) / 2, Math.PI, M.leather, M.sole, zf);
   add(M.rattan, rbox(0.32, 0.36, 0.2, 0.01, [xm, (c2[0] + c2[1]) / 2, 2.06 + bt + 0.1]));
   add(M.paper, cyl(0.16, 0.18, 'z', [xm, (c3[0] + c3[1]) / 2, 2.06 + bt + 0.09], 48));
-  flush(G);
-  // the doors, hinged on their corridor side, a 4 mm gap between them
+  if (low) {
+    for (const c of [c1, c2, c3]) add(M.cabInside, box(xi + 0.02, xb, c[0], c[1], low, low + bt, { faces: 'xzZ' }));
+    pair(BOOT, xb - 0.03, ym1, Math.PI, M.leather, M.sole, low + bt);
+    pair(LOAFER, xb - 0.03, (c2[0] + c2[1]) / 2, Math.PI + 0.04, M.leather, M.sole, low + bt);
+    pair(SNEAKER, xb - 0.03, (c3[0] + c3[1]) / 2, Math.PI, M.coat3, M.soleWhite, low + bt);
+  }
+}
+// the wardrobe's three doors, z0..z1, hinged on their corridor side, a 4 mm gap between them; built flat and fluted, each
+// kind in a group of its own (applyFronts shows one)
+function wardrobeDoors(parent, z0, z1) {
+  const { x, t } = WR;
   for (const kind of ['flat', 'fluted']) {
     const D = new THREE.Group();
-    R.add(D);
-    WARDROBE.fronts[kind] = D;
+    parent.add(D);
+    (WARDROBE.fronts[kind] ??= []).push(D);
     for (const [ya, yb] of WR.doors) {
       const pivot = new THREE.Group(), holder = new THREE.Group();
       pivot.position.set(x, ya, 0);
       holder.position.set(-x, -ya, 0);
       pivot.add(holder);
       D.add(pivot);
-      if (kind === 'flat') add(M.cab, box(x, x + t, ya, yb, z0 + 0.002, z1 - 0.002));
+      if (kind === 'flat') add(M.cab, box(x, x + t, ya, yb, z0, z1));
       else {
-        add(M.fluted, box(x, x + t, ya, yb, z0 + 0.002, z1 - 0.002, { faces: 'x' }));
-        add(M.veneer, box(x, x + t, ya, yb, z0 + 0.002, z1 - 0.002, { faces: 'XyYzZ' }));
+        add(M.fluted, box(x, x + t, ya, yb, z0, z1, { faces: 'x' }));
+        add(M.veneer, box(x, x + t, ya, yb, z0, z1, { faces: 'XyYzZ' }));
       }
       flush(holder);
       WARDROBE.doors.push({ pivot });
     }
   }
+}
+// The hall as drawn (slats): the wardrobe, a carcass floating WR.z0 off the floor up to the ceiling, lined inside, its
+// compartments behind its three doors; its underside in the doors' finish, with an LED line along the front washing the
+// shoe rack under it. The rack: the stone slab, its own LED line under its front edge for the stone base on the floor. At
+// the corridor end the open niche: its side panel (from the floor up) and its back in the wood, its boards, a top, an LED
+// profile down the side panel's front edge; its board at the wardrobe's bottom carried on out along the hook wall as the
+// seat of the enclosed bench (BENCH), which closes the niche below it
+function buildWardrobe() {
+  const { x, t, z0, z1 } = WR, xi = x + t, xb = X1 - 0.018, bt = 0.019, ys = WR.side[1];
+  const G = new THREE.Group();
+  DESIGN_G.slats.add(G);
+  // the underside and its LED line; the top (seen only in the plan, the ceiling hides it)
+  add(M.cab, box(x, X1, ys, Y1, z0, z0 + bt, { faces: 'z' }));
+  add(E.wash, box(x + 0.024, x + 0.036, ys + 0.03, Y1 - 0.03, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
+  add(M.cab, box(x, X1, WR.side[0], Y1, z1 - 0.002, z1, { faces: 'Z' }));
+  // the lining: bottom, top, back, ends, partitions
+  add(M.cabInside, box(xi, xb, ys, Y1, z0, z0 + bt, { faces: 'Z' }));
+  add(M.cabInside, box(xi, xb, ys, Y1, z1 - bt, z1, { faces: 'z' }));
+  add(M.cabInside, box(xb, X1, ys, Y1, z0, z1, { faces: 'x' }));
+  add(M.cabInside, box(xi, xb, ys, ys + 0.001, z0, z1, { faces: 'Y' }));
+  add(M.cabInside, box(xi, xb, Y1 - bt, Y1, z0, z1, { faces: 'y' }));
+  for (const yp of WR.parts) add(M.cabInside, box(xi, xb, yp - bt / 2, yp + bt / 2, z0 + bt, z1 - bt, { faces: 'xyY' }));
+  // the niche, in the wood
+  const nb = WR.back, ns = WR.side[0];
+  add(M.veneer, box(x, nb, ns, ys, 0, z1, { faces: 'xy' }));
+  add(M.veneer, box(x, nb, ns, ys, 0, z0, { faces: 'Y' }));
+  add(M.veneer, box(nb, nb + 0.02, SLAT_FACE, ns, 0, z1, { faces: 'x' }));
+  // (its board at the wardrobe's bottom runs on out of the niche as the bench's seat, below)
+  for (const z of WR.shelves.slice(1).concat(z1 - 0.02)) add(M.veneer, box(x + 0.02, nb, SLAT_FACE, ns, z, z + 0.02, { faces: 'xzZ', swap: true }));
+  // the bench: the seat from the niche's back out to BENCH.x0, the grain along it, the cushion on it outside the niche; the
+  // box under it (the end panel, the bottom, dark behind the drawers' gaps), the three drawer fronts (the grain running on
+  // across them) between the end panel and the niche's side panel; the LED line under the box's front edge
+  {
+    const { x0: bx0, seat, t: st, z0: bz, cushion, gap } = BENCH, cx0 = bx0 + 0.01, cx1 = x - 0.005, zt = seat - st, yf = ns - 0.02;
+    add(M.veneer, box(bx0, nb, SLAT_FACE, ns, zt, seat, { faces: 'xYzZ', swap: true }));
+    add(M.pouf, projectUV(rbox(cx1 - cx0, ns - SLAT_FACE - 0.012, cushion, 0.018, [(cx0 + cx1) / 2, (SLAT_FACE + ns) / 2 + 0.002, seat + cushion / 2])));
+    add(M.veneer, box(bx0, bx0 + 0.02, SLAT_FACE, ns, bz, zt, { faces: 'xXYz' }));
+    add(M.veneer, box(bx0 + 0.02, nb, SLAT_FACE, yf, bz, bz + 0.02, { faces: 'zZ', swap: true }));
+    add(M.dark, box(bx0 + 0.02, x, SLAT_FACE, yf - 0.002, bz + 0.02, zt, { faces: 'Y' }), { shadow: false });
+    const a = bx0 + 0.02 + gap, w = (x - 0.002 - a - 2 * gap) / 3;
+    for (let i = 0; i < 3; i++) add(M.veneer, box(a + i * (w + gap), a + i * (w + gap) + w, yf, ns, bz, zt - gap, { faces: 'xXYz', swap: true }));
+    add(E.shelf, box(bx0 + 0.03, x - 0.01, ns - 0.04, ns - 0.028, bz - 0.002, bz, { faces: 'z' }), { shadow: false });
+  }
+  add(E.niche, box(x + 0.012, x + 0.022, ns - 0.003, ns, NICHE_LED[0], NICHE_LED[1], { faces: 'y' }), { shadow: false });
+  // the shoe rack
+  add(M.stoneWall, box(RACK.x0, X1, ys, Y1, RACK.z, RACK.z + RACK.t, { faces: 'xzZ' }));
+  add(M.stoneWall, box(RACK.x0, X1, ys, Y1, 0, RACK.base, { faces: 'xZ' }));
+  add(E.wash, box(RACK.x0 + 0.02, RACK.x0 + 0.032, ys + 0.03, Y1 - 0.03, RACK.z - 0.002, RACK.z, { faces: 'z' }), { shadow: false });
+  wardrobeInside(z0 + bt);
+  flush(G);
+  wardrobeDoors(DESIGN_G.slats, z0 + 0.002, z1 - 0.002);
 }
 
 // The fittings: the fuse board's flush door on the facade wall and the light switches by the front door, the recessed
@@ -1935,9 +2070,8 @@ function buildFittings() {
   }
 }
 
-// Things in use: on the hooks a canvas tote, a felt hat and a wool scarf; an umbrella in a stand by the front door; a stoneware bowl with keys and a
-// bud vase of dried grass on the shelf; baskets, books, a candle and small stoneware in the niche; shoes on the rack under
-// the wardrobe and on the floor under it
+// Things in use, in every design: on the hooks a canvas tote, a felt hat and a wool scarf; an umbrella in a stand by the
+// front door
 function buildAccessories() {
   const hookTip = SLAT_FACE + 0.043;
   // the tote, a little wider at the bottom, its handles (front and back) over the hook
@@ -1996,57 +2130,217 @@ function buildAccessories() {
     add(M.veneer, at(cyl(0.011, 0.06, 'z', [0, 0, 0.91], 16)));
     add(M.veneer, at(new THREE.TorusGeometry(0.035, 0.011, 10, 24, Math.PI).rotateX(Math.PI / 2).translate(0.035, 0, 0.94)));
   }
-  // on the shelf: the bowl, with a key ring and two keys; the bud vase
-  const zs = SHELF.z1 + SHELF.top;
-  {
-    const bx = 50.86, by = 14.935;
-    add(M.potteryDark, lathe([[0, 0], [0.05, 0], [0.076, 0.034], [0.073, 0.036], [0.047, 0.006], [0, 0.006]], [bx, by, zs], 48));
-    add(M.steel, new THREE.TorusGeometry(0.014, 0.0016, 6, 24).translate(bx - 0.01, by + 0.005, zs + 0.009));
-    add(M.steel, box(bx - 0.002, bx + 0.042, by, by + 0.012, zs + 0.0075, zs + 0.0095));
-    add(M.steel, box(bx + 0.002, bx + 0.044, by - 0.012, by - 0.002, zs + 0.0075, zs + 0.0095));
+}
+// a stoneware bowl with a key ring and two keys, standing on zs at (bx, by)
+function keyBowl(bx, by, zs) {
+  add(M.potteryDark, lathe([[0, 0], [0.05, 0], [0.076, 0.034], [0.073, 0.036], [0.047, 0.006], [0, 0.006]], [bx, by, zs], 48));
+  add(M.steel, new THREE.TorusGeometry(0.014, 0.0016, 6, 24).translate(bx - 0.01, by + 0.005, zs + 0.009));
+  add(M.steel, box(bx - 0.002, bx + 0.042, by, by + 0.012, zs + 0.0075, zs + 0.0095));
+  add(M.steel, box(bx + 0.002, bx + 0.044, by - 0.012, by - 0.002, zs + 0.0075, zs + 0.0095));
+}
+// in the open niche, over the bench: books and a small bowl, a candle and a cup, a vase
+function nicheThings() {
+  const nx = (WR.x + 0.02 + WR.back) / 2, ny = (SLAT_FACE + WR.side[0]) / 2, at = (i) => WR.shelves[i] + 0.02;
+  add(M.book1, rbox(0.15, 0.2, 0.024, 0.002, [nx, ny - 0.07, at(1) + 0.012]));
+  add(M.book2, rbox(0.14, 0.19, 0.02, 0.002, [nx + 0.004, ny - 0.074, at(1) + 0.034], 0.06));
+  add(M.potteryWhite, lathe([[0, 0], [0.035, 0], [0.05, 0.025], [0.048, 0.027], [0.033, 0.005], [0, 0.005]], [nx, ny + 0.12, at(1)], 32));
+  add(M.amber, lathe([[0, 0], [0.034, 0], [0.035, 0.08], [0.032, 0.08], [0.031, 0.004], [0, 0.004]], [nx, ny - 0.07, at(2)]));
+  add(M.wax, cyl(0.03, 0.055, 'z', [nx, ny - 0.07, at(2) + 0.031], 28));
+  add(M.potteryDark, lathe([[0, 0], [0.028, 0], [0.034, 0.07], [0.031, 0.072], [0.025, 0.006], [0, 0.006]], [nx, ny + 0.1, at(2)], 28));
+  add(M.potteryDark, lathe([[0, 0], [0.035, 0], [0.045, 0.05], [0.03, 0.11], [0.02, 0.13], [0.022, 0.135], [0.016, 0.135], [0.015, 0.1], [0, 0.09]], [nx, ny, at(3)], 36));
+}
+// The hall as drawn: the pegs, the bowl on the seat's bare end in the niche, the niche's things, the shoes on the rack
+// (white sneakers, loafers and black sneakers on the slab; chelsea boots and trainers on the stone base)
+function buildSlatsThings() {
+  pegs();
+  keyBowl((WR.x + WR.back) / 2 + 0.005, 15.1, BENCH.seat);
+  nicheThings();
+  const zr = RACK.z + RACK.t, a = WR.side[1], w = Y1 - a;
+  pair(SNEAKER, 52.31, a + 0.16 * w, Math.PI, M.knit, M.soleWhite, zr);
+  pair(LOAFER, 52.3, a + 0.5 * w, Math.PI + 0.05, M.leather, M.sole, zr);
+  pair(SNEAKER, 52.32, a + 0.83 * w, Math.PI - 0.04, M.sole, M.soleWhite, zr);
+  pair(BOOT, 52.31, a + 0.28 * w, Math.PI + 0.06, M.leather, M.sole, RACK.base);
+  pair(SNEAKER, 52.33, a + 0.7 * w, Math.PI, M.coat3, M.soleWhite, RACK.base);
+}
+
+// ---------------------------------------------------------------- the alternatives
+// a flat polygon: its outline and holes in (u, v), at(u, v) placing a point, facing n; world-metre UVs
+function poly(outline, holes, at, n) {
+  const v2 = (q) => q.map(([u, v]) => new THREE.Vector2(u, v));
+  const tris = THREE.ShapeUtils.triangulateShape(v2(outline), holes.map(v2));
+  const pts = [outline, ...holes].flat().map(([u, v]) => at(u, v)), pos = [];
+  for (let [i, j, k] of tris) {
+    if (pts[j].clone().sub(pts[i]).cross(pts[k].clone().sub(pts[i])).dot(n) < 0) [j, k] = [k, j];
+    for (const q of [i, j, k]) pos.push(pts[q].x, pts[q].y, pts[q].z);
   }
-  {
-    const vx = 51.13, vy = 14.945;
-    add(M.potteryWhite, lathe([[0, 0], [0.028, 0], [0.04, 0.035], [0.037, 0.085], [0.015, 0.14], [0.011, 0.16], [0.013, 0.168], [0.009, 0.168], [0.008, 0.11], [0, 0.1]], [vx, vy, zs], 40));
-    const rnd = mulberry(11), twigs = [], seeds = [];
-    for (let i = 0; i < 4; i++) {
-      const az = Math.PI / 2 + (i - 1.5) * 0.45 + (rnd() - 0.5) * 0.2, lean = 0.12 + rnd() * 0.18, len = 0.32 + rnd() * 0.14;
-      const dir = new THREE.Vector3(Math.cos(az) * lean, Math.sin(az) * lean, 1).normalize();
-      const p0 = new THREE.Vector3(vx, vy, zs + 0.16), p1 = p0.clone().addScaledVector(dir, len * 0.5);
-      const p2 = p0.clone().addScaledVector(dir, len).add(new THREE.Vector3(Math.cos(az) * 0.03, Math.sin(az) * 0.03, -0.01));
-      const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
-      twigs.push(new THREE.TubeGeometry(curve, 16, 0.0012, 4, false).toNonIndexed());
-      for (let k = 0; k < 16; k++) {
-        const q = curve.getPoint(0.7 + 0.3 * (k / 16)).add(new THREE.Vector3((rnd() - 0.5) * 0.012, (rnd() - 0.5) * 0.012, (rnd() - 0.5) * 0.01));
-        seeds.push(new THREE.SphereGeometry(0.0026 + rnd() * 0.0014, 5, 4).translate(q.x, q.y, q.z).toNonIndexed());
+  return flat(pos);
+}
+// the sides of a hole through a slab: its outline (u, v; convex), at0 and at1 placing a point on either face; facing in
+function reveal(outline, at0, at1) {
+  const n = outline.length, c = outline.reduce((m, [u, v]) => [m[0] + u / n, m[1] + v / n], [0, 0]), pos = [];
+  const mid = at0(...c).add(at1(...c)).multiplyScalar(0.5);
+  for (let i = 0; i < n; i++) {
+    const a = outline[i], b = outline[(i + 1) % n];
+    let q = [at0(...a), at0(...b), at1(...b), at1(...a)];
+    if (q[1].clone().sub(q[0]).cross(q[2].clone().sub(q[0])).dot(mid.clone().sub(q[0])) < 0) q = [q[0], q[3], q[2], q[1]];
+    for (const k of [0, 1, 2, 0, 2, 3]) pos.push(q[k].x, q[k].y, q[k].z);
+  }
+  return flat(pos);
+}
+function flat(pos) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return projectUV(g);
+}
+// an upright strip round an arc in plan (centre cx, cy, radius r, angles a0 < a1), z0..z1, facing out, smooth
+function arcWall(cx, cy, r, a0, a1, z0, z1, seg = 16) {
+  const pos = [], nrm = [];
+  for (let i = 0; i < seg; i++) {
+    const t = [a0 + (a1 - a0) * i / seg, a0 + (a1 - a0) * (i + 1) / seg];
+    const q = [[0, z0], [1, z0], [1, z1], [0, z1]];
+    for (const k of [0, 1, 2, 0, 2, 3]) {
+      const [e, z] = q[k], c = Math.cos(t[e]), sn = Math.sin(t[e]);
+      pos.push(cx + r * c, cy + r * sn, z);
+      nrm.push(c, sn, 0);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  return projectUV(g);
+}
+// a slab x0..x1, y0..y1, z0..z1, its corner at (x0, y1) rounded in plan (radius r) and every edge rounded (b)
+function softSlab(x0, x1, y0, y1, r, z0, z1, b) {
+  const sh = new THREE.Shape(), xa = x0 + b, xb = x1 - b, ya = y0 + b, yb = y1 - b, rr = Math.max(r - b, 0.005);
+  sh.moveTo(xa, ya);
+  sh.lineTo(xb, ya);
+  sh.lineTo(xb, yb);
+  sh.lineTo(xa + rr, yb);
+  sh.absarc(xa + rr, yb - rr, rr, Math.PI / 2, Math.PI, false);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: z1 - z0 - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 5, curveSegments: 20 });
+  return projectUV(g.translate(0, 0, z0 + b));
+}
+// The alternatives' wardrobe (TALL_G): the floating one's carcass and compartments, but down to the floor - its three
+// doors over a gap of TALL.z0, the plinth recessed behind it and an LED line under the carcass's front washing the floor,
+// and a reveal at the top (TALL.top up to the ceiling); a shoe shelf low in each compartment
+function buildTall() {
+  const { x, t } = WR, z0 = TALL.z0, top = TALL.top, xi = x + t, xb = X1 - 0.018, bt = 0.019, ys = WR.side[1];
+  const G = new THREE.Group();
+  TALL_G.add(G);
+  add(M.cab, box(x, X1, ys, Y1, z0, z0 + bt, { faces: 'z' }));
+  add(M.dark, box(x + 0.06, X1, ys, Y1, 0, z0, { faces: 'x' }), { shadow: false });
+  add(E.wash, box(x + 0.02, x + 0.032, ys + 0.02, Y1 - 0.02, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
+  add(M.dark, box(x + 0.05, X1, WR.side[0], Y1, top, H, { faces: 'x' }), { shadow: false });
+  add(M.cab, box(x, X1, WR.side[0], Y1, H - 0.002, H - 0.001, { faces: 'Z' }));
+  add(M.cabInside, box(xi, xb, ys, Y1, z0, z0 + bt, { faces: 'Z' }));
+  add(M.cabInside, box(xi, xb, ys, Y1, top - bt, top, { faces: 'z' }));
+  add(M.cabInside, box(xb, X1, ys, Y1, z0, top, { faces: 'x' }));
+  add(M.cabInside, box(xi, xb, ys, ys + 0.001, z0, top, { faces: 'Y' }));
+  add(M.cabInside, box(xi, xb, Y1 - bt, Y1, z0, top, { faces: 'y' }));
+  for (const yp of WR.parts) add(M.cabInside, box(xi, xb, yp - bt / 2, yp + bt / 2, z0 + bt, top - bt, { faces: 'xyY' }));
+  wardrobeInside(z0 + bt, 0.34);
+  flush(G);
+  wardrobeDoors(TALL_G, z0 + 0.002, top - 0.002);
+}
+// Wood box: the corridor wall in three flush panels of the wood (3 mm joints, dark behind; the grain upright) from the
+// opening's jamb to the niche, floor to a reveal at the top like the wardrobe's; the niche closed in the doors' finish (a
+// door to the pipes' cupboard over the slab, push to open, and a panel under it), the wardrobe's plinth and reveal running
+// on; the slab of the stone along the wall at seat height, floating, an LED line under its edge, a seat pad on it, the bowl
+// at its end; the pegs; an LED line in the ceiling just in front of the wardrobe, grazing its doors
+function buildBox() {
+  const G = DESIGN_G.box, x = WR.x, yf = SLAT_FACE, ns = WR.side[0], ys = WR.side[1], top = TALL.top, { x0: sx0, seat, t: st } = SLAB;
+  const edges = [SLATS.x0, ...SLAB.joints, x];
+  add(M.dark, box(SLATS.x0, x, Y0, Y0 + 0.002, 0, H, { faces: 'Y' }), { shadow: false });
+  for (let i = 0; i < 3; i++) add(M.veneer, box(edges[i] + (i ? 0.0015 : 0), edges[i + 1] - (i < 2 ? 0.0015 : 0.003), Y0 + 0.002, yf, 0, top, { faces: 'xXYZ' }));
+  add(M.dark, box(x + 0.06, WR.back, yf, ys, 0, TALL.z0, { faces: 'x' }), { shadow: false });
+  add(E.wash, box(x + 0.02, x + 0.032, yf + 0.01, ys + 0.02, TALL.z0 - 0.002, TALL.z0, { faces: 'z' }), { shadow: false });
+  add(M.cab, box(x, WR.back, yf, ys, TALL.z0, TALL.z0 + 0.019, { faces: 'z' }));
+  add(M.dark, box(x + 0.05, WR.back, yf, ns, top, H, { faces: 'x' }), { shadow: false });
+  add(M.stoneWall, box(sx0, x - 0.003, yf, ns, seat - st, seat, { faces: 'xYzZ' }));
+  add(E.shelf, box(sx0 + 0.03, x - 0.03, ns - 0.04, ns - 0.028, seat - st - 0.002, seat - st, { faces: 'z' }), { shadow: false });
+  add(M.pouf, projectUV(rbox(0.8, ns - yf - 0.02, 0.045, 0.016, [sx0 + 0.42, (yf + ns) / 2, seat + 0.0225])));
+  keyBowl(x - 0.17, 15.04, seat);
+  pegs();
+  add(E.graze, box(x - 0.03, x - 0.006, ys, Y1 - 0.02, H - 0.001, H, { faces: 'z' }), { shadow: false });
+  flush(G);
+  for (const kind of ['flat', 'fluted']) {
+    const D = new THREE.Group();
+    G.add(D);
+    (WARDROBE.fronts[kind] ??= []).push(D);
+    const a = yf + 0.003, b = ys - 0.002;
+    for (const [z0, z1] of [[TALL.z0 + 0.002, seat - st - 0.003], [seat + 0.003, top - 0.002]]) {
+      if (kind === 'flat') add(M.cab, box(x, x + WR.t, a, b, z0, z1));
+      else {
+        add(M.fluted, box(x, x + WR.t, a, b, z0, z1, { faces: 'x' }));
+        add(M.veneer, box(x, x + WR.t, a, b, z0, z1, { faces: 'XyYzZ' }));
       }
     }
+    flush(D);
+  }
+}
+// Stone wall: the corridor wall clad in the stone, floor to ceiling, from the opening's jamb on into the niche (as its
+// side), a joint between its two slabs; the block of it floating along the wall at seat height and on into the open niche,
+// an LED line under its edge; the niche in the wood as drawn (its side panel from the floor, its back, its boards, a top,
+// the LED profile); the bowl on the block in the niche, the niche's things; the pegs
+function buildStoneWall() {
+  const G = DESIGN_G.stone, x = WR.x, nb = WR.back, yf = SLAT_FACE, ns = WR.side[0], ys = WR.side[1], { x0: bx0, z0, z1 } = BLOCK;
+  add(M.stoneWall, box(SLATS.x0, SLATS.x1, Y0, yf, 0, H, { faces: 'xYZ' }));
+  add(M.dark, box(51.3345, 51.3355, yf, yf + 0.0005, 0, H, { faces: 'Y' }), { shadow: false });
+  add(M.stoneWall, box(bx0, nb, yf, ns, z0, z1, { faces: 'xYzZ' }));
+  add(E.shelf, box(bx0 + 0.03, nb - 0.03, ns - 0.04, ns - 0.028, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
+  add(M.veneer, box(x, nb, ns, ys, 0, WR.z1, { faces: 'xyZ' }));
+  add(M.veneer, box(nb, nb + 0.02, yf, ns, 0, WR.z1, { faces: 'x' }));
+  for (const z of WR.shelves.slice(1).concat(WR.z1 - 0.02)) add(M.veneer, box(x + 0.02, nb, yf, ns, z, z + 0.02, { faces: 'xzZ', swap: true }));
+  add(E.niche, box(x + 0.012, x + 0.022, ns - 0.003, ns, NICHE_LED[0], NICHE_LED[1], { faces: 'y' }), { shadow: false });
+  keyBowl((x + nb) / 2 + 0.005, 15.08, z1);
+  nicheThings();
+  pegs();
+  flush(G);
+}
+// Soft curves: the corridor wall plastered; at the wardrobe's end, in front of the pipes, a plaster column floor to ceiling,
+// proud of the doors, its corner by them rounded, an arched niche in it (its sill, sides, arch and back plastered; an LED
+// profile up one side near the front) with a branch in a stoneware vase; the bench built in along the wall, plaster,
+// rounded in plan at the opening's end and on every edge, floating, an LED line under its front, a boucle cushion of its
+// shape, a linen pillow; five round knobs in the wood (the first row of hooks)
+function buildCurves() {
+  const G = DESIGN_G.curves, x = WR.x, yf = SLAT_FACE, ys = WR.side[1], xc = x - COLUMN.d, yr = ys - COLUMN.r;
+  const { y0, y1, sill, top, back } = COLUMN, rad = (y1 - y0) / 2, spring = top - rad, yc = (y0 + y1) / 2;
+  add(M.plaster, box(SLATS.x0, xc, Y0, yf, 0, H, { faces: 'xYZ' }));
+  const hole = [[y0, sill], [y1, sill]];
+  for (let i = 0; i <= 16; i++) hole.push([yc + rad * Math.cos(Math.PI * i / 16), spring + rad * Math.sin(Math.PI * i / 16)]);
+  const front = (u, v) => new THREE.Vector3(xc, u, v), deep = (u, v) => new THREE.Vector3(back, u, v), west = new THREE.Vector3(-1, 0, 0);
+  add(M.plaster, poly([[yf, 0], [yr, 0], [yr, H], [yf, H]], [hole], front, west));
+  add(M.plaster, arcWall(x, yr, COLUMN.r, Math.PI / 2, Math.PI, 0, H));
+  add(M.plaster, reveal(hole, front, deep));
+  add(M.plaster, poly(hole, [], deep, west));
+  add(M.plaster, box(xc, WR.back, yf, ys, H - 0.002, H - 0.001, { faces: 'Z' }));
+  add(E.niche, box(xc + 0.008, xc + 0.018, y0, y0 + 0.003, sill + 0.03, spring, { faces: 'Y' }), { shadow: false });
+  // the vase and the branch
+  {
+    const vx = (xc + back) / 2, zs = sill;
+    add(M.potteryWhite, lathe([[0, 0], [0.05, 0], [0.062, 0.06], [0.06, 0.2], [0.04, 0.3], [0.022, 0.34], [0.024, 0.352], [0.017, 0.352], [0.016, 0.3], [0, 0.29]], [vx, yc, zs], 40));
+    const rnd = mulberry(23), twigs = [];
+    const grow = (p0, dir, len, depth) => {
+      const p2 = p0.clone().addScaledVector(dir, len), p1 = p0.clone().lerp(p2, 0.5).add(new THREE.Vector3((rnd() - 0.5) * 0.03, (rnd() - 0.5) * 0.02, 0));
+      twigs.push(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, p2), 8, 0.0045 * 0.62 ** depth, 5, false).toNonIndexed());
+      if (depth < 3) for (let i = 0; i < 2 + (depth === 0 ? 1 : 0); i++) {
+        const q = p0.clone().lerp(p2, 0.35 + rnd() * 0.55);
+        const d = dir.clone().add(new THREE.Vector3((rnd() - 0.5) * 0.9, (rnd() - 0.5) * 0.7, 0.25)).normalize();
+        grow(q, d, len * (0.42 + rnd() * 0.2), depth + 1);
+      }
+    };
+    grow(new THREE.Vector3(vx, yc, zs + 0.34), new THREE.Vector3(-0.05, 0.03, 1).normalize(), 0.66, 0);
     add(M.twig, mergeGeometries(twigs));
-    add(M.twig, mergeGeometries(seeds));
   }
-  // in the niche: a basket on the floor and one on the board at the rack's height, books and a small bowl, a candle and a
-  // cup, a vase
-  {
-    const nx = (WR.x + 0.02 + WR.back) / 2, ny = (SLAT_FACE + WR.side[0]) / 2, at = (i) => WR.shelves[i] + 0.02;
-    add(M.rattan, rbox(0.15, 0.32, 0.16, 0.01, [nx, ny, 0.08]));
-    add(M.rattan, rbox(0.15, 0.3, 0.13, 0.01, [nx, ny, BENCH.low + BENCH.lowT + 0.065]));
-    add(M.book1, rbox(0.15, 0.2, 0.024, 0.002, [nx, ny - 0.07, at(1) + 0.012]));
-    add(M.book2, rbox(0.14, 0.19, 0.02, 0.002, [nx + 0.004, ny - 0.074, at(1) + 0.034], 0.06));
-    add(M.potteryWhite, lathe([[0, 0], [0.035, 0], [0.05, 0.025], [0.048, 0.027], [0.033, 0.005], [0, 0.005]], [nx, ny + 0.12, at(1)], 32));
-    add(M.amber, lathe([[0, 0], [0.034, 0], [0.035, 0.08], [0.032, 0.08], [0.031, 0.004], [0, 0.004]], [nx, ny - 0.07, at(2)]));
-    add(M.wax, cyl(0.03, 0.055, 'z', [nx, ny - 0.07, at(2) + 0.031], 28));
-    add(M.potteryDark, lathe([[0, 0], [0.028, 0], [0.034, 0.07], [0.031, 0.072], [0.025, 0.006], [0, 0.006]], [nx, ny + 0.1, at(2)], 28));
-    add(M.potteryDark, lathe([[0, 0], [0.035, 0], [0.045, 0.05], [0.03, 0.11], [0.02, 0.13], [0.022, 0.135], [0.016, 0.135], [0.015, 0.1], [0, 0.09]], [nx, ny, at(3)], 36));
-  }
-  // the shoe rack: white sneakers, loafers and black sneakers on the slab; chelsea boots and trainers on the stone base
-  {
-    const zr = RACK.z + RACK.t, a = WR.side[1], w = Y1 - a;
-    pair(SNEAKER, 52.31, a + 0.16 * w, Math.PI, M.knit, M.soleWhite, zr);
-    pair(LOAFER, 52.3, a + 0.5 * w, Math.PI + 0.05, M.leather, M.sole, zr);
-    pair(SNEAKER, 52.32, a + 0.83 * w, Math.PI - 0.04, M.sole, M.soleWhite, zr);
-    pair(BOOT, 52.31, a + 0.28 * w, Math.PI + 0.06, M.leather, M.sole, RACK.base);
-    pair(SNEAKER, 52.33, a + 0.7 * w, Math.PI, M.coat3, M.soleWhite, RACK.base);
-  }
+  // the bench, its cushion, the pillow, the LED line
+  const { x0: bx0, y1: by1, z0, z1, r, bevel, cushion } = SOFT;
+  add(M.plaster, softSlab(bx0, xc, yf, by1, r, z0, z1, bevel));
+  add(M.pouf, softSlab(bx0 + 0.015, xc - 0.01, yf + 0.005, by1 - 0.015, r - 0.015, z1, z1 + cushion, 0.03));
+  add(M.cloth, rbox(0.42, 0.13, 0.4, 0.055, [0, 0, 0]).rotateX(0.16).rotateZ(0.06).translate(50.92, yf + 0.085, z1 + cushion + 0.19));
+  add(E.shelf, box(bx0 + r, xc - 0.03, by1 - 0.05, by1 - 0.038, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
+  for (const [hx, hz] of HOOKS.slice(0, 5)) add(M.veneer, lathe([[0, 0], [0.011, 0], [0.011, 0.028], [0.02, 0.034], [0.023, 0.043], [0.019, 0.052], [0.008, 0.056], [0, 0.056]], [0, 0, 0], 28).rotateX(-Math.PI / 2).translate(onSlat(hx), yf, hz));
+  flush(G);
 }
 // counter-top things: soap dispenser, walnut tray with candle and bottle, folded towels, the vase
 function vProps({ soap, tray, towels, vase }) {
@@ -2231,7 +2525,7 @@ async function loadView() {
 }
 
 // ---------------------------------------------------------------- lights
-const L = { down: [], pend: [], niche: [], area: [], porch: [] };
+const L = { down: [], pend: [], niche: [], area: [], porch: [], design: [] };
 function buildLights() {
   for (const [x, y] of DOWNLIGHTS) {
     const s = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(38), 0.75, 2);
@@ -2260,15 +2554,34 @@ function buildLights() {
     const x = (SLOT.x0 + SLOT.x1) / 2, a = THREE.MathUtils.degToRad(25), z = H + SLOT.d - 0.004;
     L.graze = area(SLOT.x1 - SLOT.x0 - 0.02, 0.014, SU(x, SLOT.y, z), SU(x, SLOT.y - Math.sin(a), z - Math.cos(a)));
   }
-  // the wash on the shoe rack under the wardrobe and on the floor under the rack, the line under the key shelf, the niche's
-  // profile (facing the slats across it)
-  L.wash = area(0.012, Y1 - WR.side[1] - 0.06, SU(WR.x + 0.03, (WR.side[1] + Y1) / 2, WR.z0 - 0.004));
-  L.wash2 = area(0.012, Y1 - WR.side[1] - 0.06, SU(RACK.x0 + 0.026, (WR.side[1] + Y1) / 2, RACK.z - 0.004));      // (under the rack)
-  L.bench = area(WR.x - BENCH.x0 - 0.06, 0.012, SU((BENCH.x0 + WR.x) / 2, WR.side[0] - 0.026, BENCH.seat - BENCH.t - 0.004));   // (under the seat)
-  L.shelf = area(SHELF.x1 - SHELF.x0 - 0.06, 0.012, SU((SHELF.x0 + SHELF.x1) / 2, SHELF.y1 - 0.054, SHELF.z0 - 0.004));
+  // each design's own lines (L.design: the designs a light is in, its mood channel, a factor on the channel's base)
+  const own = (designs, ch, light, k = 1) => { L.design.push({ designs, ch, light, k }); return light; };
+  const wx = WR.x, ns = WR.side[0], ys = WR.side[1], yf = SLAT_FACE;
+  // as drawn: the wash on the shoe rack under the wardrobe and on the floor under the rack, the line under the bench, the
+  // niche's profile (facing the slats across it; the stone wall's niche has it too)
+  own(['slats'], 'wash', area(0.012, Y1 - ys - 0.06, SU(wx + 0.03, (ys + Y1) / 2, WR.z0 - 0.004)));
+  own(['slats'], 'wash', area(0.012, Y1 - ys - 0.06, SU(RACK.x0 + 0.026, (ys + Y1) / 2, RACK.z - 0.004)));
+  own(['slats'], 'shelf', area(wx - BENCH.x0 - 0.06, 0.012, SU((BENCH.x0 + wx) / 2, ns - 0.034, BENCH.z0 - 0.004)));
   {
-    const zm = (NICHE_LED[0] + NICHE_LED[1]) / 2, x = WR.x + 0.017;
-    L.niche = area(0.01, NICHE_LED[1] - NICHE_LED[0], SU(x, WR.side[0] - 0.004, zm), SU(x, WR.side[0] - 1, zm));
+    const zm = (NICHE_LED[0] + NICHE_LED[1]) / 2, x = wx + 0.017;
+    own(['slats', 'stone'], 'niche', area(0.01, NICHE_LED[1] - NICHE_LED[0], SU(x, ns - 0.004, zm), SU(x, ns - 1, zm)));
+  }
+  // the alternatives: the line under the tall wardrobe washing the floor
+  own(ALT, 'wash', area(0.012, Y1 - ys - 0.04, SU(wx + 0.026, (ys + Y1) / 2, TALL.z0 - 0.004)));
+  // box: the niche's part of the floor line, the line in the ceiling grazing the wardrobe's doors, the one under the slab
+  own(['box'], 'wash', area(0.012, ys - yf - 0.02, SU(wx + 0.026, (yf + ys) / 2, TALL.z0 - 0.004)));
+  {
+    const a = THREE.MathUtils.degToRad(14), c = SU(wx - 0.018, (ys + Y1) / 2, H - 0.004);
+    own(['box'], 'graze', area(Y1 - ys - 0.04, 0.012, c, c.clone().add(SU(Math.sin(a), 0, -Math.cos(a)))), 0.6);
+  }
+  own(['box'], 'shelf', area(wx - SLAB.x0 - 0.06, 0.012, SU((SLAB.x0 + wx) / 2, ns - 0.034, SLAB.seat - SLAB.t - 0.004)), 2);
+  // stone: the line under the block
+  own(['stone'], 'shelf', area(WR.back - BLOCK.x0 - 0.06, 0.012, SU((BLOCK.x0 + WR.back) / 2, ns - 0.034, BLOCK.z0 - 0.004)));
+  // curves: the line under the bench, the arched niche's profile (up its side, facing across it)
+  {
+    const xc = wx - COLUMN.d, a0 = SOFT.x0 + SOFT.r, spring = COLUMN.top - (COLUMN.y1 - COLUMN.y0) / 2, zm = (COLUMN.sill + 0.03 + spring) / 2;
+    own(['curves'], 'shelf', area(xc - 0.03 - a0, 0.012, SU((a0 + xc - 0.03) / 2, SOFT.y1 - 0.044, SOFT.z0 - 0.004)));
+    own(['curves'], 'niche', area(0.01, spring - COLUMN.sill - 0.03, SU(xc + 0.013, COLUMN.y0 + 0.004, zm), SU(xc + 0.013, COLUMN.y0 + 1, zm)), 0.6);
   }
   // the corridor's light, seen through the opening (it falls off before it reaches far into the hall)
   L.corridor = new THREE.PointLight(0xfff1de, 1, 2.2, 2);
@@ -2394,8 +2707,9 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// Four moods. The lamps: down: the two downlights; graze: the LED profile grazing the slats; wash: the line under the
-// wardrobe; shelf: the one under the key shelf; niche: the niche's profile; porch: the downlights in the canopy outside.
+// Four moods. The lamps: down: the two downlights; graze: the LED lines grazing a wall (the slot over the corridor wall;
+// the box's wardrobe doors); wash: the lines washing the floor under the wardrobe; shelf: the one under
+// the bench; niche: the niche's profile; porch: the downlights in the canopy outside.
 // tint: the lamps' colour as the eye sees it (set directly: the kelvin approximation drops blue too steeply this warm);
 // living: the living room's lamps, seen (and their light coming in) through the glass door;
 // sky: the sun's place, under the horizon, for the dusk outside. Day: daylight only: the sun in the west coming in through
@@ -2407,24 +2721,21 @@ const MOODS = {
   night: { label: 'Night', down: 0, graze: 0, wash: 0.55, shelf: 0.4, niche: 0.3, porch: 0, living: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
   day: { label: 'Day', day: true, down: 0, graze: 0, wash: 0, shelf: 0, niche: 0, porch: 0, living: 0, tint: '#ffffff', exposure: 1.25, bloom: 30 },
 };
-const BASE = { down: 6, graze: 380, wash: 18, shelf: 40, niche: 30, porch: 6, downLens: 30, strip: 7, corridor: 1.0, sky: 2.4, living: 1.4 };
+const BASE = { down: 6, graze: 380, wash: 18, shelf: 14, niche: 30, porch: 6, downLens: 30, strip: 7, corridor: 1.0, sky: 2.4, living: 1.4 };
 function applyBacklight() {}
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint);
   for (const s of L.down) { s.color.copy(c); s.intensity = BASE.down * m.down; s.visible = m.down > 0; }
   E.down.color.copy(c).multiplyScalar(m.down > 0 ? BASE.downLens * (0.4 + 0.6 * m.down) : 0.02);
-  for (const k of ['graze', 'wash', 'shelf', 'niche']) {
-    L[k].color.copy(c);
-    L[k].intensity = BASE[k] * m[k];
-    L[k].visible = m[k] > 0;
-    E[k].color.copy(c).multiplyScalar(m[k] > 0 ? BASE.strip * (0.4 + 0.6 * m[k]) : 0.03);
+  for (const k of ['graze', 'wash', 'shelf', 'niche']) E[k].color.copy(c).multiplyScalar(m[k] > 0 ? BASE.strip * (0.4 + 0.6 * m[k]) : 0.03);
+  L.graze.color.copy(c);
+  L.graze.intensity = BASE.graze * m.graze;
+  L.graze.visible = m.graze > 0;
+  for (const { designs, ch, light, k } of L.design) {
+    light.color.copy(c);
+    light.intensity = BASE[ch] * k * m[ch];
+    light.visible = m[ch] > 0 && designs.includes(designKey);
   }
-  L.wash2.color.copy(c);
-  L.wash2.intensity = BASE.wash * m.wash;
-  L.wash2.visible = m.wash > 0;
-  L.bench.color.copy(c);
-  L.bench.intensity = BASE.wash * m.wash;
-  L.bench.visible = m.wash > 0;
   for (const p of L.porch) { p.color.copy(c); p.intensity = BASE.porch * m.porch; p.visible = m.porch > 0; }
   E.porch.color.copy(c).multiplyScalar(m.porch > 0 ? BASE.downLens : 0.02);
   L.corridor.intensity = BASE.corridor * (m.day ? 1.5 : 1);
@@ -2458,14 +2769,15 @@ function setSunHour(h) {
 }
 
 // ---------------------------------------------------------------- palettes
-let paletteKey = 'japandi', stoneKey = PALETTES.japandi.stone, woodKey = PALETTES.japandi.wood, frontsKey = PALETTES.japandi.fronts;
+let paletteKey = 'japandi', stoneKey = PALETTES.japandi.stone, woodKey = PALETTES.japandi.wood, frontsKey = PALETTES.japandi.fronts, poufKey = PALETTES.japandi.pouf;
 let tileStruct = 'matt', tileKey = PALETTES.japandi.floor, tileColor = TILE_COLOURS[tileKey].color;   // (tileKey null: a colour from the picker)
 let paintKey = PALETTES.japandi.paint, paintColor = PAINTS[paintKey].color;      // (paintKey null: a colour from the picker)
-async function applyPalette(key) {
-  const p = PALETTES[key];
+async function applyPalette(key, over = {}) {
+  const p = { ...PALETTES[key], ...over };
   paletteKey = key;
-  // each style starts with its own stone, paint, wood, wardrobe doors and tile colour (the pickers change them); the hook
-  // wall's finish and the tiles' structure stay
+  document.querySelectorAll('#palettes button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  // each style starts with its own stone, paint, wood, wardrobe doors and tile colour (the pickers change them; over: a
+  // design's look on top of the style); the hook wall's finish and the tiles' structure stay
   frontsKey = p.fronts;
   await applyStoneChoice(p.stone, false);
   applyPaint(PAINTS[p.paint].color, p.paint, false);
@@ -2473,6 +2785,7 @@ async function applyPalette(key) {
   applyTileColour(TILE_COLOURS[p.floor].color, p.floor, false);
   await applyFloor();
   M.felt.color.set(p.felt);
+  poufKey = p.pouf;
   applyPouf(p.pouf);
   M.mirror.color.set(p.mirror);
   M.switchPlate.color.set(p.switches);
@@ -2491,7 +2804,7 @@ async function applyPalette(key) {
 function textureKeys() {
   return new Set(['tile-' + tileStruct + '/tiles', 'flutes/fluted', 'plaster/plaster']);
 }
-// the wood, and what is made of it: the slats (or a wooden hook wall), the key shelf, the niche, the hangers, wooden
+// the wood, and what is made of it: the slats (or a wooden hook wall), the niche and the bench, the hangers, wooden
 // wardrobe doors
 async function applyWoodChoice(key, refresh = true) {
   woodKey = key;
@@ -2514,7 +2827,7 @@ function applyFronts(key, refresh = true) {
   const wood = WOODS[woodKey];
   if (key === 'paint') { applyPhoto(M.cab, null, { rough: 0.32, polish: 0.4 }); M.cab.color.set(paintColor); }
   else applyPhoto(M.cab, photos.get(wood.photo[0]) ?? null, { rough: wood.rough, polish: 0.3 });
-  for (const [k, g] of Object.entries(WARDROBE.fronts)) g.visible = k === (key === 'fluted' ? 'fluted' : 'flat');
+  for (const [k, gs] of Object.entries(WARDROBE.fronts)) for (const g of gs) g.visible = k === (key === 'fluted' ? 'fluted' : 'flat');
   document.querySelectorAll('#fronts button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   if (!refresh) return;
   renderer.shadowMap.needsUpdate = true;
@@ -2527,6 +2840,24 @@ function applyHookWall(key, refresh = true) {
   for (const [k, g] of Object.entries(HOOK_WALL)) g.visible = k === key;
   document.querySelectorAll('#hookwalls button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   if (!refresh) return;
+  renderer.shadowMap.needsUpdate = true;
+  renderLegend();
+  dirty = true;
+}
+// the design: its own things shown (and the alternatives' tall wardrobe), the pickers that apply to it, and (look) its
+// look: its style with its own wood, stone, paint, doors, tiles and cushion
+async function applyDesign(key, look = true) {
+  designKey = key;
+  for (const [k, g] of Object.entries(DESIGN_G)) g.visible = k === key;
+  TALL_G.visible = key !== 'slats';
+  $('g-hook').style.display = DESIGNS[key].hook ? '' : 'none';
+  $('g-stone').style.display = DESIGNS[key].stone ? '' : 'none';
+  document.querySelectorAll('#designs button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  if (look) {
+    const o = DESIGNS[key].look;
+    tileStruct = o.struct ?? tileStruct;
+    await applyPalette(o.style, o);
+  } else if (L.down.length) applyMood(moodKey);
   renderer.shadowMap.needsUpdate = true;
   renderLegend();
   dirty = true;
@@ -2595,13 +2926,11 @@ function applyTileColour(color, key = null, refresh = true) {
   renderLegend();
   dirty = true;
 }
-// the stone: the key shelf's top, and a stone hook wall
+// the stone: the shoe rack, and a stone hook wall
 async function applyStoneChoice(key, refresh = true) {
   stoneKey = key;
   const stone = STONES[key];
   const tex = await photoTexture(stone.photo);
-  applyPhoto(M.street, tex, stone);
-  M.street.clearcoatRoughness = 0.1;
   applyPhoto(M.stoneWall, tex, { rough: 0.38, polish: 0.12 });
   document.querySelectorAll('#stones button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   if (!refresh) return;
@@ -2615,18 +2944,46 @@ function dropPhotos() {
   for (const [k, tex] of photos) if (!keep.has(k)) tex.dispose();
 }
 function renderLegend() {
-  const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), metal = METALS[p.metal];
+  const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), metal = METALS[p.metal], stone = STONES[stoneKey], pouf = POUFS[poufKey];
+  const fronts = { flat: wn + ' veneer', fluted: 'fluted ' + wn, paint: 'a lacquer of the wall colour' }[frontsKey], frontsC = frontsKey === 'paint' ? paintColor : wood.swatch;
+  const tall = 'to the ceiling, three handleless doors in ' + fronts + ' over a lit gap at the floor, under a reveal at the top; shoes inside';
+  const own = {
+    slats: [
+      ['Hook wall', { slats: wn + ' slats on ' + p.feltLabel + ' felt', fluted: 'fluted ' + wn, wood: wn + ' panelling', stone: stone.label, paint: 'plastered and painted like the walls' }[hookKey] + ', floor to ceiling, from the opening to the niche; nine hooks in ' + metal.label, { stone: stone.swatch, paint: paintColor }[hookKey] ?? wood.swatch],
+      ['Wardrobe', 'floating 50 cm off the floor, to the ceiling, three handleless doors in ' + fronts + '; at its end a 40 cm open niche in ' + wn + ' in front of the flue and the pipes', frontsC],
+      ['Shoe rack', 'open, under the wardrobe: a honed ' + stone.label + ' shelf over a base of the same stone on the floor, lit from under the wardrobe and under the shelf', stone.swatch],
+      ['Bench', 'the open shelving\'s board carried on along the hook wall to the opening as the seat, a cushion in ' + pouf.label + ' on it; under it, enclosed, ' + wn + ' with three handleless drawers, floating 12 cm off the floor', pouf.color],
+    ],
+    box: [
+      ['Wood box', 'the corridor wall and the wardrobe one volume of flush ' + wn + ', floor to ceiling, the grain upright, 3 mm joints: three panels on the wall, the wardrobe\'s doors, and a door and a panel closing the pipes\' cupboard at the corner; a reveal at the head, a gap at the foot', wood.swatch],
+      ['Wardrobe', tall + '; its doors grazed by a line of light in the ceiling', frontsC],
+      ['Bench', 'a 6 cm slab of ' + stone.label + ' along the wood at seat height, floating, lit under its edge; a seat pad in ' + pouf.label + '; nine pegs in ' + metal.label, stone.swatch],
+    ],
+    stone: [
+      ['Stone wall', stone.label + ', honed, over the corridor wall floor to ceiling and into the niche, grazed by the light from the ceiling; nine pegs in ' + metal.label, stone.swatch],
+      ['Bench', 'a block of the same stone, 36 cm high, floating 10 cm off the floor along the wall and on into the open niche, lit under its edge', stone.swatch],
+      ['Wardrobe', tall + '; at its end the open niche in ' + wn, frontsC],
+    ],
+    curves: [
+      ['Column', 'plaster, floor to ceiling at the wardrobe\'s end in front of the pipes, 8 cm proud of the doors, its corner rounded; an arched niche in it lit from its side, a dried branch in a vase', paintColor],
+      ['Bench', 'built in, plaster, rounded at the opening\'s end and on every edge, floating, lit under it; a cushion in ' + pouf.label + ', a linen pillow; five round knobs in ' + wn, pouf.color],
+      ['Wardrobe', tall, frontsC],
+    ],
+  }[designKey];
+  const light = {
+    slats: 'LED profiles grazing the hook wall, washing the floor under the wardrobe and under the bench, in the niche',
+    box: 'LED lines grazing the wood from the ceiling, along the wall and in front of the wardrobe, washing the floor under the wardrobe and under the slab',
+    stone: 'an LED profile grazing the stone from the ceiling; lines washing the floor under the wardrobe and under the block, one in the niche',
+    curves: 'an LED profile grazing the corridor wall from the ceiling; lines washing the floor under the wardrobe and under the bench, one in the arched niche',
+  }[designKey];
   const rows = [
+    ['Design', DESIGNS[designKey].label + ': ' + DESIGNS[designKey].desc, '#8f877d'],
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + ', walls and ceiling', paintColor],
-    ['Hook wall', { slats: wn + ' slats on ' + p.feltLabel + ' felt', fluted: 'fluted ' + wn, wood: wn + ' panelling', stone: STONES[stoneKey].label, paint: 'plastered and painted like the walls' }[hookKey] + ', floor to ceiling, from the opening to the niche; nine hooks in ' + metal.label, { stone: STONES[stoneKey].swatch, paint: paintColor }[hookKey] ?? wood.swatch],
-    ['Key shelf', 'floating, ' + wn + ' with a drawer, under a ' + STONES[stoneKey].label + ' top', STONES[stoneKey].swatch],
-    ['Wardrobe', 'floating 50 cm off the floor, to the ceiling, three handleless doors in ' + { flat: wn + ' veneer', fluted: 'fluted ' + wn, paint: 'a lacquer of the wall colour' }[frontsKey] + '; at its end a 40 cm open niche in ' + wn + ' in front of the flue and the pipes', frontsKey === 'paint' ? paintColor : wood.swatch],
-    ['Shoe rack', 'open, under the wardrobe: a honed ' + STONES[stoneKey].label + ' shelf over a base of the same stone on the floor, lit from under the wardrobe and under the shelf', STONES[stoneKey].swatch],
+    ...own,
     ['Mirror', 'over the whole kitchen-side wall, floor to ceiling, frameless, ' + p.mirrorLabel, p.mirror],
     ['Floor', 'porcelain tiles, 120 × 120 cm, ' + TILE_STRUCTS[tileStruct].desc + ', ' + (tileKey ? TILE_COLOURS[tileKey].label.toLowerCase() : 'your colour (' + tileColor + ')') + ', laid from the middle of the hall', tileColor],
-    ['Bench', 'the open shelving carried on along the hook wall: a floating ' + wn + ' seat with a cushion in ' + POUFS[p.pouf].label + ' over a shoe shelf', POUFS[p.pouf].color],
-    ['Doors', 'front door in anthracite aluminium (RAL 7016) with a glass sidelight and a recessed mat; a frameless glass sliding door to the corridor', '#383b3e'],
-    ['Light', 'two trimless downlights; LED profiles grazing the hook wall, washing the floor under the wardrobe, in the niche and under the shelf; switches in ' + p.switchLabel, '#ffe2c2'],
+    ['Doors', 'front door in anthracite aluminium (RAL 7016) with a glass sidelight and a recessed mat; ' + (hallKey === 'pivot' ? 'a glass pivot door to the corridor in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'mirror' ? 'right jamb (by the mirror)' : 'left jamb (by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass sliding door to the corridor'), '#383b3e'],
+    ['Light', 'two trimless downlights; ' + light + '; switches in ' + p.switchLabel, '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
@@ -2692,7 +3049,7 @@ controls.screenSpacePanning = true;
 const VIEWS = [
   { key: 'room', label: 'Entrance', pos: [50.2, 16.55, 1.62], tgt: [51.05, 14.85, 1.08], fov: 78 },
   { key: 'door', label: 'Front door', pos: [49.83, 15.0, 1.62], tgt: [51.55, 16.45, 1.1], fov: 80 },
-  { key: 'hooks', label: 'Hooks & shelf', pos: [51.0, 16.15, 1.45], tgt: [51.2, 14.82, 1.05], fov: 66 },
+  { key: 'hooks', label: 'Hooks & bench', pos: [51.15, 16.4, 1.45], tgt: [51.25, 14.85, 0.85], fov: 70 },
   { key: 'wardrobe', label: 'Wardrobe', pos: [49.75, 15.92, 1.55], tgt: [51.95, 15.85, 1.3], fov: 76 },
   { key: 'mirror', label: 'Mirror', pos: [51.75, 15.62, 1.62], tgt: [49.52, 15.85, 1.4], fov: 74 },
   { key: 'living', label: 'Glass door', pos: [51.55, 16.45, 1.62], tgt: [50.0, 13.6, 1.25], fov: 70 },
@@ -2724,8 +3081,11 @@ function clampCamera() {
   z = THREE.MathUtils.clamp(z, 0.25, H - 0.08);
   y = THREE.MathUtils.clamp(y, SLAT_FACE + 0.08, Y1 - 0.08);
   x = THREE.MathUtils.clamp(x, X0 + 0.1, WR.x - 0.08);
-  if (x > SHELF.x0 - 0.06 && x < SHELF.x1 + 0.06 && z < SHELF.z1 + 0.12 && y < SHELF.y1 + 0.06) y = SHELF.y1 + 0.06;   // the key shelf
-  if (x > BENCH.x0 - 0.06 && z < BENCH.seat + 0.15 && y < WR.side[0] + 0.06) y = WR.side[0] + 0.06;                 // the bench
+  {
+    const [bx, bz, by] = { slats: [BENCH.x0, BENCH.seat, WR.side[0]], box: [SLAB.x0, SLAB.seat, WR.side[0]], stone: [BLOCK.x0, BLOCK.z1, WR.side[0]], curves: [SOFT.x0, SOFT.z1 + SOFT.cushion, SOFT.y1] }[designKey];
+    if (x > bx - 0.06 && z < bz + 0.15 && y < by + 0.06) y = by + 0.06;                                               // the bench
+  }
+  if (designKey === 'curves' && y < WR.side[1] + 0.06) x = Math.min(x, WR.x - COLUMN.d - 0.08);                    // the column
   p.set(x, z, -y);
   const t = controls.target;
   t.set(THREE.MathUtils.clamp(t.x, X0, X1), THREE.MathUtils.clamp(t.y, 0, H), THREE.MathUtils.clamp(t.z, -24, -13.5));
@@ -2753,6 +3113,7 @@ function buildUI() {
       await onPick(b.dataset.key);
     });
   };
+  seg($('designs'), DESIGNS, (k) => withBusy(async () => { await applyDesign(k); captureEnv(); }), designKey);
   seg($('palettes'), PALETTES, (k) => withBusy(async () => { await applyPalette(k); captureEnv(); }), paletteKey);
   seg($('stones'), Object.fromEntries(STONE_PICK.map((k) => [k, { label: STONES[k].short }])), (k) => withBusy(async () => { await applyStoneChoice(k); captureEnv(); }), stoneKey);
   seg($('woods'), Object.fromEntries(WOOD_PICK.map((k) => [k, { label: `<i class="dot" style="background:${WOODS[k].swatch}"></i>${WOODS[k].short}` }])), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
@@ -2768,6 +3129,9 @@ function buildUI() {
   $('tile-custom').addEventListener('input', (e) => { if (!busy) applyTileColour(e.target.value); });
   $('tile-custom').addEventListener('change', (e) => { if (!busy) withBusy(async () => { applyTileColour(e.target.value); captureEnv(); }); });
   seg($('fronts'), FRONTS, (k) => withBusy(async () => { applyFronts(k); captureEnv(); }), frontsKey);
+  seg($('halldoors'), HDOORS, (k) => setHallDoor(k), hallKey);
+  seg($('swings'), SWINGS, (k) => setPivot(k), swingKey);
+  seg($('pivots'), PIVOTS, (k) => setPivot(swingKey, k), pivotSide);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
   // closes)
   $('paint-pick').insertAdjacentHTML('beforebegin', Object.entries(PAINTS).map(([k, v]) => `<button data-key="${k}" class="${k === paintKey ? 'on' : ''}" style="background:${v.color}" title="${v.label}" aria-label="${v.label}"></button>`).join(''));
@@ -2807,6 +3171,9 @@ function buildUI() {
     if (k === 'd') { setDoor(!DOOR.open); return; }
     if (k === 'g') { setGlass(!GLASS.open); return; }
     if (k === 'c') { setWardrobe(!WARDROBE.open, true); return; }
+    if (k === 'v') { setHallDoor(hallKey === 'slide' ? 'pivot' : 'slide'); return; }
+    if (k === 'i' && hallKey === 'pivot') { setPivot(swingKey === 'hall' ? 'room' : 'hall'); return; }
+    if (k === 'j' && hallKey === 'pivot') { setPivot(swingKey, pivotSide === 'mirror' ? 'hooks' : 'mirror'); return; }
     if (busy) return;
     if (k === 's') {
       const n = next(Object.keys(PALETTES), paletteKey);
@@ -2814,6 +3181,7 @@ function buildUI() {
       withBusy(async () => { await applyPalette(n); captureEnv(); });
       return;
     }
+    if (k === 'a') { const n = next(Object.keys(DESIGNS), designKey); withBusy(async () => { await applyDesign(n); captureEnv(); }); return; }
     if (k === 't') { const n = next(STONE_PICK, stoneKey); withBusy(async () => { await applyStoneChoice(n); captureEnv(); }); return; }
     if (k === 'o') { const n = next(WOOD_PICK, woodKey); withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
     if (k === 'w') { const n = next(Object.keys(PAINTS), paintKey); withBusy(async () => { applyPaint(PAINTS[n].color, n); captureEnv(); }); return; }
@@ -2823,11 +3191,37 @@ function buildUI() {
     const i = parseInt(e.key, 10);
     if (i >= 1 && i <= VIEWS.length) pickView(VIEWS[i - 1]);
   });
+  // what a click there would open or shut: the front door or the glass door (a door's glass counts, unlike the rest of
+  // the glass), as a function; the whole room searched only when one is in line
+  const ray = new THREE.Raycaster();
+  const aim = (e) => ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+  const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  const glassy = (m) => m === M.glass || m === M.slideGlass || m === M.windowGlass;
+  const actionAt = (e) => {
+    aim(e);
+    if (!ray.intersectObjects(DOORS, false).length) return undefined;
+    const door = (o) => { for (; o; o = o.parent) if (o.userData.door !== undefined) return o.userData.door; return undefined; };
+    const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && (!glassy(h.object.material) || door(h.object)));
+    const d = hit && door(hit.object);
+    if (d === 'front') return () => setDoor(!DOOR.open);
+    if (d === 'glass') return () => setGlass(!GLASS.open);
+    return undefined;
+  };
+  // a click on a door opens or closes it (not the end of a drag, nor a double-click's second click); a hand over one
+  let downAt = [0, 0], hoverAt = 0;
+  renderer.domElement.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+  renderer.domElement.addEventListener('click', (e) => {
+    if (e.detail > 1 || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
+    actionAt(e)?.();
+  });
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (e.buttons || e.pointerType !== 'mouse' || performance.now() - hoverAt < 100) return;
+    hoverAt = performance.now();
+    renderer.domElement.style.cursor = actionAt(e) ? 'pointer' : '';
+  });
   renderer.domElement.addEventListener('dblclick', (e) => {
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
-    const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
-    const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && h.object.material !== M.glass && h.object.material !== M.slideGlass && h.object.material !== M.windowGlass);
+    aim(e);
+    const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && !glassy(h.object.material));
     if (!hit) return;
     const toT = hit.point.clone();
     const toPos = camera.position.clone().sub(controls.target).setLength(Math.min(1.2, camera.position.distanceTo(hit.point))).add(toT);
@@ -2887,7 +3281,7 @@ async function saveImage() {
     const d = new Date(), two = (n) => String(n).padStart(2, '0');
     const stamp = `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}-${two(d.getMinutes())}-${two(d.getSeconds())}`;
     const a = document.createElement('a');
-    a.download = `Entrance - ${PALETTES[paletteKey].label}, ${MOODS[moodKey].label} - ${stamp}.png`;
+    a.download = `Entrance - ${DESIGNS[designKey].label}, ${PALETTES[paletteKey].label}, ${MOODS[moodKey].label} - ${stamp}.png`;
     a.href = URL.createObjectURL(blob);
     document.body.appendChild(a);
     a.click();
@@ -2970,20 +3364,23 @@ try {
   await pause();
   buildArchitecture();
   buildCeiling();
-  buildSlats();
-  buildShelf();
   buildFittings();
   buildAccessories();
   flush(groups.room);
+  buildSlatsThings();
+  flush(DESIGN_G.slats);
   buildHookWall();
   buildWardrobe();
+  buildTall();
+  buildBox();
+  buildStoneWall();
+  buildCurves();
   buildDoors();
   buildSurroundings(await loadView());
   buildLights();
   setStatus('Laying out the wood and the stone…');
-  await applyPalette(paletteKey);
   applyHookWall(hookKey, false);
-  applyMood(moodKey);
+  await applyDesign(designKey);
   setStatus('Lighting the hall…');
   await pause();
   renderer.shadowMap.needsUpdate = true;
@@ -2993,7 +3390,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, POUFS, FRONTS, applyFronts, applyPouf, setDoor, setGlass, setWardrobe, DOOR, GLASS, WARDROBE, OUT, HOOK_WALLS, applyHookWall, TILE_COLOURS, TILE_STRUCTS, applyTileColour, setTileStruct,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, DESIGNS, applyDesign, DESIGN_G, TALL_G, POUFS, FRONTS, applyFronts, applyPouf, setDoor, setGlass, setHallDoor, setPivot, HDOOR, DOORS, setWardrobe, DOOR, GLASS, WARDROBE, OUT, HOOK_WALLS, applyHookWall, TILE_COLOURS, TILE_STRUCTS, applyTileColour, setTileStruct,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, solar, setSun,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
