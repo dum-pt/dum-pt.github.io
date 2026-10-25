@@ -94,8 +94,8 @@
 </div>
 
 <div id="side" class="panel">
-  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The shower with its ledge and niche, the vanity counter with its fluted backsplash and the WC wall (S)"></div></div>
-  <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The vanity's drawers and the cabinets (O)"></div></div>
+  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The shower with its ledge and niche and the vanity counter with its fluted backsplash (S)"></div></div>
+  <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The vanity's drawers, the cabinets and the WC wall (O)"></div></div>
   <div class="group"><h2>Vanity</h2><div class="seg" id="vanities"></div>
     <div class="chips" id="vanity-flip"><button class="chip" id="t-flip" aria-pressed="false" title="Mirror the vanity along the wall, swapping its door and shower ends (F)">Flip vanity</button></div>
   </div>
@@ -121,7 +121,7 @@
 
 <button id="opts" class="panel" aria-expanded="false" aria-controls="side">Options</button>
 <div id="views" class="panel"></div>
-<div id="hint">Drag to look around · scroll to move closer · double-click to focus</div>
+<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a door or a drawer to open it</div>
 <div id="busy" class="panel">Updating…</div>
 
 <div id="loading"><div class="box"><div class="ring"></div><div id="status">Loading…</div></div></div>
@@ -180,14 +180,19 @@ const SCREEN_Y = 4.312, SCREEN_X1 = 5.58;                           // shower gl
 // the niche between the WC and the tall cabinet (user, 2026-10-25, after a photograph): from the WC wall (a) to the
 // cabinet's walnut end (b), both rounded to r at the front, black steel shelves (tops at `shelves`), a backlit marble back
 const WCN = { a: 3.062, b: 3.281, r: 0.03, shelves: [0.72, 1.3, 1.56, 2.18] };
+// the cabinet above the WC (user, 2026-10-25), set into the pre-wall over the cistern: from z0 (the joint with the
+// fixed panel behind the WC) to the ceiling, its shelves' tops at `shelves`
+const WCC = { z0: 1.3, shelves: [1.7, 2.09] };
 // vertical LED lines in the left-hand side wall of each niche (seen facing it), 2.6 cm behind the front edge: none on
-// this page (the WC niche is lit by its marble, the shower niche by a line under its top)
+// this page (the WC niche is lit by its marble, the shower niche by a line of its own, built with it)
 const NICHE_LEDS = [
 ];
 // the shower as on the one-wall page (user, 2026-10-25): its back recessed to the outer wall, a floating stone ledge
 // along it as deep as the pre-wall; a niche cut into its left wall (the walnut cabinet's end, 10 cm narrower for it)
 const SLEDGE = { z0: 0.289, z1: 0.45 };
-const SN = { x0: X0 + 0.035, x1: PRE - 0.02, y0: SCREEN_Y - 0.1, z0: 0.95, z1: 1.75, shelf: 1.35 };
+// (its LED line upright in its left-hand side seen from the shower, `led` behind the front edge, the shelf stopping
+// short of it)
+const SN = { x0: X0 + 0.035, x1: PRE - 0.02, y0: SCREEN_Y - 0.1, z0: 0.95, z1: 1.75, shelf: 1.35, led: 0.016 };
 // the closed "door" in the north wall is a full-height tilt & turn window; it faces due east. heroal W 72 aluminium as
 // in the master bathroom (user, 2026-10-25): the frame 72 mm deep showing 50 mm all round (its inner face where the
 // model has it), the sash in it with a 3 mm gap, 84 mm deep (12 mm proud of the frame indoors) and 37 mm wide on every
@@ -1207,30 +1212,83 @@ function buildArchitecture() {
 
   // west side: WC pre-wall, a shelf niche, a tall walnut cabinet running to the shower wall, shower wall and recess
   add(M.plaster, box(X0, 4.817, Y0, 3.062, 0, H, { faces: 'y' }));
-  // WC wall: large-format stone tiles from floor to ceiling, one fine joint at 1.2 m
-  add(M.lower, box(4.817, PRE, Y0, WCN.a - WCN.r, 0, 1.199, { faces: 'XyZ' }));
-  add(M.lower, box(4.817, PRE - 0.0015, Y0, WCN.a - WCN.r, 1.199, 1.201, { faces: 'X' }));
-  add(M.lower, box(4.817, PRE, Y0, WCN.a - WCN.r, 1.201, H, { faces: 'Xyz' }));
-  // the niche: the WC wall's stone and the cabinet's walnut end round into it; its back is backlit marble (E.nicheBack,
-  // lit with the niche lights), its shelves thin black steel, the toilet brush stands on its floor
+  // WC wall in walnut, fluted like the tall cabinet (user, 2026-10-25): a fixed panel behind the WC with the flush
+  // plate on it, and above it, from WCC.z0 to the ceiling, a cabinet set into the pre-wall over the cistern: two doors
+  // (they open with a click; 3 mm shadow gaps) on two shelves of spare rolls, towels and bottles
+  add(M.fluted, box(4.812, PRE, Y0, WCN.a - WCN.r - 0.003, 0, WCC.z0 - 0.0015, { faces: 'XYZ' }));
+  add(M.dark, box(4.812, 4.812, WCN.a - WCN.r - 0.003, WCN.a - WCN.r, 0, WCC.z0, { faces: 'X' }));   // behind its gap to the jamb
+  {
+    const y0 = Y0, y1 = WCN.a - WCN.r, ym = (y0 + y1) / 2, z0 = WCC.z0, g = 0.0015;
+    cupboard(X0 + 0.02, y0 + 0.018, y1 - 0.012, z0 + 0.0185, H - 0.022, WCC.shelves, y0, y1 + 0.001, z0 - 0.01, H);
+    westDoor(y0 + 0.003, ym - g, z0 + g, H - 0.004, y0 + 0.003, THREE.MathUtils.degToRad(90));   // clear of the door wall
+    westDoor(ym + g, y1 - 0.003, z0 + g, H - 0.004, y1 - 0.003);
+    // spare rolls in two tiers, a cleaner and a box on its floor; folded hand towels, two pump bottles and a jar of
+    // cotton pads on the first shelf; two linen boxes on the second
+    const cx = 4.733, [s1, s2] = WCC.shelves;
+    let z = z0 + 0.0185;
+    for (const y of [2.05, 2.165, 2.28, 2.395]) for (const k of [0, 1]) roll(cx, y, z + k * 0.1);
+    for (const y of [2.6, 2.68]) {
+      add(M.bottleWhite, cyl(0.03, 0.22, 'z', [cx, y, z + 0.11], 28));
+      add(M.metal, cyl(0.012, 0.03, 'z', [cx, y, z + 0.235]));
+    }
+    add(M.pottery, rbox(0.12, 0.12, 0.16, 0.006, [cx, 2.86, z + 0.08]));
+    z = s1;
+    for (let i = 0; i < 4; i++) add(M.towel2, rbox(0.145, 0.26, 0.045, 0.016, [cx + (i % 2) * 0.004, 2.16 + ((i * 3) % 4) * 0.003, z + 0.0225 + i * 0.045]));
+    for (const [y, bh] of [[2.5, 0.17], [2.575, 0.13]]) {
+      add(M.bottleWhite, cyl(0.028, bh, 'z', [cx, y, z + bh / 2], 28));
+      add(M.metal, cyl(0.011, 0.025, 'z', [cx, y, z + bh + 0.0125], 20));
+      add(M.metal, cyl(0.004, 0.03, 'x', [cx + 0.014, y, z + bh + 0.02], 10));
+    }
+    add(M.clearGlass, cyl(0.042, 0.12, 'z', [cx, 2.8, z + 0.06], 32));
+    add(M.paper, cyl(0.037, 0.09, 'z', [cx, 2.8, z + 0.047], 28));
+    add(M.metal, cyl(0.044, 0.012, 'z', [cx, 2.8, z + 0.126], 32));
+    z = s2;
+    for (const y of [2.24, 2.72]) add(M.linen, rbox(0.15, 0.4, 0.2, 0.012, [cx, y, z + 0.1]));
+  }
+  // the niche: the walnut of the WC wall and of the tall cabinet rounds into it from either side; its back is backlit
+  // marble (E.nicheBack, lit with the niche lights), its shelves thin black steel, the toilet brush stands on its floor
   {
     const { a, b, r } = WCN, xb = X0 + 0.02;
     add(E.nicheBack, box(X0, xb, a, b, 0, H, { faces: 'X' }), { shadow: false });
-    add(M.lower, box(xb, PRE - r, a - 0.02, a, 0, H, { faces: 'Y' }));
-    add(M.lower, roundEdge(r, PRE - r, a - r, 0, Math.PI / 2, 0, H, a - r));
+    add(M.veneer, box(xb, PRE - r, a - 0.02, a, 0, H, { faces: 'Y' }));
+    add(M.veneer, roundEdge(r, PRE - r, a - r, 0, Math.PI / 2, 0, H));
+    add(M.veneer, box(4.812, PRE, a - r, a - r, 0, H, { faces: 'y' }));   // the jamb's side, seen in the gap and with the cabinet open
     add(M.veneer, box(xb, PRE - r, b, 3.311, 0, H, { faces: 'y' }));
     add(M.veneer, roundEdge(r, PRE - r, b + r, -Math.PI / 2, 0, 0, H));
     for (const z of WCN.shelves) add(M.mirrorFrame, box(xb, PRE - 0.015, a, b, z - 0.008, z, { faces: 'XzZ' }));
   }
-  // tall walnut cabinet, 88 cm wide (10 cm went to the shower's niche): a pair of towel-cupboard doors (push to open) over two tilt-out
-  // laundry hampers with a finger slot along their top edge; 3 mm shadow gaps, 2 cm stone edges either side
+  // tall walnut cabinet, 88 cm wide (10 cm went to the shower's niche): a towel cupboard behind a pair of doors (they
+  // open with a click) over two tilt-out laundry hampers with a finger slot along their top edge; 3 mm shadow gaps,
+  // the walnut jamb on the niche side, a 2 cm stone edge on the shower's
   {
     const s0 = 3.311, s1 = SN.y0 - 0.02, c0 = s0 + 0.003, c1 = s1 - 0.003, cm = (c0 + c1) / 2, g = 0.0015;
     const hz = 0.72, slot = 0.03, top = hz - slot, ix = X0 + 0.02;
     add(M.accent, box(X0 + 0.02, PRE, s1, SCREEN_Y, 0, H, { faces: 'X' }));          // stone edge towards the shower wall
-    add(M.dark, box(4.80, PRE - 0.008, s0, s1, top, H, { faces: 'X' }));              // carcass seen through the gaps
-    add(M.fluted, box(4.812, PRE, c0, cm - g, hz, H - 0.004, { faces: 'XyYzZ' }));
-    add(M.fluted, box(4.812, PRE, cm + g, c1, hz, H - 0.004, { faces: 'XyYzZ' }));
+    add(M.dark, box(4.80, PRE - 0.008, s0, s1, top, hz, { faces: 'X' }));             // the back of the finger slot
+    add(M.carcass, box(4.812, PRE - 0.008, s0, s1, hz, hz, { faces: 'Z' }));
+    add(M.veneer, box(4.812, PRE, s0, s0, hz, H, { faces: 'Y' }));                    // the jamb's side
+    cupboard(ix, s0 + 0.018, s1 - 0.018, hz, H - 0.022, [1.1, 1.45, 1.8, 2.15], s0, s1, hz, H);
+    westDoor(c0, cm - g, hz, H - 0.004, c0);
+    westDoor(cm + g, c1, hz, H - 0.004, c1);
+    // in it: bath towels folded in stacks and a linen basket on its floor, rolled hand towels, spare rolls and bottles,
+    // two linen boxes on the top shelf
+    const cx = 4.733;
+    const folded = (mat, y, z, n, h = 0.055) => {
+      for (let i = 0; i < n; i++) add(mat, rbox(0.145, 0.32, h, 0.02, [cx + ((i * 5) % 3 - 1) * 0.003, y + ((i * 7) % 5 - 2) * 0.003, z + h / 2 + i * h]));
+    };
+    add(M.linen, rbox(0.15, 0.36, 0.26, 0.012, [cx, 3.53, hz + 0.13]));
+    folded(M.towel, 3.95, hz, 4, 0.06);
+    folded(M.towel, 3.53, 1.1, 5);
+    folded(M.towel2, 3.95, 1.1, 4);
+    for (const [y, k] of [[3.42, 0], [3.5, 0], [3.58, 0], [3.46, 1], [3.54, 1]]) add(M.towel2, cyl(0.038, 0.15, 'x', [cx, y, 1.45 + 0.038 + k * 0.066], 24));
+    folded(M.towel, 3.95, 1.45, 3);
+    for (const y of [3.41, 3.525, 3.64]) for (const k of [0, 1]) roll(cx, y, 1.8 + k * 0.1);
+    for (const y of [3.84, 3.92]) {
+      add(M.bottleWhite, cyl(0.03, 0.2, 'z', [cx, y, 1.9], 28));
+      add(M.metal, cyl(0.012, 0.03, 'z', [cx, y, 2.015]));
+    }
+    add(M.pottery, rbox(0.12, 0.12, 0.14, 0.006, [cx, 4.07, 1.87]));
+    for (const y of [3.55, 3.96]) add(M.linen, rbox(0.15, 0.38, 0.22, 0.012, [cx, y, 2.26]));
     // the hamper compartment, seen when the fronts are tilted out, with a divider between the two bags
     add(M.carcass, box(ix, 4.824, s0, s0, 0.012, top, { faces: 'Y' }));
     add(M.carcass, box(ix, 4.824, s1, s1, 0.012, top, { faces: 'y' }));
@@ -1263,10 +1321,12 @@ function buildArchitecture() {
     add(M.slab, box(x1, x1 + 0.02, y0, y1, z0, z1, { faces: 'x' }));
     add(M.slab, box(x0, x1, y0, y1, z0 - 0.02, z0, { faces: 'Z' }));
     add(M.slab, box(x0, x1, y0, y1, z1, z1 + 0.02, { faces: 'z' }));
-    add(M.slab, box(x0, x1, y0, y1 - 0.004, shelf - 0.02, shelf, { faces: 'YzZ' }));
-    // an LED line under its top, at the front: an opal diffuser in a slim profile
-    add(M.metal, box(x0, x1, y1 - 0.034, y1 - 0.018, z1 - 0.0006, z1, { faces: 'z' }), { shadow: false });
-    add(E.nicheLed, box(x0 + 0.003, x1 - 0.003, y1 - 0.031, y1 - 0.021, z1 - 0.0012, z1, { faces: 'z' }), { shadow: false });
+    add(M.slab, box(x0, x1, y0, y1 - 0.024, shelf - 0.02, shelf, { faces: 'YzZ' }));
+    // an LED line upright in its left-hand side (seen from the shower), the niche's full height, running past the
+    // shelf's front edge so that it lights the floor and the shelf alike: an opal diffuser in a slim profile
+    const ly = y1 - SN.led;
+    add(M.metal, box(x1 - 0.0006, x1, ly - 0.006, ly + 0.006, z0, z1, { faces: 'x' }), { shadow: false });
+    add(E.nicheLed, box(x1 - 0.0012, x1, ly - 0.004, ly + 0.004, z0 + 0.003, z1 - 0.003, { faces: 'x' }), { shadow: false });
   }
 
   // east side: the mirror (the vanity, its backsplash, basin and tap come in versions: see buildVanities)
@@ -1561,6 +1621,78 @@ function setLid(open) {
   LID.open = open;
   dirty = true;
 }
+// Cabinet doors and drawers that open with a click (user, 2026-10-25): each one a group of its own, built in room
+// coordinates; a door is moved onto its hinge (a vertical line on its front face) and turns about it, a drawer slides
+// out into the room. A click on one opens or closes it alone.
+const OPENERS = [];
+// builds fn's meshes into a group of their own, leaving what is pending for the others as it was
+function part(fn) {
+  const keep = new Map(batches), g = new THREE.Group();
+  batches.clear();
+  fn();
+  flush(g);
+  for (const [k, v] of keep) batches.set(k, v);
+  return g;
+}
+// move: { hinge: [x, y], angle } (open, + counter-clockwise seen from above) or { slide: [dx, dy] } (open)
+function openable(parent, move, fn) {
+  const g = part(fn), o = { g, ...move, open: false, t: 0 };
+  if (o.hinge) {
+    g.position.set(o.hinge[0], o.hinge[1], 0);
+    for (const m of g.children) m.geometry.translate(-o.hinge[0], -o.hinge[1], 0);
+  }
+  for (const m of g.children) m.userData.opener = o;
+  parent.add(g);
+  OPENERS.push(o);
+  return o;
+}
+function setOpen(o, open) {
+  o.open = open;
+  dirty = true;
+}
+// one animation step for the doors and drawers; true while something moved
+function stepOpeners(dt) {
+  let moved = false;
+  for (const o of OPENERS) {
+    if (o.t === (o.open ? 1 : 0)) continue;
+    o.t = THREE.MathUtils.clamp(o.t + (o.open ? dt : -dt) / (o.slide ? 0.5 : 0.8), 0, 1);
+    const k = o.t * o.t * (3 - 2 * o.t);
+    if (o.slide) o.g.position.set(o.slide[0] * k, o.slide[1] * k, 0);
+    else o.g.rotation.z = o.angle * k;
+    moved = true;
+  }
+  if (moved) renderer.shadowMap.needsUpdate = true;
+  return moved;
+}
+// a fluted walnut door in the west wall's joinery (2 cm, its face at PRE) from y0 to y1, hinged on its edge at hy;
+// it opens out into the room, to `max`
+function westDoor(y0, y1, z0, z1, hy, max = THREE.MathUtils.degToRad(95)) {
+  return openable(groups.room, { hinge: [PRE, hy], angle: hy === y0 ? -max : max }, () => {
+    add(M.fluted, box(4.812, PRE, y0, y1, z0, z1, { faces: 'XyYzZ' }));
+    add(M.veneer, box(4.812, 4.812, y0, y1, z0, z1, { faces: 'x' }));
+  });
+}
+// the inside of a cupboard in the west wall, behind doors at x = 4.812: its back at x0, sides at y0 and y1, floor and
+// top at z0 and z1, shelves (their tops); the carcass's front edges round the opening fill fy0..fy1, fz0..fz1, so that
+// the shadow gaps between the doors and round them stay dark
+function cupboard(x0, y0, y1, z0, z1, shelves, fy0, fy1, fz0, fz1) {
+  const xf = 4.812;
+  add(M.carcass, box(x0, x0, y0, y1, z0, z1, { faces: 'X' }));
+  add(M.carcass, box(x0, xf, y0, y0, z0, z1, { faces: 'Y' }));
+  add(M.carcass, box(x0, xf, y1, y1, z0, z1, { faces: 'y' }));
+  add(M.carcass, box(x0, xf, y0, y1, z0, z0, { faces: 'Z' }));
+  add(M.carcass, box(x0, xf, y0, y1, z1, z1, { faces: 'z' }));
+  for (const z of shelves) add(M.carcass, box(x0, xf - 0.01, y0, y1, z - 0.018, z, { faces: 'XzZ' }));
+  add(M.dark, box(xf, xf, fy0, y0, fz0, fz1, { faces: 'X' }));
+  add(M.dark, box(xf, xf, y1, fy1, fz0, fz1, { faces: 'X' }));
+  if (fz0 < z0) add(M.dark, box(xf, xf, y0, y1, fz0, z0, { faces: 'X' }));
+  add(M.dark, box(xf, xf, y0, y1, z1, fz1, { faces: 'X' }));
+}
+// a spare toilet roll standing at (x, y) on z
+function roll(x, y, z) {
+  add(M.paper, cyl(0.055, 0.098, 'z', [x, y, z + 0.049], 32));
+  add(M.dark, cyl(0.02, 0.1, 'z', [x, y, z + 0.049], 16));
+}
 // Tilt-out laundry hampers (two, lights and colours): a walnut front with a linen bag on a frame behind
 // it, pivoting on the front's bottom edge. Meshes are built in room coordinates, then shifted onto the pivot.
 const hampers = [];
@@ -1814,7 +1946,7 @@ function buildAccessories() {
     add(M.rubber, cyl(0.014, 0.025, 'z', [4.775, ny, SN.z0 + 0.182]));
     add(M.amber, cyl(0.022, 0.11, 'z', [4.70, ny, SN.shelf + 0.055], 24));
     add(M.metal, cyl(0.01, 0.02, 'z', [4.70, ny, SN.shelf + 0.12]));
-    add(M.towel2, cyl(0.032, 0.085, 'y', [4.775, ny, SN.shelf + 0.032], 24));
+    add(M.towel2, cyl(0.032, 0.07, 'y', [4.775, SN.y0 + 0.04, SN.shelf + 0.032], 24));
   }
 }
 
@@ -1823,12 +1955,63 @@ function buildAccessories() {
 // (vanity on the opposite wall), so its depth from the wall u and its distance v from the door-side wall map
 // to x = X1 - u and y = Y0 + v here. Every version is built into its own group; only the chosen one is shown.
 const VU = (u0, u1, v0, v1, z0, z1, faces = 'xXyYzZ', swap = false) => box(X1 - u1, X1 - u0, Y0 + v0, Y0 + v1, z0, z1, { faces, swap });
-// walnut fronts (2 cm, 3 mm gaps) over a dark carcass face; `splits` are v positions between fronts
+// walnut drawers (2 cm fronts, 3 mm gaps; vDrawer); `splits` are v positions between fronts
 function vFronts(u, v0, v1, z0, z1, splits = []) {
-  add(M.dark, VU(u - 0.02, u - 0.019, v0, v1, z0, z1, 'x'), { shadow: false });
   const e = [v0, ...splits, v1];
-  for (let i = 0; i < e.length - 1; i++) {
-    add(M.veneer, VU(u - 0.02, u, e[i] + (i ? 0.0015 : 0), e[i + 1] - (i < e.length - 2 ? 0.0015 : 0), z0, z1, 'xyYzZ', true));
+  for (let i = 0; i < e.length - 1; i++) vDrawer(u, e[i] + (i ? 0.0015 : 0), e[i + 1] - (i < e.length - 2 ? 0.0015 : 0), z0, z1);
+}
+// A drawer (it opens with a click): its walnut front from u - 0.02 to u off the wall, v0..v1 along it, z0..z1; the
+// opening behind it (dark, the carcass's front edges round it filling f, by default the front and half the gaps
+// either side of it); a walnut box sliding out 80 % of its depth, with a few things in it. Built into vDrawers (the
+// version's own group of drawers).
+let vDrawers = null, vDrawerCount = 0;
+function vDrawer(u, v0, v1, z0, z1, f = {}) {
+  const { v0: fv0 = v0 - 0.0015, v1: fv1 = v1 + 0.0015, z0: fz0 = z0, z1: fz1 = z1 } = f;
+  const t = 0.012, ub = 0.016, uf = u - 0.02, ov0 = fv0 + t, ov1 = fv1 - t, oz0 = fz0 + t, oz1 = fz1 - t;
+  add(M.carcass, VU(ub, ub, ov0, ov1, oz0, oz1, 'x'));
+  add(M.carcass, VU(ub, uf, ov0, ov0, oz0, oz1, 'Y'));
+  add(M.carcass, VU(ub, uf, ov1, ov1, oz0, oz1, 'y'));
+  add(M.carcass, VU(ub, uf, ov0, ov1, oz0, oz0, 'Z'));
+  add(M.carcass, VU(ub, uf, ov0, ov1, oz1, oz1, 'z'));
+  add(M.dark, VU(uf, uf, fv0, ov0, fz0, fz1, 'x'));
+  add(M.dark, VU(uf, uf, ov1, fv1, fz0, fz1, 'x'));
+  add(M.dark, VU(uf, uf, ov0, ov1, fz0, oz0, 'x'));
+  add(M.dark, VU(uf, uf, ov0, ov1, oz1, fz1, 'x'));
+  const w = 0.012, bu = ub + 0.01, bv0 = ov0 + 0.006, bv1 = ov1 - 0.006, bz0 = oz0 + 0.004, bz1 = oz1 - 0.025;
+  const seed = ++vDrawerCount;
+  openable(vDrawers, { slide: [-0.8 * (uf - bu), 0] }, () => {
+    add(M.veneer, VU(uf, u, v0, v1, z0, z1, 'xXyYzZ', true));
+    add(M.veneer, VU(bu, uf, bv0, bv0 + w, bz0, bz1, 'xXyYzZ', true));
+    add(M.veneer, VU(bu, uf, bv1 - w, bv1, bz0, bz1, 'xXyYzZ', true));
+    add(M.veneer, VU(bu, bu + w, bv0 + w, bv1 - w, bz0, bz1, 'xXzZ', true));
+    add(M.veneer, VU(bu + w, uf, bv0 + w, bv1 - w, bz0, bz0 + w, 'zZ', true));
+    drawerThings(bu + w, uf, bv0 + w, bv1 - w, bz0 + w, bz1 - bz0 - w, seed);
+  });
+}
+// what is kept in a drawer (u across its depth, v along it, its floor at z, h high): rolled hand towels lying front to
+// back, bottles standing, small boxes, now and then a space
+function drawerThings(u0, u1, v0, v1, z, h, seed) {
+  const rnd = mulberry(seed * 977), P = (u, v, zz) => [X1 - u, Y0 + v, zz], cu = (u0 + u1) / 2, len = Math.min(0.2, u1 - u0 - 0.04);
+  for (let v = v0 + 0.015 + rnd() * 0.03; ;) {
+    const k = rnd();
+    if (k < 0.3) {
+      const r = 0.03;
+      if (v + 2 * r > v1 - 0.01) break;
+      add(rnd() < 0.5 ? M.towel : M.towel2, cyl(r, len, 'x', P(cu, v + r, z + r), 20));
+      v += 2 * r + 0.006;
+    } else if (k < 0.65) {
+      const r = 0.016 + rnd() * 0.01, bh = Math.min(h - 0.03, 0.09 + rnd() * 0.06), mat = [M.bottleWhite, M.amber, M.bottleWhite, M.dark][Math.floor(rnd() * 4)];
+      if (v + 2 * r > v1 - 0.01) break;
+      const u = u0 + r + 0.02 + rnd() * Math.max(0, u1 - u0 - 2 * r - 0.04);
+      add(mat, cyl(r, bh, 'z', P(u, v + r, z + bh / 2), 24));
+      add(M.metal, cyl(r * 0.5, 0.02, 'z', P(u, v + r, z + bh + 0.01), 16));
+      v += 2 * r + 0.012;
+    } else if (k < 0.9) {
+      const bw = 0.05 + rnd() * 0.05;
+      if (v + bw > v1 - 0.01) break;
+      add(rnd() < 0.5 ? M.pottery : M.paper, rbox(Math.min(0.15, u1 - u0 - 0.03), bw, 0.045, 0.004, P(cu, v + bw / 2, z + 0.0225)));
+      v += bw + 0.01;
+    } else v += 0.04;
   }
 }
 function vDrain(x, y, z) {
@@ -1911,8 +2094,7 @@ const VANITIES = {
     build() {
       add(M.counter, box(VAN.x0, X1, Y0, Y1, VAN.z1 - 0.03, VAN.z1, { faces: 'xyYZz' }));
       const drawers = [[1.964, 2.727], [2.730, 3.493], [3.496, VAN.split - 0.003]];
-      for (const [a, b] of drawers) add(M.veneer, box(VAN.x0, VAN.x0 + 0.02, a, b, VAN.z0 + 0.002, VAN.z1 - 0.033, { swap: true }));
-      add(M.dark, box(VAN.x0 + 0.02, X1, Y0, VAN.split, VAN.z0, VAN.z1 - 0.03, { faces: 'x' }));
+      for (const [a, b] of drawers) vDrawer(X1 - VAN.x0, a - Y0, b - Y0, VAN.z0 + 0.002, VAN.z1 - 0.033, { z0: VAN.z0, z1: VAN.z1 - 0.03 });
       add(M.veneer, box(VAN.x0 + 0.002, X1, Y0, VAN.split, VAN.z0, VAN.z0 + 0.001, { faces: 'z', swap: true }));
       add(M.counter, box(VAN.x0, X1, VAN.split, Y1, VAN.z0, VAN.z1 - 0.03, { faces: 'xyz' }));
       troughBasin();
@@ -2019,6 +2201,7 @@ let vanityKey = 'trough';
 function buildVanities(skp) {
   const tap = findInstance(skp, (d) => d.name === 'Component#284');
   for (const [key, v] of Object.entries(VANITIES)) {
+    vDrawers = new THREE.Group();
     v.build();
     add(M.backsplash, box(X1 - 0.015, X1, Y0, Y1, v.splash, MIRROR.z0, { faces: 'xyYZ' }));
     for (const l of v.leds) add(E.led, VU(l.u - 0.024, l.u - 0.012, l.v0 + 0.01, l.v1 - 0.01, l.z - 0.003, l.z, 'z'), { shadow: false });
@@ -2029,6 +2212,7 @@ function buildVanities(skp) {
     }
     const group = () => { const g = new THREE.Group(); R.add(g); flush(g); g.visible = false; return g; };
     v.group = group();
+    v.group.add(vDrawers);
     vProps(v.props);
     v.propsGroup = group();
     vProps(v.flip.props);
@@ -2206,11 +2390,12 @@ function buildLights() {
   L.nicheBack.position.copy(SU(X0 + 0.022, (WCN.a + WCN.b) / 2, H / 2));
   L.nicheBack.lookAt(SU(X0 + 1, (WCN.a + WCN.b) / 2, H / 2));
   scene.add(L.nicheBack);
-  // the shower niche's LED line under its top: a narrow area light shining down into it
+  // the shower niche's LED line, upright in its left-hand side: a narrow area light shining across the niche
   {
-    const a = new THREE.RectAreaLight(0xffffff, 1, SN.x1 - SN.x0 - 0.006, 0.01);
-    a.position.copy(SU((SN.x0 + SN.x1) / 2, SCREEN_Y - 0.026, SN.z1 - 0.0015));
-    a.rotation.set(-Math.PI / 2, 0, 0);      // facing straight down; width along x, height along SketchUp y
+    const ly = SCREEN_Y - SN.led, zm = (SN.z0 + SN.z1) / 2;
+    const a = new THREE.RectAreaLight(0xffffff, 1, 0.008, SN.z1 - SN.z0 - 0.006);
+    a.position.copy(SU(SN.x1 - 0.0015, ly, zm));
+    a.lookAt(SU(SN.x1 - 1, ly, zm));
     scene.add(a);
     L.nicheStrips.push(a);
   }
@@ -2489,12 +2674,12 @@ function renderLegend() {
   const p = look(), stone = STONES[stoneKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase();
   const rows = [
     ['Floor', 'seamless epoxy, white', EPOXY.color],
-    ['Stone', stone.label + ': the shower with its ledge and niche, the vanity counter and its fluted backsplash, the WC wall', stone.swatch],
+    ['Stone', stone.label + ': the shower with its ledge and niche, the vanity counter and its fluted backsplash', stone.swatch],
     ['Vanity', VANITIES[vanityKey].desc.replace('walnut', wn) + (vanityFlip ? ' (flipped)' : ''), wood.swatch],
     ['Basin', VANITIES[vanityKey].basin(p), vanityKey === 'trough' ? (p.basin ? STONES[p.basin].swatch : '#f1efeb')
       : vanityKey === 'block' ? STONES[p.basin || p.slab].swatch : STONES[p.counter].swatch],
-    ['WC niche', 'backlit Carrara marble behind black steel shelves; the stone and the walnut round into it', '#ece8e1'],
-    ['Joinery', wood.short + ' veneer, oiled', wood.swatch],
+    ['WC niche', 'backlit Carrara marble behind black steel shelves; the walnut rounds into it from either side', '#ece8e1'],
+    ['Joinery', wood.short + ' veneer, oiled: the WC wall with a cabinet above the WC, the tall cabinet; a click opens a door or a drawer', wood.swatch],
     ['Fittings', METALS[p.metal].label, METALS[p.metal].swatch],
     p.framed ? ['Mirror', 'slim black frame, LED backlight', '#1b1a19'] : null,
     ['Shower glass', 'bronze tinted', '#8c7059'],
@@ -2683,17 +2868,20 @@ function buildUI() {
   $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   {
-    // a click (not a drag) on a hamper front toggles them, on the WC lid lifts or lowers it; a double-click only
-    // toggles once
+    // a click (not a drag) on a hamper front toggles them, on the WC lid lifts or lowers it, on a cabinet door or a
+    // drawer opens or closes it; a double-click only toggles once
     let down = null, last = 0;
     const ray = new THREE.Raycaster();
     renderer.domElement.addEventListener('pointerdown', (e) => { down = e.button === 0 ? [e.clientX, e.clientY] : null; });
     renderer.domElement.addEventListener('pointerup', (e) => {
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || performance.now() - last < 450) return;
       ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
-      const hit = ray.intersectObjects([groups.room, ...hampers], true).find((h) => h.object.visible && h.object.material !== M.glass && h.object.material !== M.windowGlass);
+      const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+      const hit = ray.intersectObjects([groups.room, ...hampers, ...Object.values(VANITIES).map((v) => v.group)], true)
+        .find((h) => shown(h.object) && h.object.material !== M.glass && h.object.material !== M.windowGlass);
       if (hit && hit.object.userData.hamper) { last = performance.now(); setHamper(!HAMPER.open); }
       else if (hit && hit.object.userData.lid) { last = performance.now(); setLid(!LID.open); }
+      else if (hit && hit.object.userData.opener) { last = performance.now(); setOpen(hit.object.userData.opener, !hit.object.userData.opener.open); }
     });
   }
   $('t-snap').addEventListener('click', () => saveImage());
@@ -2847,6 +3035,7 @@ function loop() {
   }
   if (controls.update()) dirty = true;
   if (animateOpenings(dt)) dirty = true;
+  if (stepOpeners(dt)) dirty = true;
   if (hampers.length && HAMPER.t !== (HAMPER.open ? 1 : 0)) {
     HAMPER.t = THREE.MathUtils.clamp(HAMPER.t + (HAMPER.open ? dt : -dt) / 0.7, 0, 1);
     for (const h of hampers) h.rotation.y = HAMPER.max * HAMPER.t * HAMPER.t * (3 - 2 * HAMPER.t);
@@ -2932,7 +3121,7 @@ try {
   buildUI();
   goTo(VIEWS[1], true);
   renderFrame();
-  window.__bath = { THREE, setLid, LID, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+  window.__bath = { THREE, setLid, LID, OPENERS, setOpen, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
