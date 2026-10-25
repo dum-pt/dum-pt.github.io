@@ -1213,15 +1213,16 @@ let floorMesh, mirrorMesh;
 
 // ---------------------------------------------------------------- things that open with a click
 // The cabinet doors over the WC and the vanity swing open on their hinges (a pair over each, opening from the
-// middle) and the hidden toilet-brush box in the door wall tilts out (user, 2026-10-24): a click on one (not a
-// drag) opens or closes it. Each is a group pivoting on its hinge line; its meshes are built in room
-// coordinates, then shifted onto the pivot. step(), if given, follows each animation step.
+// middle) and the hidden toilet-brush box in the door wall tilts out (user, 2026-10-24), the vanity's drawers slide
+// out (user, 2026-10-25): a click on one (not a drag) opens or closes it. Each is a group pivoting on its hinge
+// line (slide: moving along the axis instead, by max metres); its meshes are built in room coordinates, then
+// shifted onto the pivot. step(), if given, follows each animation step.
 const OPENERS = [];
-function opener(pivot, axis, max, dur) {
+function opener(pivot, axis, max, dur, slide = false) {
   const g = new THREE.Group();
   g.position.set(...pivot);
   R.add(g);
-  const o = { g, axis, max, dur, t: 0, open: false, step: null };
+  const o = { g, axis, max, dur, slide, home: g.position[axis], t: 0, open: false, step: null };
   o.put = (mat, geo, shadow = true) => {
     const m = new THREE.Mesh(geo.translate(-pivot[0], -pivot[1], -pivot[2]), mat);
     m.castShadow = shadow;
@@ -1240,7 +1241,9 @@ function animateOpeners(dt) {
   for (const o of OPENERS) {
     if (o.t === (o.open ? 1 : 0)) continue;
     o.t = THREE.MathUtils.clamp(o.t + (o.open ? dt : -dt) / o.dur, 0, 1);
-    o.g.rotation[o.axis] = o.max * o.t * o.t * (3 - 2 * o.t);
+    const s = o.max * o.t * o.t * (3 - 2 * o.t);
+    if (o.slide) o.g.position[o.axis] = o.home + s;
+    else o.g.rotation[o.axis] = s;
     if (o.step) o.step();
     if (o.t === 0 || o.t === 1) envSoon();
     moved = true;
@@ -1875,9 +1878,9 @@ function buildFittings(skp) {
   add(M.metal, box(FIX - 0.009, FIX - 0.006, 2.984, 3.095, 0.991, 1.144));
   add(M.metal, box(FIX - 0.009, FIX - 0.006, 3.101, 3.212, 0.991, 1.144));
   // toilet-roll holder on the door wall beside the WC, just above the hidden brush box (user, 2026-10-24): its arm
-  // on the door's side, the roll centred over the box
+  // on the door's side, the roll's middle 4 cm further from the door than the box's (user, 2026-10-25)
   {
-    const ax = BRUSH.x - 0.057, hz = 0.76;
+    const ax = BRUSH.x + 0.04 - 0.057, hz = 0.76;
     add(M.metal, cyl(0.024, 0.008, 'y', [ax, Y0 + 0.004, hz]));
     add(M.metal, cyl(0.006, 0.07, 'y', [ax, Y0 + 0.04, hz]));
     add(M.metal, cyl(0.006, 0.11, 'x', [ax + 0.05, Y0 + 0.073, hz]));
@@ -2055,18 +2058,84 @@ const VANITIES = {
     props: { soap: [13.36, 3.80, BASIN_RIM], tray: [13.33, 4.64, BASIN_RIM] },
     basin: () => 'white ceramic, integrated top',
     build(skp) {
-      // carcass from the fronts (18 mm, on xf) back to the stone cladding; two drawers
+      // carcass from the fronts (18 mm, on xf) back to the stone cladding, walnut inside too; two drawers that slide
+      // out with a click (user, 2026-10-25)
       const xf = 13.124, y0 = WC_Y1 + 0.002, y1 = Y1 - 0.002, zb = 0.291, zt = 0.877;
-      add(M.veneer, box(xf - 0.018, SPLASH, y0, y0 + 0.016, zb, zt, { faces: 'xyzZ', swap: true }));
-      add(M.veneer, box(xf - 0.018, SPLASH, y1 - 0.016, y1, zb, zt, { faces: 'xYzZ', swap: true }));
-      add(M.veneer, box(xf, SPLASH, y0 + 0.016, y1 - 0.016, zb, zb + 0.016, { faces: 'z', swap: true }));
-      add(M.dark, box(xf, xf + 0.001, y0 + 0.016, y1 - 0.016, zb, zt, { faces: 'x' }), { shadow: false });
-      for (const [a, b] of [[zb + 0.001, 0.585], [0.587, zt]]) add(M.veneer, box(xf - 0.018, xf, y0 + 0.017, y1 - 0.017, a, b, { faces: 'xyYzZ', swap: true }));
+      add(M.veneer, box(xf - 0.018, SPLASH, y0, y0 + 0.016, zb, zt, { faces: 'xyYzZ', swap: true }));
+      add(M.veneer, box(xf - 0.018, SPLASH, y1 - 0.016, y1, zb, zt, { faces: 'xyYzZ', swap: true }));
+      add(M.veneer, box(xf, SPLASH, y0 + 0.016, y1 - 0.016, zb, zb + 0.016, { faces: 'zZ', swap: true }));
+      add(M.veneer, box(SPLASH - 0.001, SPLASH, y0 + 0.016, y1 - 0.016, zb + 0.016, zt, { faces: 'x', swap: true }));
+      add(M.dark, box(xf, xf + 0.001, y0 + 0.016, y1 - 0.016, 0.578, 0.594, { faces: 'x' }), { shadow: false });   // behind the fronts' gap
+      // the bowl's bottle trap under its drain, its outlet into the wall
+      const tx = 13.38, ty = 4.196;
+      add(M.metal, cyl(0.016, 0.055, 'z', [tx, ty, 0.697]));
+      add(M.metal, cyl(0.026, 0.07, 'z', [tx, ty, 0.635], 28));
+      add(M.metal, cyl(0.014, SPLASH - tx, 'x', [(tx + SPLASH) / 2, ty, 0.625]));
+      add(M.metal, cyl(0.026, 0.006, 'x', [SPLASH - 0.003, ty, 0.625], 28));
+      // a drawer: its front from a to b, a 12 mm walnut box behind it from z0 to z1, sides on runners inside the
+      // carcass, back to xb; notch [ya, yb, x]: a gap through the box from x to its back, round the trap. Its parts
+      // are merged per material, then given to the drawer's opener, which slides it out 33 cm
+      const xb = SPLASH - 0.025, t = 0.012, sy0 = y0 + 0.03, sy1 = y1 - 0.03, fy0 = y0 + 0.017, fy1 = y1 - 0.017;
+      const bare = (g) => {
+        const n = g.index ? g.toNonIndexed() : g;
+        for (const k of Object.keys(n.attributes)) if (!['position', 'normal', 'uv'].includes(k)) n.deleteAttribute(k);
+        if (!n.attributes.uv) n.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n.attributes.position.count * 2), 2));
+        return n;
+      };
+      const drawer = (a, b, z0, z1, notch) => {
+        const parts = new Map(), d = {};
+        d.add = (mat, g) => { if (!parts.has(mat)) parts.set(mat, []); parts.get(mat).push(bare(g)); };
+        d.done = () => {
+          const o = opener([0, 0, 0], 'x', -0.33, 0.6, true);
+          for (const [mat, gs] of parts) o.put(mat, mergeGeometries(gs));
+        };
+        const wood = (...c) => d.add(M.veneer, box(...c, { swap: true }));
+        wood(xf - 0.018, xf, fy0, fy1, a, b);
+        wood(xf, xf + t, sy0, sy1, z0, z1);
+        wood(xf + t, xb, sy0, sy0 + t, z0, z1);
+        wood(xf + t, xb, sy1 - t, sy1, z0, z1);
+        if (!notch) {
+          wood(xb - t, xb, sy0 + t, sy1 - t, z0, z1);
+          wood(xf + t, xb - t, sy0 + t, sy1 - t, z0, z0 + t);
+        } else {
+          const [na, nb, nx] = notch;
+          wood(xf + t, nx - t, sy0 + t, sy1 - t, z0, z0 + t);
+          for (const [ya, yb] of [[sy0 + t, na - t], [nb + t, sy1 - t]]) {
+            wood(xb - t, xb, ya, yb, z0, z1);
+            wood(nx - t, xb - t, ya, yb, z0, z0 + t);
+          }
+          wood(nx - t, nx, na - t, nb + t, z0, z1);
+          wood(nx, xb, na - t, na, z0, z1);
+          wood(nx, xb, nb, nb + t, z0, z1);
+        }
+        return d;
+      };
+      // the lower drawer, deep: folded bath towels in two stacks and rolled hand towels
+      const lower = drawer(zb + 0.001, 0.585, zb + 0.024, 0.55), lf = zb + 0.024 + t;
+      for (const [y, mat] of [[3.83, M.towel], [4.19, M.towel2]]) {
+        for (let i = 0; i < 3; i++) lower.add(mat, rbox(0.27, 0.33, 0.044, 0.016, [13.3, y, lf + 0.022 + i * 0.044]));
+      }
+      for (const y of [4.47, 4.565, 4.66]) lower.add(M.towel, cyl(0.045, 0.27, 'x', [13.3, y, lf + 0.045], 28));
+      // the upper drawer, shallow under the bowl and cut round its trap; its things at the back, where they show
+      // over the tall front: jars and tubes, a soap, a folded flannel
+      const upper = drawer(0.587, zt, 0.599, 0.7, [ty - 0.075, ty + 0.075, 13.3]), uf = 0.599 + t;
+      upper.add(M.bottleWhite, cyl(0.032, 0.055, 'z', [13.42, 3.70, uf + 0.0275], 32));
+      upper.add(M.metal, cyl(0.033, 0.012, 'z', [13.42, 3.70, uf + 0.061], 32));
+      upper.add(M.amber, cyl(0.026, 0.07, 'z', [13.425, 3.79, uf + 0.035], 28));
+      upper.add(M.rubber, cyl(0.012, 0.016, 'z', [13.425, 3.79, uf + 0.078]));
+      for (const y of [3.89, 3.95, 4.01]) upper.add(M.bottleWhite, cyl(0.017, 0.17, 'x', [13.37, y, uf + 0.017], 20));
+      upper.add(M.soap, rbox(0.09, 0.06, 0.025, 0.011, [13.415, 4.36, uf + 0.0125]));
+      upper.add(M.towel, rbox(0.2, 0.2, 0.024, 0.01, [13.36, 4.6, uf + 0.012]));
       const unit = findInstance(skp, (d) => d.name === 'Component#118');
       if (unit) for (const c of skpChildren(skp, unit)) {
         if (c.name === 'M_16514331555824032709') for (const g of skpGeometry(skp, c.def, c.matrix)) add(M.ceramic, g);   // basin top
-        else if (c.mat === 14) for (const g of skpGeometry(skp, c.def, c.matrix)) add(M.metal, g);                       // pulls
+        else if (c.mat === 14) for (const g of skpGeometry(skp, c.def, c.matrix)) {                                       // pulls, on their drawers
+          g.computeBoundingBox();
+          (g.boundingBox.max.z < 0.6 ? lower : upper).add(M.metal, g);
+        }
       }
+      lower.done();
+      upper.done();
       const tap = findInstance(skp, (d) => d.name === 'Component#284');
       if (tap) for (const g of skpGeometry(skp, tap[0], new THREE.Matrix4().fromArray(tap, 2))) add(M.metal, g);
     },
