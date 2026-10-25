@@ -122,6 +122,11 @@
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the kitchen and the island (with wooden fronts), the dining table, the sideboard and the TV unit; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Kitchen fronts</h2><div class="seg" id="fronts" title="The kitchen's and the island's handleless fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour (R)"></div></div>
   <div class="group"><h2>Kitchen window</h2><div class="seg" id="windows" title="The kitchen's window strip over the worktop: as drawn, a fixed pane and on the right a tilt-and-turn sash (its lever on its left); or all fixed, one pane in a slim, almost invisible profile (K)"></div></div>
+  <div class="group"><h2>Hall door</h2><div class="seg" id="halldoors" title="The glass door to the hall: as drawn, a frameless pane sliding along the lobby's side of the wall; or a pivot door in the opening, the same grey glass in a slim anthracite steel frame, turning on a pivot near one jamb (V)"></div>
+    <div id="pivotrows" hidden>
+      <div class="winrow" title="Which way the pivot door's longer part swings: into the hall or into the living room; the short part beyond the pivot swings the other way (I)"><span>Opens</span><div class="seg" id="swings"></div></div>
+      <div class="winrow" title="The jamb the pivot is by, seen from the living room: left, by the hall's mirror, or right, by the coat hooks (J)"><span>Pivot</span><div class="seg" id="pivots"></div></div>
+    </div></div>
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The worktop, the island's top and its waterfall end; Carrara as drawn (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover, ÄPPLARYD's Lejde in light grey or grey-black; the cushions on it take a colour to go with it (U)"></div></div>
@@ -131,7 +136,7 @@
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="7.5" aria-label="Time of day"><span id="sunlabel">8:34</span></div>
   </div>
   <div class="group"><h2>Open &amp; close</h2>
-    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide the terrace doors open or shut (D)">Open terrace doors</button><button class="chip" id="t-glass" aria-pressed="false" title="Slide the glass door to the hall open or shut (G)">Open glass door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-layout" aria-pressed="false" title="Swap the living room and the dining: the TV to the north wall, the dining wall's cabinets to the east wall between the glazings (L)">Swap living &amp; dining</button><button class="chip" id="t-fire" aria-pressed="false" title="A built-in fireplace on the east wall by the terrace door, at the same spot in either layout (H)">Add fireplace</button></div>
+    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Slide both terrace doors open or shut; a click on one moves only that one (D)">Open terrace doors</button><button class="chip" id="t-glass" aria-pressed="false" title="Open or shut the glass door to the hall, or click the door itself (G)">Open glass door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-layout" aria-pressed="false" title="Swap the living room and the dining: the TV to the north wall, the dining wall's cabinets to the east wall between the glazings (L)">Swap living &amp; dining</button><button class="chip" id="t-fire" aria-pressed="false" title="A built-in fireplace on the east wall by the terrace door, at the same spot in either layout (H)">Add fireplace</button></div>
     <div class="winrow" title="The kitchen window's exterior venetian blinds: retracted (left) to let down to the sill (right); B lets them down or retracts them"><span>Blinds</span><input type="range" id="blind" min="0" max="1" step="0.01" value="0" aria-label="Kitchen window's exterior blinds, retracted to down"></div>
     <div class="winrow" title="Slat angle of the kitchen window's exterior blinds: open (left) to closed (right)"><span>Slats</span><input type="range" id="slats" min="0" max="1" step="0.01" value="0.3" aria-label="Slat angle, open to closed"></div>
   </div>
@@ -148,7 +153,7 @@
 
 <button id="opts" class="panel" aria-expanded="false" aria-controls="side">Options</button>
 <div id="views" class="panel"></div>
-<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a drawer to open it</div>
+<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a drawer or a door to open it</div>
 <div id="busy" class="panel">Updating…</div>
 
 <div id="loading"><div class="box"><div class="ring"></div><div id="status">Loading…</div></div></div>
@@ -346,6 +351,11 @@ function layoutMatrix(z) {
 // wall behind the dining wall (wall) and the bedroom corridor's (cor) running on north
 const DOOR_S = [49.625, 50.525], DOOR_H = 2.35;
 const SLIDE = { y0: 14.525, y1: 14.545, w: 1.018, shut: 49.566, open: 50.475, z0: 0.035, z1: 2.6, track: [KX1, 51.493] };
+// or (HDOORS, setHallDoor) a pivot door in the opening: the leaf x0..x1, z0..z1, t thick in the wall's middle (y), its
+// steel frame f wide round the glass; it turns on its pivot d in from either jamb (setPivot: left, seen from the room, by
+// the hall's mirror; right, by the coat hooks), the longer part into the hall or into the room (open, rad); round pulls
+// through the glass, pull in from the free edge
+const PIVOT = { x0: DOOR_S[0] + 0.005, x1: DOOR_S[1] - 0.005, d: 0.18, y: 14.67, t: 0.04, f: 0.035, z0: 0.008, z1: DOOR_H - 0.006, pull: 0.11, open: Math.PI / 2 };
 const BED = { wall: [50.57, 50.71], cor: [13.405, 13.545], end: 54.4 };
 // outside: the terrace, an L round the glazing (its slab x0..x1, y0..y1; its decking level with the floor), the glass
 // balustrade on its edges (the panes at y on the east, at x on the south, 1 m high), the roof's overhang over it lined in
@@ -1784,6 +1794,12 @@ groups.pendants.add(zones.ring, zones.skan);
 const KWIN = { tilt: new THREE.Group(), fixed: new THREE.Group() };
 groups.room.add(KWIN.tilt, KWIN.fixed);
 KWIN.fixed.visible = false;
+// the door to the hall as drawn (the glass slider and its track) and as a pivot door (setHallDoor), its pivot by the
+// left jamb or the right one (setPivot)
+const HDOOR = { slide: new THREE.Group(), pivot: new THREE.Group(), left: new THREE.Group(), right: new THREE.Group() };
+groups.room.add(HDOOR.slide, HDOOR.pivot);
+HDOOR.pivot.add(HDOOR.left, HDOOR.right);
+HDOOR.pivot.visible = HDOOR.right.visible = false;
 for (const g of Object.values(zones)) g.matrixAutoUpdate = false;
 let floorMesh, mirrorMesh, frontMeshes = [];
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -2627,17 +2643,21 @@ function buildMeshes({ meta, buf }) {
 
 // ---------------------------------------------------------------- doors: open / close
 // The terrace doors: the lift-and-slide sashes on the inner tracks slide over the fixed panes, glazing A's (the southern
-// one) north and the south glazing's (the western one) east (TDOOR.sashes: [group, axis, travel]); the glass door to the
-// hall slides along the lobby's side of the corridor wall
-const TDOOR = { open: false, t: 0, sashes: [] };
-const GLASS = { open: false, t: 0, group: null };
+// one) north and the south glazing's (the western one) east (TDOOR.sashes: each its group, axis and travel, open and t:
+// a click moves one, the chip both); the glass door to the hall slides along the lobby's side of the corridor wall
+// (GLASS.group) or, as a pivot door, turns in the opening (GLASS.leaves: left, right). DOORS: their meshes, glass and
+// all (a click on one opens or shuts it: userData.door on its group, a sash's index or 'hall')
+const TDOOR = { open: false, sashes: [] };
+const GLASS = { open: false, t: 0, group: null, leaves: {} };
+const DOORS = [];
 function buildDoors() {
   // each sash: its frame (8 cm stiles and rails), the pane, a pull on the room side by the jamb
   const sash = (axis, travel) => {
     const g = new THREE.Group();
     R.add(g);
-    flush(g);
-    TDOOR.sashes.push([g, axis, travel]);
+    g.userData.door = TDOOR.sashes.length;
+    DOORS.push(...flush(g));
+    TDOOR.sashes.push({ g, axis, travel, open: false, t: 0 });
   };
   {
     const { x0, x1, j, mull } = EG_A, s = 0.08, y0 = 9.885, y1 = EG.fy1, z0 = EG.sill, z1 = EG.head, a = x0 + j, b = mull[1];
@@ -2661,14 +2681,43 @@ function buildDoors() {
   }
   // the glass door: its track under the lobby's ceiling; a frameless 10 mm pane, grey-tinted, round flush pulls
   add(M.track, box(SLIDE.track[0], SLIDE.track[1], SLIDE.y0 - 0.01, YK, H - 0.03, H, { faces: 'xXyz' }));
-  flush(groups.room);
+  flush(HDOOR.slide);
   const g0 = SLIDE.shut, g1 = g0 + SLIDE.w, gy0 = SLIDE.y0 + 0.005, gy1 = SLIDE.y1 - 0.005, gz1 = H - 0.034;
   add(M.slideGlass, box(g0, g1, gy0, gy1, SLIDE.z0, gz1, { faces: 'yY' }));
   add(M.glassEdge, box(g0, g1, gy0, gy1, SLIDE.z0, gz1, { faces: 'xXzZ' }), { shadow: false });
   for (const [y, s] of [[gy1, 1], [gy0, -1]]) add(M.metal, cyl(0.022, 0.004, 'y', [g1 - 0.06, y + s * 0.002, 1.05], 28));
   GLASS.group = new THREE.Group();
-  R.add(GLASS.group);
-  flush(GLASS.group);
+  GLASS.group.userData.door = 'hall';
+  HDOOR.slide.add(GLASS.group);
+  DOORS.push(...flush(GLASS.group));
+  // or the pivot door, built for either jamb (HDOOR.left / right): the pivots' round plates in the floor and the head;
+  // the leaf, the same grey glass in a slim anthracite steel frame, a long round pull through the glass on each side by
+  // the free edge (GLASS.leaves turn about the pivot: each leaf is built in place in an inner group set back by it)
+  {
+    const { x0, x1, d, y, t, f, z0, z1 } = PIVOT, y0 = y - t / 2, y1 = y + t / 2;
+    for (const [side, px, bx] of [['left', DOOR_S[0] + d, x1 - PIVOT.pull], ['right', DOOR_S[1] - d, x0 + PIVOT.pull]]) {
+      add(M.metal, cyl(0.032, 0.002, 'z', [px, y, 0.001], 28));
+      add(M.metal, cyl(0.032, 0.002, 'z', [px, y, DOOR_H - 0.001], 28));
+      flush(HDOOR[side]);
+      add(M.frame, box(x0, x0 + f, y0, y1, z0, z1));
+      add(M.frame, box(x1 - f, x1, y0, y1, z0, z1));
+      add(M.frame, box(x0 + f, x1 - f, y0, y1, z0, z0 + f, { faces: 'yYzZ' }));
+      add(M.frame, box(x0 + f, x1 - f, y0, y1, z1 - f, z1, { faces: 'yYzZ' }));
+      add(M.slideGlass, box(x0 + f, x1 - f, y - 0.005, y + 0.005, z0 + f, z1 - f, { faces: 'yY' }));
+      for (const s of [1, -1]) {
+        add(M.metal, cyl(0.0125, 1.2, 'z', [bx, y + s * 0.065, 1.1], 28));
+        for (const z of [0.58, 1.62]) add(M.metal, cyl(0.007, 0.06, 'y', [bx, y + s * 0.035, z], 16));
+      }
+      const leaf = GLASS.leaves[side] = new THREE.Group();
+      leaf.position.set(px, y, 0);
+      leaf.userData.door = 'hall';
+      const inner = new THREE.Group();
+      inner.position.set(-px, -y, 0);
+      leaf.add(inner);
+      HDOOR[side].add(leaf);
+      DOORS.push(...flush(inner));
+    }
+  }
 }
 let envTimer = 0;
 const envSoon = () => { clearTimeout(envTimer); envTimer = setTimeout(() => { captureEnv(); dirty = true; }, 150); };
@@ -2678,8 +2727,17 @@ function chip(id, on, label) {
   b.setAttribute('aria-pressed', String(on));
   b.textContent = label;
 }
+// the terrace doors: both (the chip, D) or one (a click on it); the chip closes them while either is open
 function setDoor(open) {
-  TDOOR.open = open;
+  for (const s of TDOOR.sashes) s.open = open;
+  markDoor();
+}
+function toggleSash(i) {
+  TDOOR.sashes[i].open = !TDOOR.sashes[i].open;
+  markDoor();
+}
+function markDoor() {
+  const open = TDOOR.open = TDOOR.sashes.some((s) => s.open);
   chip('t-door', open, open ? 'Close terrace doors' : 'Open terrace doors');
   dirty = true;
 }
@@ -2877,19 +2935,58 @@ function setWindow(k) {
   renderLegend();
   dirty = true;
 }
+// the door to the hall: as drawn, the frameless glass slider; or the glass pivot door in the opening (open or shut as
+// the other was)
+const HDOORS = { slide: { label: 'Sliding' }, pivot: { label: 'Pivot' } };
+let hallKey = 'slide';
+function setHallDoor(k) {
+  hallKey = k;
+  HDOOR.slide.visible = k === 'slide';
+  HDOOR.pivot.visible = k === 'pivot';
+  document.querySelectorAll('#halldoors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  $('pivotrows').hidden = k !== 'pivot';
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
+// the pivot door: which way its longer part swings (into the hall or the room) and the jamb its pivot is by (seen from
+// the room: left, by the hall's mirror; right, by the coat hooks). An open door swings open again the new way
+const SWINGS = { hall: { label: 'Into hall' }, room: { label: 'Into room' } };
+const PIVOTS = { left: { label: 'Left' }, right: { label: 'Right' } };
+let swingKey = 'hall', pivotSide = 'left';
+// k: 0 shut .. 1 open
+function poseLeaves(k) {
+  for (const [side, leaf] of Object.entries(GLASS.leaves)) leaf.rotation.z = (side === 'left' ? 1 : -1) * (swingKey === 'hall' ? 1 : -1) * PIVOT.open * k;
+}
+function setPivot(swing = swingKey, side = pivotSide) {
+  swingKey = swing;
+  pivotSide = side;
+  HDOOR.left.visible = side === 'left';
+  HDOOR.right.visible = side === 'right';
+  if (GLASS.open) GLASS.t = 0;
+  poseLeaves(GLASS.t * GLASS.t * (3 - 2 * GLASS.t));
+  document.querySelectorAll('#swings button').forEach((b) => b.classList.toggle('on', b.dataset.key === swing));
+  document.querySelectorAll('#pivots button').forEach((b) => b.classList.toggle('on', b.dataset.key === side));
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
 // one animation step for the doors; true while something moved
 function animateOpenings(dt) {
   let moved = false;
   const ease = (x) => x * x * (3 - 2 * x);
-  if (TDOOR.sashes.length && TDOOR.t !== (TDOOR.open ? 1 : 0)) {
-    TDOOR.t = THREE.MathUtils.clamp(TDOOR.t + (TDOOR.open ? dt : -dt) / 2.2, 0, 1);
-    for (const [g, axis, travel] of TDOOR.sashes) g.position[axis] = travel * ease(TDOOR.t);
-    if (TDOOR.t === 0 || TDOOR.t === 1) envSoon();
+  for (const s of TDOOR.sashes) if (s.t !== (s.open ? 1 : 0)) {
+    s.t = THREE.MathUtils.clamp(s.t + (s.open ? dt : -dt) / 2.2, 0, 1);
+    s.g.position[s.axis] = s.travel * ease(s.t);
+    if (s.t === 0 || s.t === 1) envSoon();
     moved = true;
   }
   if (GLASS.group && GLASS.t !== (GLASS.open ? 1 : 0)) {
-    GLASS.t = THREE.MathUtils.clamp(GLASS.t + (GLASS.open ? dt : -dt) / 1.0, 0, 1);
+    GLASS.t = THREE.MathUtils.clamp(GLASS.t + (GLASS.open ? dt : -dt) / (hallKey === 'pivot' ? 1.4 : 1.0), 0, 1);
     GLASS.group.position.x = (SLIDE.open - SLIDE.shut) * ease(GLASS.t);
+    poseLeaves(ease(GLASS.t));
     if (GLASS.t === 0 || GLASS.t === 1) envSoon();
     moved = true;
   }
@@ -3705,7 +3802,7 @@ function renderLegend() {
     ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an IKEA ÄPPLARYD sofa, three seats and a chaise longue (290 cm) on slim black legs, in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit' + (fireOn && !sw ? ' up to the fireplace, a 55-inch TV over it' : '') + '; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
     ['Floor', floor, floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
-    ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); a frameless glass door to the hall', '#383b3e'],
+    ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
     ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
@@ -3853,6 +3950,9 @@ function buildUI() {
   seg($('fabrics'), FABRICS, (k) => withBusy(async () => { applyFabric(k); captureEnv(); }), fabricKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
   seg($('windows'), WINDOWS, (k) => setWindow(k), windowKey);
+  seg($('halldoors'), HDOORS, (k) => setHallDoor(k), hallKey);
+  seg($('swings'), SWINGS, (k) => setPivot(k), swingKey);
+  seg($('pivots'), PIVOTS, (k) => setPivot(swingKey, k), pivotSide);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
   // closes)
   $('paint-pick').insertAdjacentHTML('beforebegin', Object.entries(PAINTS).map(([k, v]) => `<button data-key="${k}" class="${k === paintKey ? 'on' : ''}" style="background:${v.color}" title="${v.label}" aria-label="${v.label}"></button>`).join(''));
@@ -3911,6 +4011,9 @@ function buildUI() {
     if (k === 'l') { setLayout(!layoutSwapped); return; }
     if (k === 'h') { setFire(!fireOn); return; }
     if (k === 'k') { setWindow(windowKey === 'tilt' ? 'fixed' : 'tilt'); return; }
+    if (k === 'v') { setHallDoor(hallKey === 'slide' ? 'pivot' : 'slide'); return; }
+    if (k === 'i' && hallKey === 'pivot') { setPivot(swingKey === 'hall' ? 'room' : 'hall'); return; }
+    if (k === 'j' && hallKey === 'pivot') { setPivot(swingKey, pivotSide === 'left' ? 'right' : 'left'); return; }
     if (k === 'b') { setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true); return; }
     if (busy) return;
     if (k === 's') {
@@ -3933,24 +4036,32 @@ function buildUI() {
   const ray = new THREE.Raycaster(), shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
   const aim = (e) => ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
   const pick = (e) => { aim(e); return ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && !NO_AO.has(h.object.material)); };
-  const drawerAt = (e) => {
+  // what a click there would open or shut: a drawer, a terrace door or the glass door to the hall (a door's glass
+  // counts, unlike the rest of the glass), as a function; the whole room searched only when one is in line
+  const actionAt = (e) => {
     aim(e);
-    if (!ray.intersectObjects(DRAWERS.meshes, false).length) return undefined;
-    for (let o = pick(e)?.object; o; o = o.parent) if (o.userData.drawer !== undefined) return o.userData.drawer;
+    if (!ray.intersectObjects(DRAWERS.meshes, false).length && !ray.intersectObjects(DOORS, false).length) return undefined;
+    const door = (o) => { for (; o; o = o.parent) if (o.userData.door !== undefined) return true; return false; };
+    const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && (!NO_AO.has(h.object.material) || door(h.object)));
+    for (let o = hit?.object; o; o = o.parent) {
+      const { drawer: i, door: d } = o.userData;
+      if (i !== undefined) return () => toggleDrawer(i);
+      if (d !== undefined) return d === 'hall' ? () => setGlass(!GLASS.open) : () => toggleSash(d);
+    }
     return undefined;
   };
-  // a click on a drawer opens or closes it (not the end of a drag, nor a double-click's second click); a hand over one
+  // a click on a drawer or a door opens or closes it (not the end of a drag, nor a double-click's second click); a hand
+  // over one
   let downAt = [0, 0], hoverAt = 0;
   renderer.domElement.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
   renderer.domElement.addEventListener('click', (e) => {
     if (e.detail > 1 || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
-    const i = drawerAt(e);
-    if (i !== undefined) toggleDrawer(i);
+    actionAt(e)?.();
   });
   renderer.domElement.addEventListener('pointermove', (e) => {
     if (e.buttons || e.pointerType !== 'mouse' || performance.now() - hoverAt < 100) return;
     hoverAt = performance.now();
-    renderer.domElement.style.cursor = drawerAt(e) !== undefined ? 'pointer' : '';
+    renderer.domElement.style.cursor = actionAt(e) ? 'pointer' : '';
   });
   renderer.domElement.addEventListener('dblclick', (e) => {
     const hit = pick(e);
@@ -4119,7 +4230,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setFire, setWindow, KWIN, GARDEN, setBlinds, BLINDS, setFloorTone, toggleDrawer, DRAWERS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setFire, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
