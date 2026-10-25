@@ -2197,7 +2197,7 @@ const VANITIES = {
     },
   },
 };
-let vanityKey = 'trough';
+let vanityKey = 'box';      // the default (user, 2026-10-25)
 function buildVanities(skp) {
   const tap = findInstance(skp, (d) => d.name === 'Component#284');
   for (const [key, v] of Object.entries(VANITIES)) {
