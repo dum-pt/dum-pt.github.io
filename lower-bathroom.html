@@ -94,7 +94,7 @@
 </div>
 
 <div id="side" class="panel">
-  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The shower, the vanity counter with its fluted backsplash, the niches and the WC wall (S)"></div></div>
+  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The shower with its ledge and niche, the vanity counter with its fluted backsplash and the WC wall (S)"></div></div>
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The vanity's drawers and the cabinets (O)"></div></div>
   <div class="group"><h2>Vanity</h2><div class="seg" id="vanities"></div>
     <div class="chips" id="vanity-flip"><button class="chip" id="t-flip" aria-pressed="false" title="Mirror the vanity along the wall, swapping its door and shower ends (F)">Flip vanity</button></div>
@@ -177,14 +177,17 @@ const VAN = { x0: 6.5325, z0: 0.3277, z1: 0.6777, split: 4.262 };   // floating 
 const BASIN_RIM = 0.90;                                              // raised from the model's 0.818
 const MIRROR = { y0: 2.774, y1: 4.47, z0: 1.133, x: X1 - 0.03 };   // z0 = top of the backsplash, x = mirror face (30 mm off the wall, backlit)
 const SCREEN_Y = 4.312, SCREEN_X1 = 5.58;                           // shower glass
-const NICHE_SHELVES = [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1];           // 0.9 and 1.2 are the model's shelves
-const BRUSH_DOOR = 0.578;                                            // closed toilet-brush compartment at the foot of the niche by the WC
-// vertical LED lines in the left-hand side wall of each niche (seen facing it), 2.6 cm behind the front edge
+// the niche between the WC and the tall cabinet (user, 2026-10-25, after a photograph): from the WC wall (a) to the
+// cabinet's walnut end (b), both rounded to r at the front, black steel shelves (tops at `shelves`), a backlit marble back
+const WCN = { a: 3.062, b: 3.281, r: 0.03, shelves: [0.72, 1.3, 1.56, 2.18] };
+// vertical LED lines in the left-hand side wall of each niche (seen facing it), 2.6 cm behind the front edge: none on
+// this page (the WC niche is lit by its marble, the shower niche by a line under its top)
 const NICHE_LEDS = [
-  { x: PRE - 0.026, y: 3.082, z0: BRUSH_DOOR + 0.022, z1: H - 0.02 },          // niche by the WC, above the brush door
-  { x: PRE - 0.026, y: COVE_Y + 0.015, z0: 0.06, z1: H - 0.02 },               // shower niche
 ];
-const SHOWER_SHELVES = [0.65, 1.0, 1.35, 1.7];
+// the shower as on the one-wall page (user, 2026-10-25): its back recessed to the outer wall, a floating stone ledge
+// along it as deep as the pre-wall; a niche cut into its left wall (the walnut cabinet's end, 10 cm narrower for it)
+const SLEDGE = { z0: 0.289, z1: 0.45 };
+const SN = { x0: X0 + 0.035, x1: PRE - 0.02, y0: SCREEN_Y - 0.1, z0: 0.95, z1: 1.75, shelf: 1.35 };
 // the closed "door" in the north wall is a full-height tilt & turn window; it faces due east. heroal W 72 aluminium as
 // in the master bathroom (user, 2026-10-25): the frame 72 mm deep showing 50 mm all round (its inner face where the
 // model has it), the sash in it with a 3 mm gap, 84 mm deep (12 mm proud of the frame indoors) and 37 mm wide on every
@@ -920,6 +923,8 @@ const E = {
   globe: physical({ color: 0xffffff, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 1 }),
   led: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   nicheLed: physical({ color: 0xe8e4dc, roughness: 0.35, emissive: 0xffffff, emissiveIntensity: 0 }),   // opal diffuser
+  // the WC niche's back: marble lit from behind (the Carrara photograph as colour and glow, set by applyNicheBack)
+  nicheBack: physical({ roughness: 0.3, clearcoat: 0.4, clearcoatRoughness: 0.1, emissive: 0xffffff, emissiveIntensity: 0 }),
   // glow of the LED strip behind the mirror on the wall around it (additive, falls off with distance from the edge)
   halo: new THREE.ShaderMaterial({
     uniforms: { uColor: { value: new THREE.Color(0) }, uC: { value: new THREE.Vector2() }, uHalf: { value: new THREE.Vector2() }, uFall: { value: 0.045 } },
@@ -1034,6 +1039,21 @@ function box(x0, x1, y0, y1, z0, z1, { faces = 'xXyYzZ', swap = false } = {}) {
 }
 // three.js primitives are y-up; these place them in SketchUp coords
 const zUp = new THREE.Matrix4().makeRotationX(Math.PI / 2);
+// a rounded vertical edge: the arc t0..t1 (0 = facing +x, pi/2 = +y; t1 > t0) of a cylinder of radius r about
+// (cx, cy), facing out, its UVs in metres (u along the arc from u0, v up)
+function roundEdge(r, cx, cy, t0, t1, z0, z1, u0 = 0, seg = 12) {
+  const pos = [], nrm = [], uv = [];
+  const v = (t, z) => { pos.push(cx + r * Math.cos(t), cy + r * Math.sin(t), z); nrm.push(Math.cos(t), Math.sin(t), 0); uv.push(u0 + r * (t - t0), z); };
+  for (let i = 0; i < seg; i++) {
+    const ta = t0 + ((t1 - t0) * i) / seg, tb = t0 + ((t1 - t0) * (i + 1)) / seg;
+    v(ta, z0); v(tb, z0); v(tb, z1); v(ta, z0); v(tb, z1); v(ta, z1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
 function cyl(r, len, axis, c, seg = 24, r2 = r) {
   const g = new THREE.CylinderGeometry(r2, r, len, seg);
   g.applyMatrix4(zUp);                                     // along z
@@ -1186,25 +1206,26 @@ function buildArchitecture() {
   floorRefl.meshes.push(floorMesh);
 
   // west side: WC pre-wall, a shelf niche, a tall walnut cabinet running to the shower wall, shower wall and recess
-  add(M.plaster, box(X0, 4.817, Y0, 3.062, 0, H, { faces: 'yY' }));
+  add(M.plaster, box(X0, 4.817, Y0, 3.062, 0, H, { faces: 'y' }));
   // WC wall: large-format stone tiles from floor to ceiling, one fine joint at 1.2 m
-  add(M.lower, box(4.817, PRE, Y0, 3.062, 0, 1.199, { faces: 'XyZ' }));
-  add(M.lower, box(4.817, PRE - 0.0015, Y0, 3.062, 1.199, 1.201, { faces: 'X' }));
-  add(M.lower, box(4.817, PRE, Y0, 3.062, 1.201, H, { faces: 'Xyz' }));
+  add(M.lower, box(4.817, PRE, Y0, WCN.a - WCN.r, 0, 1.199, { faces: 'XyZ' }));
+  add(M.lower, box(4.817, PRE - 0.0015, Y0, WCN.a - WCN.r, 1.199, 1.201, { faces: 'X' }));
+  add(M.lower, box(4.817, PRE, Y0, WCN.a - WCN.r, 1.201, H, { faces: 'Xyz' }));
+  // the niche: the WC wall's stone and the cabinet's walnut end round into it; its back is backlit marble (E.nicheBack,
+  // lit with the niche lights), its shelves thin black steel, the toilet brush stands on its floor
   {
-    const a = 3.062, b = 3.311;
-    add(M.accent, box(X0, X0 + 0.02, a, b, 0, H, { faces: 'X' }));
-    add(M.accent, box(X0 + 0.02, PRE, a, a + 0.02, 0, H, { faces: 'YX' }));
-    add(M.accent, box(X0 + 0.02, PRE, b - 0.02, b, 0, H, { faces: 'yX' }));
-    // no bottom shelf: that space is the closed toilet-brush compartment
-    for (const z of NICHE_SHELVES.filter((v) => v > BRUSH_DOOR)) add(M.accent, box(X0 + 0.02, PRE - 0.004, a + 0.02, b - 0.02, z - 0.02, z, { faces: 'XzZ' }));
+    const { a, b, r } = WCN, xb = X0 + 0.02;
+    add(E.nicheBack, box(X0, xb, a, b, 0, H, { faces: 'X' }), { shadow: false });
+    add(M.lower, box(xb, PRE - r, a - 0.02, a, 0, H, { faces: 'Y' }));
+    add(M.lower, roundEdge(r, PRE - r, a - r, 0, Math.PI / 2, 0, H, a - r));
+    add(M.veneer, box(xb, PRE - r, b, 3.311, 0, H, { faces: 'y' }));
+    add(M.veneer, roundEdge(r, PRE - r, b + r, -Math.PI / 2, 0, 0, H));
+    for (const z of WCN.shelves) add(M.mirrorFrame, box(xb, PRE - 0.015, a, b, z - 0.008, z, { faces: 'XzZ' }));
   }
-  // its flush stone door (push to open), set in the niche opening with 1.5 mm gaps
-  add(M.accent, box(PRE - 0.02, PRE, 3.0835, 3.2895, 0.012, BRUSH_DOOR, { faces: 'XyYzZ' }));
-  // tall walnut cabinet, 98 cm wide: a pair of towel-cupboard doors (push to open) over two tilt-out
+  // tall walnut cabinet, 88 cm wide (10 cm went to the shower's niche): a pair of towel-cupboard doors (push to open) over two tilt-out
   // laundry hampers with a finger slot along their top edge; 3 mm shadow gaps, 2 cm stone edges either side
   {
-    const s0 = 3.311, s1 = 4.292, c0 = s0 + 0.003, c1 = s1 - 0.003, cm = (c0 + c1) / 2, g = 0.0015;
+    const s0 = 3.311, s1 = SN.y0 - 0.02, c0 = s0 + 0.003, c1 = s1 - 0.003, cm = (c0 + c1) / 2, g = 0.0015;
     const hz = 0.72, slot = 0.03, top = hz - slot, ix = X0 + 0.02;
     add(M.accent, box(X0 + 0.02, PRE, s1, SCREEN_Y, 0, H, { faces: 'X' }));          // stone edge towards the shower wall
     add(M.dark, box(4.80, PRE - 0.008, s0, s1, top, H, { faces: 'X' }));              // carcass seen through the gaps
@@ -1225,11 +1246,28 @@ function buildArchitecture() {
     add(E.nicheLed, box(n.x - 0.004, n.x + 0.004, n.y, n.y + 0.0012, n.z0 + 0.003, n.z1 - 0.003, { faces: 'Y' }), { shadow: false });
   }
   // shower walls in book-matched slabs
-  add(M.slab, box(4.817, PRE, SCREEN_Y, COVE_Y, 0, H, { faces: 'XY' }));
-  add(M.slab, box(X0, X0 + 0.015, COVE_Y, Y1, 0, WT, { faces: 'X' }));
-  add(M.slab, box(X0 + 0.015, PRE, COVE_Y, COVE_Y + 0.015, 0, H, { faces: 'Y' }));
+  // the shower's back recessed to the outer wall, a floating ledge along it, a niche in its left wall
+  add(M.slab, box(X0, X0 + 0.015, SCREEN_Y, Y1, 0, WT, { faces: 'X' }));
   add(M.slab, box(X0, DOOR_N[0], Y1 - 0.015, Y1, 0, WT, { faces: 'yX' }));
-  for (const z of SHOWER_SHELVES) add(M.slab, box(X0 + 0.015, PRE - 0.004, COVE_Y + 0.015, Y1 - 0.015, z - 0.02, z, { faces: 'XzZ' }));
+  add(M.slab, box(X0 + 0.015, PRE, SCREEN_Y, Y1 - 0.015, SLEDGE.z0, SLEDGE.z1, { faces: 'XzZ' }));
+  {
+    const { x0, x1, y0, z0, z1, shelf } = SN, y1 = SCREEN_Y, sw = X0 + 0.015;
+    // the left wall (the cabinet's end) round the niche
+    add(M.slab, box(sw, x0, y1 - 0.02, y1, 0, H, { faces: 'Y' }));
+    add(M.slab, box(x1, PRE, y1 - 0.02, y1, 0, H, { faces: 'Y' }));
+    add(M.slab, box(x0, x1, y1 - 0.02, y1, 0, z0, { faces: 'Y' }));
+    add(M.slab, box(x0, x1, y1 - 0.02, y1, z1, H, { faces: 'Y' }));
+    // the niche, lined in the same stone, a shelf across it
+    add(M.slab, box(x0, x1, y0 - 0.02, y0, z0, z1, { faces: 'Y' }));
+    add(M.slab, box(x0 - 0.02, x0, y0, y1, z0, z1, { faces: 'X' }));
+    add(M.slab, box(x1, x1 + 0.02, y0, y1, z0, z1, { faces: 'x' }));
+    add(M.slab, box(x0, x1, y0, y1, z0 - 0.02, z0, { faces: 'Z' }));
+    add(M.slab, box(x0, x1, y0, y1, z1, z1 + 0.02, { faces: 'z' }));
+    add(M.slab, box(x0, x1, y0, y1 - 0.004, shelf - 0.02, shelf, { faces: 'YzZ' }));
+    // an LED line under its top, at the front: an opal diffuser in a slim profile
+    add(M.metal, box(x0, x1, y1 - 0.034, y1 - 0.018, z1 - 0.0006, z1, { faces: 'z' }), { shadow: false });
+    add(E.nicheLed, box(x0 + 0.003, x1 - 0.003, y1 - 0.031, y1 - 0.021, z1 - 0.0012, z1, { faces: 'z' }), { shadow: false });
+  }
 
   // east side: the mirror (the vanity, its backsplash, basin and tap come in versions: see buildVanities)
 
@@ -1247,7 +1285,7 @@ function buildArchitecture() {
   add(M.glass, box(PRE, SCREEN_X1, SCREEN_Y - 0.005, SCREEN_Y + 0.005, 0.004, H - 0.003, { faces: 'yY' }), { shadow: false });
   add(M.glassEdge, box(PRE, SCREEN_X1, SCREEN_Y - 0.005, SCREEN_Y + 0.005, 0.004, H - 0.003, { faces: 'XzZ' }), { shadow: false });
   add(M.metal, box(PRE, PRE + 0.018, SCREEN_Y - 0.011, SCREEN_Y + 0.011, 0, H, { faces: 'XyY' }));
-  // linear drain along the wall with the thermostat and hand shower
+  // linear drain along the shower's back, in front of the ledge
   add(M.dark, box(PRE + 0.004, PRE + 0.044, SCREEN_Y + 0.05, Y1 - 0.04, -0.004, 0.0004, { faces: 'Z' }), { shadow: false });
   for (let y = SCREEN_Y + 0.056; y < Y1 - 0.046; y += 0.012) add(M.metal, box(PRE + 0.006, PRE + 0.042, y, y + 0.008, 0, 0.0012, { faces: 'ZxXyY' }), { shadow: false });
 
@@ -1479,6 +1517,50 @@ function buildCeilingFixtures() {
     g(M.metal, cyl(r, 0.003, 'z', [x, y, z0 - 0.0015], 40));
   }
 }
+// The WC's seat and lid, as in the master bathroom (the model has neither; user, 2026-10-25): white duroplast on the
+// rim, following its plan, a superellipse at the front and straight sides back to two hinges. Built in the toilet's
+// own plan (x back towards the wall, y across, z up from the component's origin), then placed with it; a click on the
+// lid (not a drag) lifts or lowers it.
+const LID = { open: false, t: 0, max: THREE.MathUtils.degToRad(93), pivot: null };
+function buildSeat(placed) {
+  const m = placed.multiply(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+  const xb = 0.195, zr = 0.349, bev = 0.006;
+  const sup = (xc, a, b, n, back) => {   // the front half of a superellipse, then straight back to x = back (or the whole of it)
+    const pts = [];
+    for (let i = 0; i <= 32; i++) {
+      const t = -Math.PI / 2 + (i / 32) * Math.PI, c = Math.cos(t), s = Math.sin(t);
+      pts.push(new THREE.Vector2(xc - a * c ** (2 / n), b * Math.sign(s) * Math.abs(s) ** (2 / n)));
+    }
+    if (back) pts.push(new THREE.Vector2(back, b), new THREE.Vector2(back, -b));
+    else for (let i = 31; i > 0; i--) pts.push(new THREE.Vector2(2 * xc - pts[i].x, pts[i].y));
+    return pts;
+  };
+  const plan = (inset) => sup(-0.115, 0.154 - inset, 0.176 - inset, 2.6, xb - inset);
+  const ext = (shape, depth, z) => new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.005, bevelSize: bev, bevelSegments: 3, curveSegments: 1 }).translate(0, 0, z + 0.005);
+  const seat = new THREE.Shape(plan(bev));
+  seat.holes.push(new THREE.Path(sup(-0.065, 0.165 + bev, 0.115 + bev, 2.2)));
+  add(M.ceramic, ext(seat, 0.012, zr + 0.003).applyMatrix4(m));
+  for (const [x, dy] of [[-0.175, 0.13], [0.105, 0.14]]) for (const s of [-1, 1]) add(M.rubber, cyl(0.008, 0.003, 'z', [x, s * dy, zr + 0.0015], 16).applyMatrix4(m));
+  for (const s of [-1, 1]) {
+    add(M.metal, cyl(0.011, 0.03, 'y', [xb + 0.006, s * 0.115, zr + 0.03], 20).applyMatrix4(m));
+    add(M.metal, box(xb - 0.01, xb + 0.02, s * 0.115 - 0.015, s * 0.115 + 0.015, zr, zr + 0.004).applyMatrix4(m));
+  }
+  const base = new THREE.Group(), pivot = new THREE.Group(), hz = zr + 0.026;
+  base.matrixAutoUpdate = false;
+  base.matrix.copy(m);
+  pivot.position.set(xb, 0, hz);
+  const lid = new THREE.Mesh(ext(new THREE.Shape(plan(bev + 0.001)), 0.01, hz).translate(-xb, 0, -hz), M.ceramic);
+  lid.castShadow = lid.receiveShadow = true;
+  lid.userData.lid = true;
+  pivot.add(lid);
+  base.add(pivot);
+  groups.room.add(base);
+  LID.pivot = pivot;
+}
+function setLid(open) {
+  LID.open = open;
+  dirty = true;
+}
 // Tilt-out laundry hampers (two, lights and colours): a walnut front with a linen bag on a frame behind
 // it, pivoting on the front's bottom edge. Meshes are built in room coordinates, then shifted onto the pivot.
 const hampers = [];
@@ -1580,6 +1662,7 @@ function buildFittings(skp) {
   // toilet (Duravit Starck 3 from the model)
   const toilet = findInstance(skp, (d, m) => (m && /duravit/i.test(m.n)) || /^M_40d6714e/.test(d.name));
   if (toilet) for (const g of skpGeometry(skp, toilet[0], new THREE.Matrix4().fromArray(toilet, 2))) add(M.ceramic, g);
+  if (toilet) buildSeat(new THREE.Matrix4().fromArray(toilet, 2));
   // WC: flush plate
   add(M.metal, box(PRE, PRE + 0.006, 2.40, 2.64, 0.985, 1.15));
   add(M.metal, box(PRE + 0.006, PRE + 0.009, 2.406, 2.517, 0.991, 1.144));
@@ -1603,9 +1686,14 @@ function buildFittings(skp) {
       add(M.metal, box(sx - 0.025, sx + 0.025, Y0 + 0.006, Y0 + 0.0095, z - 0.025, z + 0.025, { faces: 'xXYzZ' }));
     }
   }
-  // toilet brush, in the closed compartment at the foot of the niche next to the WC
-  add(M.metal, cyl(0.043, 0.36, 'z', [4.742, 3.186, 0.18], 32));
-  add(M.metal, cyl(0.008, 0.12, 'z', [4.742, 3.186, 0.42], 12));
+  // toilet brush, standing on the floor of the niche next to the WC: a slim holder, its handle rising out of it
+  {
+    const bx = 4.75, by = (WCN.a + WCN.b) / 2;
+    add(M.metal, cyl(0.032, 0.27, 'z', [bx, by, 0.135], 32));
+    add(M.dark, cyl(0.028, 0.002, 'z', [bx, by, 0.27], 28));
+    add(M.metal, cyl(0.0045, 0.33, 'z', [bx, by, 0.435], 12));
+    add(M.metal, sphere(0.0065, [bx, by, 0.6], 16));
+  }
 
   // hand towels: two folded over a slim bar on the wall to the right of the mirror, above the tray
   {
@@ -1646,17 +1734,18 @@ function buildFittings(skp) {
     towel(M.towel2, 2.39, 0.19, 0.22, 0.29, 2.1);
   }
 
-  // shower: thermostat, hand shower on a holder with hose
-  add(M.metal, box(PRE, PRE + 0.006, 4.47, 4.55, 0.96, 1.22));
+  // shower: thermostat, hand shower on a holder with hose, on the back wall above the ledge
+  const SW = X0 + 0.015;
+  add(M.metal, box(SW, SW + 0.006, 4.47, 4.55, 0.96, 1.22));
   for (const z of [1.03, 1.15]) {
-    add(M.metal, cyl(0.022, 0.03, 'x', [PRE + 0.021, 4.51, z], 32));
-    add(M.metal, cyl(0.004, 0.032, 'z', [PRE + 0.038, 4.51, z + 0.012], 8));
+    add(M.metal, cyl(0.022, 0.03, 'x', [SW + 0.021, 4.51, z], 32));
+    add(M.metal, cyl(0.004, 0.032, 'z', [SW + 0.038, 4.51, z + 0.012], 8));
   }
-  add(M.metal, cyl(0.014, 0.03, 'x', [PRE + 0.015, 4.70, 0.98]));
-  add(M.metal, cyl(0.013, 0.05, 'x', [PRE + 0.025, 4.80, 1.32]));
-  add(M.metal, cyl(0.014, 0.2, 'z', [PRE + 0.05, 4.80, 1.23], 24, 0.012));
-  add(M.metal, cyl(0.027, 0.04, 'z', [PRE + 0.05, 4.80, 1.35], 32, 0.02));
-  const hose = new THREE.CatmullRomCurve3([[PRE + 0.03, 4.70, 0.98], [PRE + 0.09, 4.69, 0.7], [PRE + 0.11, 4.75, 0.5], [PRE + 0.08, 4.80, 0.68], [PRE + 0.05, 4.80, 1.12]].map((p) => new THREE.Vector3(...p)));
+  add(M.metal, cyl(0.014, 0.03, 'x', [SW + 0.015, 4.70, 0.98]));
+  add(M.metal, cyl(0.013, 0.05, 'x', [SW + 0.025, 4.80, 1.32]));
+  add(M.metal, cyl(0.014, 0.2, 'z', [SW + 0.05, 4.80, 1.23], 24, 0.012));
+  add(M.metal, cyl(0.027, 0.04, 'z', [SW + 0.05, 4.80, 1.35], 32, 0.02));
+  const hose = new THREE.CatmullRomCurve3([[SW + 0.03, 4.70, 0.98], [SW + 0.09, 4.69, 0.8], [SW + 0.11, 4.75, 0.62], [SW + 0.08, 4.80, 0.74], [SW + 0.05, 4.80, 1.12]].map((p) => new THREE.Vector3(...p)));
   add(M.metal, new THREE.TubeGeometry(hose, 64, 0.0055, 10, false));
 }
 
@@ -1666,57 +1755,67 @@ function buildRadiators() {
   const wallX = (z) => (z < MIRROR.z0 ? X1 - 0.015 : X1);   // backsplash below the mirror ledge
   for (const y of [4.585, 4.785]) {
     const x = X1 - 0.07, z0 = 0.96, z1 = 1.56, zb = z1 - 0.08, zp = z0 - 0.05;
-    add(M.metal, cyl(0.03, z1 - z0, 'z', [x, y, (z0 + z1) / 2], 40));
-    add(M.metal, cyl(0.03, 0.008, 'z', [x, y, z1 + 0.004], 40, 0.023));
-    add(M.metal, cyl(0.03, 0.008, 'z', [x, y, z0 - 0.004], 40));
-    add(M.metal, cyl(0.007, wallX(zb) - x, 'x', [(x + wallX(zb)) / 2, y, zb], 12));
-    add(M.metal, cyl(0.016, 0.006, 'x', [wallX(zb) - 0.003, y, zb], 20));
-    add(M.metal, cyl(0.011, 0.05, 'z', [x, y, z0 - 0.025], 20));
-    add(M.metal, sphere(0.011, [x, y, zp], 16));
-    add(M.metal, cyl(0.011, wallX(zp) - x, 'x', [(x + wallX(zp)) / 2, y, zp], 20));
-    add(M.metal, cyl(0.022, 0.006, 'x', [wallX(zp) - 0.003, y, zp], 24));
+    const r = 0.016, rp = 0.008;   // slim tubes, 3.2 cm across, on 1.6 cm feed pipes, as in the master bathroom
+    add(M.metal, cyl(r, z1 - z0, 'z', [x, y, (z0 + z1) / 2], 32));
+    add(M.metal, cyl(r, 0.008, 'z', [x, y, z1 + 0.004], 32, r - 0.004));
+    add(M.metal, cyl(r, 0.008, 'z', [x, y, z0 - 0.004], 32));
+    add(M.metal, cyl(0.006, wallX(zb) - x, 'x', [(x + wallX(zb)) / 2, y, zb], 12));
+    add(M.metal, cyl(0.014, 0.006, 'x', [wallX(zb) - 0.003, y, zb], 20));
+    add(M.metal, cyl(rp, 0.05, 'z', [x, y, z0 - 0.025], 20));
+    add(M.metal, sphere(rp, [x, y, zp], 16));
+    add(M.metal, cyl(rp, wallX(zp) - x, 'x', [(x + wallX(zp)) / 2, y, zp], 20));
+    add(M.metal, cyl(0.018, 0.006, 'x', [wallX(zp) - 0.003, y, zp], 24));
   }
 }
 
 function buildAccessories() {
-  // niche styling
-  for (const y of [3.13, 3.24]) add(M.towel, cyl(0.045, 0.17, 'x', [4.74, y, 0.946], 28));
-  add(M.towel2, cyl(0.045, 0.17, 'x', [4.74, 3.185, 1.024], 28));
-  add(M.clearGlass, lathe([[0, 0], [0.034, 0], [0.035, 0.085], [0.032, 0.085], [0.031, 0.004], [0, 0.004]], [4.74, 3.19, 1.2]));
-  add(M.wax, cyl(0.03, 0.055, 'z', [4.74, 3.19, 1.232], 28));
+  // the WC niche: on its black steel shelves two amber pump bottles, small glass bottles and a jar, a black pump
+  // bottle and a tube; the top shelf is left empty
   const nx = 4.74;
-  // south niche: folded hand towels, reed diffuser, cotton jars, small vase
-  add(M.towel2, rbox(0.16, 0.19, 0.034, 0.012, [nx, 3.186, 0.617]));
-  add(M.towel, rbox(0.155, 0.185, 0.034, 0.012, [nx + 0.004, 3.188, 0.651]));
-  add(M.amber, cyl(0.03, 0.09, 'z', [nx, 3.15, 1.545], 28));
-  add(M.metal, cyl(0.012, 0.012, 'z', [nx, 3.15, 1.596], 20));
-  for (let i = 0; i < 7; i++) {
-    const a = (i / 7) * Math.PI * 2, tilt = 0.18 + (i % 3) * 0.05;
-    const reed = new THREE.CylinderGeometry(0.0016, 0.0016, 0.16, 5).applyMatrix4(zUp).translate(0, 0, 0.08);
-    reed.rotateX(Math.sin(a) * tilt).rotateY(Math.cos(a) * tilt).translate(nx, 3.15, 1.6);
-    add(M.stem, reed);
+  {
+    const pump = (x, y, z, mat) => {
+      add(mat, cyl(0.011, 0.025, 'z', [x, y, z + 0.0125], 20));
+      add(mat, cyl(0.014, 0.012, 'z', [x, y, z + 0.031], 20));
+      add(mat, cyl(0.004, 0.032, 'x', [x + 0.016, y, z + 0.033], 10));
+    };
+    let z = WCN.shelves[0];
+    for (const y of [3.13, 3.215]) {
+      add(M.amber, cyl(0.03, 0.15, 'z', [nx, y, z + 0.075], 28));
+      pump(nx, y, z + 0.15, M.dark);
+    }
+    z = WCN.shelves[1];
+    add(M.clearGlass, lathe([[0, 0], [0.022, 0], [0.022, 0.07], [0.008, 0.08], [0.008, 0.088], [0, 0.088]], [nx + 0.01, 3.105, z]));
+    add(M.metal, cyl(0.011, 0.024, 'z', [nx + 0.01, 3.105, z + 0.098], 20));
+    add(M.clearGlass, lathe([[0, 0], [0.017, 0], [0.017, 0.05], [0.006, 0.058], [0.006, 0.064], [0, 0.064]], [nx - 0.01, 3.15, z]));
+    add(M.dark, cyl(0.009, 0.018, 'z', [nx - 0.01, 3.15, z + 0.073], 16));
+    add(M.pottery, lathe([[0, 0], [0.028, 0], [0.03, 0.045], [0.026, 0.05], [0, 0.05]], [nx, 3.205, z]));
+    add(M.potteryDark, cyl(0.03, 0.008, 'z', [nx, 3.205, z + 0.054], 24));
+    add(M.clearGlass, lathe([[0, 0], [0.014, 0], [0.014, 0.075], [0.005, 0.082], [0.005, 0.09], [0, 0.09]], [nx + 0.005, 3.248, z]));
+    add(M.metal, cyl(0.008, 0.02, 'z', [nx + 0.005, 3.248, z + 0.1], 16));
+    z = WCN.shelves[2];
+    add(M.dark, cyl(0.03, 0.17, 'z', [nx, 3.135, z + 0.085], 28));
+    pump(nx, 3.135, z + 0.17, M.dark);
+    add(M.dark, rbox(0.035, 0.055, 0.15, 0.012, [nx, 3.215, z + 0.075]));
+    add(M.dark, cyl(0.013, 0.02, 'z', [nx, 3.215, z + 0.16], 16));
   }
-  add(M.pottery, lathe([[0, 0], [0.03, 0], [0.034, 0.06], [0.03, 0.065], [0, 0.065]], [nx, 3.245, 1.5]));
-  for (const y of [3.135, 3.237]) {
-    add(M.clearGlass, lathe([[0, 0], [0.036, 0], [0.036, 0.12], [0.033, 0.12], [0.033, 0.004], [0, 0.004]], [nx, y, 1.8]));
-    add(M.towel, cyl(0.031, 0.085, 'z', [nx, y, 1.847], 24));
-    add(M.metal, cyl(0.037, 0.012, 'z', [nx, y, 1.926], 28));
-  }
-  add(M.potteryDark, lathe([[0, 0], [0.035, 0], [0.05, 0.06], [0.045, 0.13], [0.025, 0.17], [0.028, 0.18], [0.022, 0.18], [0.02, 0.1], [0, 0.09]], [nx, 3.186, 2.1]));
 
-  // shower niche
-  add(M.bottleWhite, cyl(0.032, 0.22, 'z', [nx, 5.10, 0.76], 28));
-  add(M.metal, cyl(0.012, 0.03, 'z', [nx, 5.10, 0.885]));
-  add(M.metal, cyl(0.004, 0.04, 'x', [nx + 0.02, 5.10, 0.9], 10));
-  add(M.rattan, rbox(0.08, 0.06, 0.05, 0.02, [nx, 5.2, 0.675]));
-  add(M.pottery, lathe([[0, 0], [0.04, 0], [0.042, 0.07], [0.038, 0.075], [0, 0.075]], [nx, 5.12, 1.7]));
-  add(M.towel2, cyl(0.03, 0.12, 'x', [nx, 5.205, 1.73], 24));
-  add(M.bottleWhite, cyl(0.03, 0.19, 'z', [4.74, 5.09, 1.095], 28));
-  add(M.metal, cyl(0.014, 0.03, 'z', [4.74, 5.09, 1.205]));
-  add(M.amber, cyl(0.028, 0.17, 'z', [4.73, 5.17, 1.085], 28));
-  add(M.rubber, cyl(0.014, 0.025, 'z', [4.73, 5.17, 1.182]));
-  add(M.pottery, rbox(0.11, 0.14, 0.012, 0.004, [4.74, 5.13, 1.356]));
-  add(M.soap, rbox(0.06, 0.09, 0.025, 0.011, [4.74, 5.13, 1.374]));
+  // shower: on the ledge a stone dish with a soap and a white bottle; in the niche a white bottle and an amber one,
+  // on its shelf a small amber bottle and a rolled flannel
+  {
+    const sz = SLEDGE.z1, ny = (SN.y0 + SCREEN_Y) / 2 - 0.004;
+    add(M.pottery, rbox(0.11, 0.14, 0.012, 0.004, [4.76, 4.98, sz + 0.006]));
+    add(M.soap, rbox(0.06, 0.09, 0.025, 0.011, [4.76, 4.98, sz + 0.024]));
+    add(M.bottleWhite, cyl(0.032, 0.22, 'z', [4.72, 5.12, sz + 0.11], 28));
+    add(M.metal, cyl(0.012, 0.03, 'z', [4.72, 5.12, sz + 0.235]));
+    add(M.metal, cyl(0.004, 0.04, 'x', [4.74, 5.12, sz + 0.25], 10));
+    add(M.bottleWhite, cyl(0.03, 0.2, 'z', [4.705, ny, SN.z0 + 0.1], 28));
+    add(M.metal, cyl(0.012, 0.03, 'z', [4.705, ny, SN.z0 + 0.215]));
+    add(M.amber, cyl(0.028, 0.17, 'z', [4.775, ny, SN.z0 + 0.085], 28));
+    add(M.rubber, cyl(0.014, 0.025, 'z', [4.775, ny, SN.z0 + 0.182]));
+    add(M.amber, cyl(0.022, 0.11, 'z', [4.70, ny, SN.shelf + 0.055], 24));
+    add(M.metal, cyl(0.01, 0.02, 'z', [4.70, ny, SN.shelf + 0.12]));
+    add(M.towel2, cyl(0.032, 0.085, 'y', [4.775, ny, SN.shelf + 0.032], 24));
+  }
 }
 
 // ---------------------------------------------------------------- vanity versions
@@ -2094,14 +2193,6 @@ function buildLights() {
     scene.add(p);
     L.pend.push(p);
   }
-  for (const [x, y] of [[4.745, 3.186], [4.745, 5.137]]) {
-    for (const z of [2.36, 1.07]) {
-      const p = new THREE.PointLight(0xffffff, 1, 0.95, 2);
-      p.position.copy(SU(x, y, z));
-      scene.add(p);
-      L.niche.push(p);
-    }
-  }
   // the niche LED lines: a narrow area light along each, shining across the niche
   L.nicheStrips = NICHE_LEDS.map((n) => {
     const a = new THREE.RectAreaLight(0xffffff, 1, 0.008, n.z1 - n.z0), zm = (n.z0 + n.z1) / 2;
@@ -2110,6 +2201,19 @@ function buildLights() {
     scene.add(a);
     return a;
   });
+  // the backlit marble: one area light the size of the niche's back, shining out of it
+  L.nicheBack = new THREE.RectAreaLight(0xffffff, 1, WCN.b - WCN.a, H);
+  L.nicheBack.position.copy(SU(X0 + 0.022, (WCN.a + WCN.b) / 2, H / 2));
+  L.nicheBack.lookAt(SU(X0 + 1, (WCN.a + WCN.b) / 2, H / 2));
+  scene.add(L.nicheBack);
+  // the shower niche's LED line under its top: a narrow area light shining down into it
+  {
+    const a = new THREE.RectAreaLight(0xffffff, 1, SN.x1 - SN.x0 - 0.006, 0.01);
+    a.position.copy(SU((SN.x0 + SN.x1) / 2, SCREEN_Y - 0.026, SN.z1 - 0.0015));
+    a.rotation.set(-Math.PI / 2, 0, 0);      // facing straight down; width along x, height along SketchUp y
+    scene.add(a);
+    L.nicheStrips.push(a);
+  }
   const area = (w, h, c) => {
     const a = new THREE.RectAreaLight(0xffffff, 1, w, h);
     a.position.copy(c);
@@ -2242,7 +2346,7 @@ const MOODS = {
   bright: { label: 'Bright', down: 1, pend: 0.7, led: 0.5, cove: 0.7, niche: 0.6, k: 3800, exposure: 0.42, sky: [-2.0, 310], bloom: 1.6 },
   night: { label: 'Night', down: 0, pend: 0, led: 1, cove: 0.45, niche: 1, k: 2700, exposure: 0.6, sky: [-14, 340], bloom: 1.2 },
 };
-const BASE = { down: 9, pend: 2.4, led: 26, cove: 14, niche: 0.3, nicheLed: 12, nicheStrip: 30, downLens: 30, globe: 6.5, strip: 14, halo: 2.2, haloLight: 18 };
+const BASE = { down: 9, pend: 2.4, led: 26, cove: 14, niche: 0.3, nicheLed: 12, nicheStrip: 30, nicheBack: 3, downLens: 30, globe: 6.5, strip: 14, halo: 2.2, haloLight: 18 };
 // mirror backlight: the framed, backlit mirror (the Limestone style's) runs with the vanity LED
 function applyBacklight(key = moodKey) {
   const m = MOODS[key], framed = !!LOOK.framed, on = framed ? m.led : 0, c = kelvin(m.k);
@@ -2258,6 +2362,8 @@ function applyMood(key) {
   for (const p of L.niche) { p.color.copy(c); p.intensity = BASE.niche * m.niche; }
   for (const a of L.nicheStrips) { a.color.copy(c); a.intensity = BASE.nicheStrip * m.niche; a.visible = m.niche > 0; }
   E.nicheLed.emissive.copy(c); E.nicheLed.emissiveIntensity = BASE.nicheLed * m.niche;
+  E.nicheBack.emissive.copy(c); E.nicheBack.emissiveIntensity = BASE.nicheBack * m.niche;
+  L.nicheBack.color.copy(c); L.nicheBack.intensity = BASE.nicheBack * m.niche; L.nicheBack.visible = m.niche > 0;
   L.cove.color.copy(c); L.cove.intensity = BASE.cove * m.cove;
   E.down.color.copy(c).multiplyScalar(m.down > 0 ? BASE.downLens * (0.4 + 0.6 * m.down) : 0.02);
   E.globe.emissive.copy(c); E.globe.emissiveIntensity = m.pend > 0 ? BASE.globe * m.pend : 0;
@@ -2383,10 +2489,11 @@ function renderLegend() {
   const p = look(), stone = STONES[stoneKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase();
   const rows = [
     ['Floor', 'seamless epoxy, white', EPOXY.color],
-    ['Stone', stone.label + ': the shower, the vanity counter and its fluted backsplash, the niches, the WC wall', stone.swatch],
+    ['Stone', stone.label + ': the shower with its ledge and niche, the vanity counter and its fluted backsplash, the WC wall', stone.swatch],
     ['Vanity', VANITIES[vanityKey].desc.replace('walnut', wn) + (vanityFlip ? ' (flipped)' : ''), wood.swatch],
     ['Basin', VANITIES[vanityKey].basin(p), vanityKey === 'trough' ? (p.basin ? STONES[p.basin].swatch : '#f1efeb')
       : vanityKey === 'block' ? STONES[p.basin || p.slab].swatch : STONES[p.counter].swatch],
+    ['WC niche', 'backlit Carrara marble behind black steel shelves; the stone and the walnut round into it', '#ece8e1'],
     ['Joinery', wood.short + ' veneer, oiled', wood.swatch],
     ['Fittings', METALS[p.metal].label, METALS[p.metal].swatch],
     p.framed ? ['Mirror', 'slim black frame, LED backlight', '#1b1a19'] : null,
@@ -2576,7 +2683,8 @@ function buildUI() {
   $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   {
-    // a click (not a drag) on a hamper front toggles them; a double-click only toggles once
+    // a click (not a drag) on a hamper front toggles them, on the WC lid lifts or lowers it; a double-click only
+    // toggles once
     let down = null, last = 0;
     const ray = new THREE.Raycaster();
     renderer.domElement.addEventListener('pointerdown', (e) => { down = e.button === 0 ? [e.clientX, e.clientY] : null; });
@@ -2585,6 +2693,7 @@ function buildUI() {
       ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
       const hit = ray.intersectObjects([groups.room, ...hampers], true).find((h) => h.object.visible && h.object.material !== M.glass && h.object.material !== M.windowGlass);
       if (hit && hit.object.userData.hamper) { last = performance.now(); setHamper(!HAMPER.open); }
+      else if (hit && hit.object.userData.lid) { last = performance.now(); setLid(!LID.open); }
     });
   }
   $('t-snap').addEventListener('click', () => saveImage());
@@ -2744,6 +2853,12 @@ function loop() {
     renderer.shadowMap.needsUpdate = true;
     dirty = true;
   }
+  if (LID.pivot && LID.t !== (LID.open ? 1 : 0)) {
+    LID.t = THREE.MathUtils.clamp(LID.t + (LID.open ? dt : -dt) / 0.9, 0, 1);
+    LID.pivot.rotation.y = LID.max * LID.t * LID.t * (3 - 2 * LID.t);
+    renderer.shadowMap.needsUpdate = true;
+    dirty = true;
+  }
   if (BLINDS.slats && BLINDS.down !== BLINDS.target) {
     const d = BLINDS.target - BLINDS.down;
     BLINDS.down += Math.sign(d) * Math.min(Math.abs(d), dt * 0.45);
@@ -2778,6 +2893,35 @@ try {
   buildLights();
   setStatus('Cutting stone and veneer…');
   await applyLook();
+  {
+    // the WC niche's backlit marble: the Carrara photograph turned so that its 1.6 m runs upright (its mirrored seam
+    // behind the third shelf), as colour; its glow a copy with the veins deepened, as they show against the light
+    const photo = await photoTexture(STONES.carrara.photo), img = photo.image;
+    const place = (t) => {
+      t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
+      t.repeat.set(1 / 1.6, 1 / 0.98);
+      t.rotation = Math.PI / 2;
+      t.offset.set(1 - (WCN.shelves[2] - 0.004) / 1.6, 0);
+      t.anisotropy = maxAniso;
+      t.needsUpdate = true;
+      return t;
+    };
+    const cv = document.createElement('canvas');
+    cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext('2d');
+    cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, cv.height), q = d.data;
+    for (let i = 0; i < q.length; i += 4) {
+      const k = 255 * Math.min(1, (0.3 * q[i] + 0.59 * q[i + 1] + 0.11 * q[i + 2]) / 255 / 0.86) ** 2.2;
+      q[i] = k; q[i + 1] = k * 0.95; q[i + 2] = k * 0.86;
+    }
+    cx.putImageData(d, 0, 0);
+    const glow = new THREE.CanvasTexture(cv);
+    glow.colorSpace = THREE.SRGBColorSpace;
+    E.nicheBack.map = place(photo.clone());
+    E.nicheBack.emissiveMap = place(glow);
+    E.nicheBack.needsUpdate = true;
+  }
   applyMood(moodKey);
   setStatus('Lighting the room…');
   await pause();
@@ -2788,7 +2932,7 @@ try {
   buildUI();
   goTo(VIEWS[1], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+  window.__bath = { THREE, setLid, LID, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');

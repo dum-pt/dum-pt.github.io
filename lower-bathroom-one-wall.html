@@ -1642,6 +1642,50 @@ function buildCeilingFixtures() {
     g(M.metal, cyl(r, 0.003, 'z', [x, y, z0 - 0.0015], 40));
   }
 }
+// The WC's seat and lid, as in the master bathroom (the model has neither; user, 2026-10-25): white duroplast on the
+// rim, following its plan, a superellipse at the front and straight sides back to two hinges. Built in the toilet's
+// own plan (x back towards the wall, y across, z up from the component's origin), then placed with it; a click on the
+// lid (not a drag) lifts or lowers it.
+const LID = { open: false, t: 0, max: THREE.MathUtils.degToRad(93), pivot: null };
+function buildSeat(placed) {
+  const m = placed.multiply(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+  const xb = 0.195, zr = 0.349, bev = 0.006;
+  const sup = (xc, a, b, n, back) => {   // the front half of a superellipse, then straight back to x = back (or the whole of it)
+    const pts = [];
+    for (let i = 0; i <= 32; i++) {
+      const t = -Math.PI / 2 + (i / 32) * Math.PI, c = Math.cos(t), s = Math.sin(t);
+      pts.push(new THREE.Vector2(xc - a * c ** (2 / n), b * Math.sign(s) * Math.abs(s) ** (2 / n)));
+    }
+    if (back) pts.push(new THREE.Vector2(back, b), new THREE.Vector2(back, -b));
+    else for (let i = 31; i > 0; i--) pts.push(new THREE.Vector2(2 * xc - pts[i].x, pts[i].y));
+    return pts;
+  };
+  const plan = (inset) => sup(-0.115, 0.154 - inset, 0.176 - inset, 2.6, xb - inset);
+  const ext = (shape, depth, z) => new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.005, bevelSize: bev, bevelSegments: 3, curveSegments: 1 }).translate(0, 0, z + 0.005);
+  const seat = new THREE.Shape(plan(bev));
+  seat.holes.push(new THREE.Path(sup(-0.065, 0.165 + bev, 0.115 + bev, 2.2)));
+  add(M.ceramic, ext(seat, 0.012, zr + 0.003).applyMatrix4(m));
+  for (const [x, dy] of [[-0.175, 0.13], [0.105, 0.14]]) for (const s of [-1, 1]) add(M.rubber, cyl(0.008, 0.003, 'z', [x, s * dy, zr + 0.0015], 16).applyMatrix4(m));
+  for (const s of [-1, 1]) {
+    add(M.metal, cyl(0.011, 0.03, 'y', [xb + 0.006, s * 0.115, zr + 0.03], 20).applyMatrix4(m));
+    add(M.metal, box(xb - 0.01, xb + 0.02, s * 0.115 - 0.015, s * 0.115 + 0.015, zr, zr + 0.004).applyMatrix4(m));
+  }
+  const base = new THREE.Group(), pivot = new THREE.Group(), hz = zr + 0.026;
+  base.matrixAutoUpdate = false;
+  base.matrix.copy(m);
+  pivot.position.set(xb, 0, hz);
+  const lid = new THREE.Mesh(ext(new THREE.Shape(plan(bev + 0.001)), 0.01, hz).translate(-xb, 0, -hz), M.ceramic);
+  lid.castShadow = lid.receiveShadow = true;
+  lid.userData.lid = true;
+  pivot.add(lid);
+  base.add(pivot);
+  groups.room.add(base);
+  LID.pivot = pivot;
+}
+function setLid(open) {
+  LID.open = open;
+  dirty = true;
+}
 // Tilt-out laundry hampers (two, lights and colours): a walnut front with a linen bag on a frame behind
 // it, pivoting on the front's bottom edge. Meshes are built in room coordinates, then shifted onto the pivot.
 const hampers = [];
@@ -1739,6 +1783,7 @@ function buildFittings(skp) {
   // toilet (Duravit Starck 3 from the model)
   const toilet = findInstance(skp, (d, m) => (m && /duravit/i.test(m.n)) || /^M_40d6714e/.test(d.name));
   if (toilet) for (const g of skpGeometry(skp, toilet[0], SHIFT.clone().multiply(new THREE.Matrix4().fromArray(toilet, 2)))) add(M.ceramic, g);
+  if (toilet) buildSeat(SHIFT.clone().multiply(new THREE.Matrix4().fromArray(toilet, 2)));   // its seat and lid
   // WC: flush plate on the pre-wall above it
   add(M.metal, box(PRE, PRE + 0.006, 3.74, 3.98, 0.985, 1.15));
   add(M.metal, box(PRE + 0.006, PRE + 0.009, 3.746, 3.857, 0.991, 1.144));
@@ -1826,15 +1871,16 @@ function buildRadiators(ys, dz) {
   const wallX = () => X1;
   for (const y of ys) {
     const x = X1 - 0.07, z0 = 0.96 + dz, z1 = 1.56 + dz, zb = z1 - 0.08, zp = z0 - 0.05;
-    add(M.metal, cyl(0.03, z1 - z0, 'z', [x, y, (z0 + z1) / 2], 40));
-    add(M.metal, cyl(0.03, 0.008, 'z', [x, y, z1 + 0.004], 40, 0.023));
-    add(M.metal, cyl(0.03, 0.008, 'z', [x, y, z0 - 0.004], 40));
-    add(M.metal, cyl(0.007, wallX(zb) - x, 'x', [(x + wallX(zb)) / 2, y, zb], 12));
-    add(M.metal, cyl(0.016, 0.006, 'x', [wallX(zb) - 0.003, y, zb], 20));
-    add(M.metal, cyl(0.011, 0.05, 'z', [x, y, z0 - 0.025], 20));
-    add(M.metal, sphere(0.011, [x, y, zp], 16));
-    add(M.metal, cyl(0.011, wallX(zp) - x, 'x', [(x + wallX(zp)) / 2, y, zp], 20));
-    add(M.metal, cyl(0.022, 0.006, 'x', [wallX(zp) - 0.003, y, zp], 24));
+    const r = 0.016, rp = 0.008;   // slim tubes, 3.2 cm across, on 1.6 cm feed pipes, as in the master bathroom
+    add(M.metal, cyl(r, z1 - z0, 'z', [x, y, (z0 + z1) / 2], 32));
+    add(M.metal, cyl(r, 0.008, 'z', [x, y, z1 + 0.004], 32, r - 0.004));
+    add(M.metal, cyl(r, 0.008, 'z', [x, y, z0 - 0.004], 32));
+    add(M.metal, cyl(0.006, wallX(zb) - x, 'x', [(x + wallX(zb)) / 2, y, zb], 12));
+    add(M.metal, cyl(0.014, 0.006, 'x', [wallX(zb) - 0.003, y, zb], 20));
+    add(M.metal, cyl(rp, 0.05, 'z', [x, y, z0 - 0.025], 20));
+    add(M.metal, sphere(rp, [x, y, zp], 16));
+    add(M.metal, cyl(rp, wallX(zp) - x, 'x', [(x + wallX(zp)) / 2, y, zp], 20));
+    add(M.metal, cyl(0.018, 0.006, 'x', [wallX(zp) - 0.003, y, zp], 24));
   }
 }
 
@@ -2623,7 +2669,8 @@ function buildUI() {
   $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   {
-    // a click (not a drag) on a hamper front toggles them; a double-click only toggles once
+    // a click (not a drag) on a hamper front toggles them, on the WC lid lifts or lowers it; a double-click only
+    // toggles once
     let down = null, last = 0;
     const ray = new THREE.Raycaster();
     renderer.domElement.addEventListener('pointerdown', (e) => { down = e.button === 0 ? [e.clientX, e.clientY] : null; });
@@ -2634,6 +2681,7 @@ function buildUI() {
       const hit = ray.intersectObjects([groups.room, ...Object.values(WALLS).map((w) => w.group)], true)
         .find((h) => shown(h.object) && !h.object.userData.occluder && h.object.material !== M.glass && h.object.material !== M.windowGlass);
       if (hit && hit.object.userData.hamper) { last = performance.now(); setHamper(!HAMPER.open); }
+      else if (hit && hit.object.userData.lid) { last = performance.now(); setLid(!LID.open); }
     });
   }
   $('t-snap').addEventListener('click', () => saveImage());
@@ -2798,6 +2846,12 @@ function loop() {
     renderer.shadowMap.needsUpdate = true;
     dirty = true;
   }
+  if (LID.pivot && LID.t !== (LID.open ? 1 : 0)) {
+    LID.t = THREE.MathUtils.clamp(LID.t + (LID.open ? dt : -dt) / 0.9, 0, 1);
+    LID.pivot.rotation.y = LID.max * LID.t * LID.t * (3 - 2 * LID.t);
+    renderer.shadowMap.needsUpdate = true;
+    dirty = true;
+  }
   if (BLINDS.slats && BLINDS.down !== BLINDS.target) {
     const d = BLINDS.target - BLINDS.down;
     BLINDS.down += Math.sign(d) * Math.min(Math.abs(d), dt * 0.45);
@@ -2842,7 +2896,7 @@ try {
   buildUI();
   goTo(VIEWS[1], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, applyWall, WALLS,
+  window.__bath = { THREE, setLid, LID, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, applyWall, WALLS,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
