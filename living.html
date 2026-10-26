@@ -306,6 +306,12 @@ const TV = { x0: 45.149, x1: 46.609, z0: 0.772, z1: 1.542 };
 const ROWS = [10.637, 14.064];
 const SPOTS = [43.798, 45.176, 46.553, 47.955, 49.354];
 const RING = { x: 45.885, y: 11.61, r: 0.5, r0: 0.38, h: 0.12 };
+// two speakers flush in the ceiling in front of the TV, trimless: a round micro-perforated grille (r) painted like the
+// ceiling, a hairline (gap) round it; 90 cm out from the TV wall (at y, clear of the track and the ring), dx either side
+// of the TV's middle (a little wider than the TV, clear of the ring round the short one), their drivers angled at the
+// sofa: from its middle about 25 degrees either side and 30-35 up. They go with the TV (zones.speakers): swapped, before
+// the bedroom's wall; as drawn with the fireplace, round the 55-inch TV
+const SPEAKERS = { y: 11.0, dx: 1.0, r: 0.125, gap: 0.003 };
 const KSLOT = { x0: 45.99, x1: 47.99, y: 16.0, w: 0.06, d: 0.045, spots: [46.04, 46.974, 47.924] };
 // the two Vibia Skan pendants over the table (from the model): where their diffusers hang
 const SKAN = [[48.679, 11.425, 1.71], [48.68, 11.965, 1.455]];
@@ -1541,6 +1547,19 @@ const WEAVE = canvasTex(256, 0.04, (g, n, rnd) => {
     }
   }
 });
+// the speakers' grilles: micro-perforated steel, 1.5 mm holes on a 3 mm pitch, the dark cloth behind them; painted like
+// the ceiling (applyPaint)
+const PERFORATION = canvasTex(64, 0.012, (g, n) => {
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, n, n);
+  g.fillStyle = '#8c8c8c';
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    g.beginPath();
+    g.arc((i + 0.5) * n / 4, (j + 0.5) * n / 4, n / 16, 0, Math.PI * 2);
+    g.fill();
+  }
+});
+M.grille = physical({ color: 0xf2efea, roughness: 0.75, map: PERFORATION });
 
 function applyStone(mat, set, def) {
   mat.map = set.map; mat.normalMap = set.normalMap; mat.roughnessMap = set.roughnessMap;
@@ -1790,7 +1809,7 @@ for (const g of Object.values(groups)) R.add(g);
 // up to the fireplace) and the bedroom's wall bare in its place; the fireplace (in either layout, when it is there)
 const zones = { living: new THREE.Group(), livingE: new THREE.Group(), ring: new THREE.Group(), tv: new THREE.Group(), dining: new THREE.Group(),
   skan: new THREE.Group(), lounge: new THREE.Group(), wall: new THREE.Group(), wallE: new THREE.Group(), wallEF: new THREE.Group(),
-  tvWall: new THREE.Group(), fire: new THREE.Group() };
+  tvWall: new THREE.Group(), fire: new THREE.Group(), speakers: new THREE.Group() };
 for (const k of ['living', 'livingE', 'tv', 'dining', 'lounge', 'wall', 'wallE', 'wallEF', 'tvWall', 'fire']) groups.room.add(zones[k]);
 // the TV unit built in full and, as drawn with the fireplace, short (applyWalls), the reed diffuser from the model moved
 // along to its end; the fireplace's south side square against the cabinets (swapped) or rounded, standing free (drawn)
@@ -1798,7 +1817,11 @@ const TVSETS = { full: new THREE.Group(), short: new THREE.Group(), diffuser: []
 const FIRE_ENDS = { square: new THREE.Group(), round: new THREE.Group() };
 zones.tv.add(TVSETS.full, TVSETS.short);
 zones.fire.add(FIRE_ENDS.square, FIRE_ENDS.round);
-groups.pendants.add(zones.ring, zones.skan);
+// the ceiling speakers round the full TV and round the short one (applyWalls)
+const SPK = { full: new THREE.Group(), short: new THREE.Group() };
+zones.speakers.add(SPK.full, SPK.short);
+SPK.short.visible = false;
+groups.pendants.add(zones.ring, zones.skan, zones.speakers);
 // the kitchen's window strip as drawn (a tilt-and-turn sash) and all fixed (setWindow)
 const KWIN = { tilt: new THREE.Group(), fixed: new THREE.Group() };
 groups.room.add(KWIN.tilt, KWIN.fixed);
@@ -1997,6 +2020,19 @@ function buildCeiling() {
     ring(M.ringBody, lathe([[r0, zb], [r0 + 0.012, zb]], c, 72));
     ring(M.ringBody, lathe([[r - 0.012, zb], [r, zb]], c, 72));
     ring(E.ring, lathe([[r0 + 0.012, zb + 0.002], [r - 0.012, zb + 0.002]], c, 72));
+  }
+  // the speakers in front of the TV (with it: zones.speakers): each grille a disc facing down (its UVs in metres, for the
+  // perforation), the hairline a dark ring round it
+  for (const [T, g] of [[TV, SPK.full], [TV_F, SPK.short]]) {
+    const { y, dx, r, gap } = SPEAKERS, z = H - 0.001;
+    for (const s of [-1, 1]) {
+      const x = (T.x0 + T.x1) / 2 + s * dx;
+      const disc = new THREE.CircleGeometry(r, 64).rotateX(Math.PI).translate(x, y, z);
+      const p = disc.attributes.position, uv = disc.attributes.uv;
+      for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i), p.getY(i));
+      g.add(put(M.grille, disc));
+      g.add(put(M.dark, new THREE.RingGeometry(r, r + gap, 64).rotateX(Math.PI).translate(x, y, z)));
+    }
   }
 }
 
@@ -2917,7 +2953,7 @@ let layoutSwapped = false;
 function setLayout(on) {
   layoutSwapped = on;
   const I = new THREE.Matrix4();
-  for (const [g, k] of [[zones.living, 'living'], [zones.ring, 'living'], [zones.tv, 'tv'], [zones.dining, 'dining'], [zones.skan, 'dining'], [zones.lounge, 'lounge']]) {
+  for (const [g, k] of [[zones.living, 'living'], [zones.ring, 'living'], [zones.tv, 'tv'], [zones.speakers, 'tv'], [zones.dining, 'dining'], [zones.skan, 'dining'], [zones.lounge, 'lounge']]) {
     g.matrix.copy(on ? layoutMatrix(LAYOUT[k]) : I);
     g.matrixWorldNeedsUpdate = true;
   }
@@ -2954,6 +2990,8 @@ function applyWalls() {
   FIRE_ENDS.round.visible = !on;
   TVSETS.full.visible = !short;
   TVSETS.short.visible = short;
+  SPK.full.visible = !short;
+  SPK.short.visible = short;
   for (const o of TVSETS.diffuser) o.position.x = short ? TV_UNIT_F.x1 - TV_UNIT.x1 : 0;
   L.tvWash.drawn = short ? L.tvWash.short : L.tvWash.full;
   if (!on) {
@@ -3675,6 +3713,7 @@ function applyPaint(color, key = null, refresh = true) {
   const c = new THREE.Color(color);
   M.plaster.color.copy(c);
   M.ceiling.color.set('#f2efea').lerp(c, 0.12);
+  M.grille.color.copy(M.ceiling.color);
   M.built.color.copy(c).lerp(new THREE.Color('#f4f1ec'), 0.35);
   if (frontsKey === 'paint') { M.cab.color.copy(c); M.cabEnd.color.copy(c); }
   document.querySelectorAll('#paints button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
@@ -3859,6 +3898,7 @@ function renderLegend() {
     ['Dining wall', sw ? 'on the east wall between the glazings: plain cabinets floor to ceiling a shade lighter than the walls, ' + (fireOn ? 'three flush handleless doors up to the fireplace, the south end rounded' : 'five flush handleless doors, the ends rounded') : 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
     ...(fireOn ? [['Fireplace', 'built in on the east wall by the terrace door, at the same spot in either layout: a frameless firebox, 70 × 45 cm and 45 cm up, in a plastered breast 34 cm deep, its corners rounded; lit in the evening and at night', '#1b1714']] : []),
     ['Living', (sw ? 'at the north end, facing the TV on the bedroom\'s wall in the dining wall\'s place: ' : 'at the south end, facing the TV on the east wall: ') + 'an IKEA ÄPPLARYD sofa, three seats and a chaise longue (290 cm) on slim black legs, in ' + fab.desc + ', ' + fab.cushionLabel + ' cushions; a round anthracite coffee table on a rug; a floating ' + wn + ' TV unit' + (fireOn && !sw ? ' up to the fireplace, a 55-inch TV over it' : '') + '; the Smile lounge chair (Icons of Denmark)' + (sw ? '; behind the sofa a low ' + wn + ' cabinet to sit on' : ''), fab.color],
+    ['Speakers', 'two flush in the ceiling in front of the TV, trimless: round micro-perforated grilles (25 cm) painted like the ceiling, 90 cm out from the TV wall and a little wider apart than the TV, their drivers angled at the sofa', '#c9c6c1'],
     ['Floor', floor, floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
