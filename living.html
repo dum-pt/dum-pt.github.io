@@ -122,6 +122,7 @@
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the kitchen and the island (with wooden fronts), the dining table, the sideboard and the TV unit; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Kitchen fronts</h2><div class="seg" id="fronts" title="The kitchen's and the island's handleless fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour (R)"></div></div>
   <div class="group"><h2>Kitchen window</h2><div class="seg" id="windows" title="The kitchen's window strip over the worktop: as drawn, a fixed pane and on the right a tilt-and-turn sash (its lever on its left); or all fixed, one pane in a slim, almost invisible profile (K)"></div></div>
+  <div class="group"><h2>Pantry door</h2><div class="seg" id="pantrydoors" title="The pantry's sliding door, 75 cm wide, hung from a track on the ceiling and sliding into the gap between the larder and the pantry's tall unit: a plain 2 cm panel in the wood, a frameless pane of dark smoked glass, or a white lacquered slab (N)"></div></div>
   <div class="group"><h2>Hall door</h2><div class="seg" id="halldoors" title="The glass door to the hall: as drawn, a frameless pane sliding along the lobby's side of the wall; or a pivot door in the opening, the same grey glass in a slim anthracite steel frame, turning on a pivot near one jamb (V)"></div>
     <div id="pivotrows" hidden>
       <div class="winrow" title="Which way the pivot door's longer part swings: into the hall or into the living room; the short part beyond the pivot swings the other way (I)"><span>Opens</span><div class="seg" id="swings"></div></div>
@@ -248,6 +249,12 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs:
 // lined, up to the lowered ceiling), oak shelves 15 cm deep along its south wall (to sx1, at shelves), a tall unit at
 // the facade
 const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.365, tall: [43.89, 44.49, 16.1] };
+// the pantry's door: a plain panel in the wood or a white slab (t thick), or a pane of glass (g thick), w wide, z0..z1,
+// hung from a track on the ceiling (its middle at x, tw wide, th deep, from the doorway's far jamb to the facade) and
+// sliding into the gap between the kitchen's larder and the pantry's tall unit (no wall between them: their ends line
+// it); shut against the far jamb's lining (shut: its leading edge), open as far as the facade lets it (stop: its
+// trailing edge, so about 18 cm of it stays out); a flush pull in black on each face by the leading edge
+const PSLIDE = { x: 44.485, t: 0.02, g: 0.01, w: 0.75, tw: 0.035, th: 0.04, shut: PANTRY.door[0] + 0.021, stop: Y1 - 0.02, z0: 0.008, z1: HK - 0.045 };
 // the west facade: the kitchen's window strip (its frame x0..x1, y0..y1, z0..z1: a fixed pane, the mullion, a tilt-and-
 // turn sash on the right, its lever on its left; or, WINDOWS, all fixed; the panes at glass); outside, the facade's
 // battens (9.2 cm on a 10.2 cm pitch, y0..y1) stop round it, its reveal lined out to their face, a granite sill
@@ -1160,6 +1167,7 @@ const M = {
   counter: physical({ clearcoat: 0.5, clearcoatRoughness: 0.12 }),     // the stone: worktop, island
   flute: physical({ color: 0xefebe4, roughness: 0.45, clearcoat: 0.2, clearcoatRoughness: 0.35 }),   // the island's fluted panel
   built: physical({ color: 0xf0ede7, roughness: 0.38, clearcoat: 0.3, clearcoatRoughness: 0.3 }),    // the dining wall's cabinets
+  pantryWhite: physical({ color: 0xf4f2ee, roughness: 0.42, clearcoat: 0.25, clearcoatRoughness: 0.35 }),    // the pantry's white door
   blackTop: physical({ color: 0x131211, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.2 }),
   shelf: physical({ color: 0x1a1918, metalness: 0.6, roughness: 0.42 }),       // black steel
   mirror: physical({ color: 0xf0f2f1, metalness: 1, roughness: 0 }, mirrorRefl),
@@ -1168,6 +1176,7 @@ const M = {
   // through transmissive glass)
   windowGlass: physical({ color: 0x000000, roughness: 0.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
   slideGlass: physical({ color: 0xffffff, roughness: 0.0, transmission: 1, thickness: 0.01, ior: 1.5, attenuationColor: new THREE.Color(0x8f9190), attenuationDistance: 0.02 }),   // grey-tinted
+  pantryGlass: physical({ color: 0xffffff, roughness: 0.0, transmission: 1, thickness: 0.01, ior: 1.5, attenuationColor: new THREE.Color(0x5e605f), attenuationDistance: 0.01 }),   // smoked, darker
   glassEdge: physical({ color: 0x5c6a66, roughness: 0.15 }),
   frame: physical({ color: 0x383b3e, roughness: 0.5, clearcoat: 0.25, clearcoatRoughness: 0.45 }),   // RAL 7016, powder-coated aluminium
   track: physical({ color: 0x2a2b2c, metalness: 0.6, roughness: 0.45 }),
@@ -1464,7 +1473,7 @@ M.curtain.map = canvasTex(256, 0.12, (g, n, rnd) => {
     g.fillRect(i, 0, w, n);
   }
 });
-const NO_AO = new Set([M.windowGlass, M.slideGlass, M.mirrorEdge, M.railGlass, M.clearAcrylic]);
+const NO_AO = new Set([M.windowGlass, M.slideGlass, M.pantryGlass, M.mirrorEdge, M.railGlass, M.clearAcrylic]);
 // the fireplace (swapped): its firebox's black lining, charred logs; the flames, tongues of fire drawn additively (black
 // is clear), and the embers under the logs, both lit by the mood (applyMood)
 M.firebox = physical({ color: 0x111111, roughness: 0.9 });
@@ -1817,18 +1826,13 @@ function buildArchitecture() {
   wall(EG_A.x0, EG_A.x1, YW, Y0, H, WT, '');
   wall(XS, X0, YW, SG.y1, H, WT, '');
   // the south wall west of the glazing (behind the pantry) to the facade; the pantry's wall along the living room and its
-  // wall to the kitchen round the doorway, the doorway lined in the wood
+  // wall to the kitchen up to the doorway, its end lined in the wood (on from there to the facade only the larder and the
+  // pantry's tall unit stand between them, the sliding door's gap between their ends; the wall only over the ceiling)
   wall(XS, PANTRY.x0, SG.y1, 17.03, 0, WT, 'Xy');
   wall(PANTRY.x0, KX0, YK, PANTRY.y0, 0, WT, 'yYX');
   wall(PANTRY.x1, KX0, PANTRY.y0, PANTRY.door[0], 0, WT, 'xXY');
-  wall(PANTRY.x1, KX0, PANTRY.door[1], Y1, 0, WT, 'xXy');
-  wall(PANTRY.x1, KX0, PANTRY.door[0], PANTRY.door[1], HK, WT, '');
-  {
-    const [d0, d1] = PANTRY.door, a = PANTRY.x1, b = KX0 + 0.01;
-    add(M.veneer, box(a, b, d0, d0 + 0.02, 0, HK, { faces: 'YxX' }));
-    add(M.veneer, box(a, b, d1 - 0.02, d1, 0, HK, { faces: 'yxX' }));
-    add(M.veneer, box(a, b, d0, d1, HK - 0.02, HK, { faces: 'zxX' }));
-  }
+  wall(PANTRY.x1, KX0, PANTRY.door[0], Y1, HK, WT, '');
+  add(M.veneer, box(PANTRY.x1, KX0 + 0.01, PANTRY.door[0], PANTRY.door[0] + 0.02, 0, HK, { faces: 'YxX' }));
   // the west facade round the kitchen's window strip; the hall's wall (the kitchen's north wall); the corridor's wall
   // round the opening to the hall; the bedroom's wall behind the dining wall and its corridor's
   wall(PANTRY.x0, KW.x0, Y1, 17.03, 0, WT, 'yX');
@@ -1846,7 +1850,7 @@ function buildArchitecture() {
   // the floor: one plane (the planar reflector) through the room, the lobby and on along the bedroom's corridor, the
   // kitchen, the pantry, into the glazings' reveals and the openings
   const fl = mergeGeometries([
-    [X0, X1, Y0, YK], [X1, BUILT.x1, Y0, BUILT.y1], [X1, 52.0, BUILT.y1, YK], [KX0, KX1, YK, Y1], [PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1], [PANTRY.x1, KX0, ...PANTRY.door],
+    [X0, X1, Y0, YK], [X1, BUILT.x1, Y0, BUILT.y1], [X1, 52.0, BUILT.y1, YK], [KX0, KX1, YK, Y1], [PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1], [PANTRY.x1, KX0, PANTRY.door[0], Y1],
     [DOOR_S[0], DOOR_S[1], YK, 14.795], [EG_A.x0, EG_A.x1, EG.fy1, Y0], [EG_B.x0, EG_B.x1, EG.fy1, Y0],
   ].map(([a, b, c, d]) => box(a, b, c, d, -0.05, 0, { faces: 'Z' })));
   floorMesh = new THREE.Mesh(fl, M.floor);
@@ -1953,6 +1957,7 @@ function buildCeiling() {
   put(M.ceiling, box(X1, 52.0, BUILT.y1, YK, H, WT, { faces: 'z' }));
   put(M.ceiling, box(X1, BUILT.x1, Y0, BUILT.y1, H, WT, { faces: 'z' }));      // (over the dining wall's cabinets: swapped, they are gone)
   put(M.ceiling, box(PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1, HK, WT, { faces: 'z' }));
+  put(M.ceiling, box(PANTRY.x1, KX0, PANTRY.door[0], Y1, HK, WT, { faces: 'z' }));     // over the doorway and the door's gap
   const s0 = KSLOT.y - KSLOT.w / 2, s1 = KSLOT.y + KSLOT.w / 2, zt = HK + KSLOT.d;
   put(M.ceiling, box(KX0, KX1, YK, s0, HK, WT, { faces: 'z' }));
   put(M.ceiling, box(KX0, KX1, s1, Y1, HK, WT, { faces: 'z' }));
@@ -2034,6 +2039,7 @@ function buildKitchen() {
   add(M.cabEnd, box(TALLS[1][1] - 0.02, TALLS[1][1], fy, Y1, TOP.z1, HK, { faces: 'X' }));
   add(M.cabEnd, box(TALLS[2][0], TALLS[2][0] + 0.02, fy, Y1, TOP.z1, HK, { faces: 'x' }));
   add(M.cabEnd, box(49.317, 49.35, 15.722, 16.112, 0.88, 2.325));                  // the side panel by the coffee niche
+  add(M.cabEnd, box(TALLS[0][0], TALLS[0][0] + 0.018, ft, Y1, 0, H1, { faces: 'x' }));     // the larder's end, by the pantry's door
   // the oven: black glass, its window, a display
   {
     const [a, b] = TALLS[2], g = RUN.gap / 2;
@@ -2110,11 +2116,12 @@ function buildKitchen() {
     }
     for (const [a, l, w] of [[-0.95, 0.09, 0.006], [1.1, 0.14, 0.004]]) add(M.trim, new THREE.BoxGeometry(0.002, w, l).translate(0, 0, l / 2 - 0.015).rotateX(-a).translate(x - 0.013, y, z));
   }
-  // the pantry: shelves in the wood along its south wall, a tall unit at the facade
+  // the pantry: shelves in the wood along its south wall, a tall unit at the facade (its end along the door's gap)
   {
     const { x0, x1, y0, shelves, sx1, tall } = PANTRY;
     for (const z of shelves) add(M.veneer, box(x0, sx1, y0, tall[2], z - 0.02, z));
     add(M.cabEnd, box(tall[0], x1, tall[2], tall[2] + 0.02, plinth, H1, { faces: 'yxX' }));
+    add(M.cabEnd, box(x1 - 0.018, x1, tall[2] + 0.02, Y1, 0, H1, { faces: 'X' }));
   }
 }
 
@@ -2645,10 +2652,12 @@ function buildMeshes({ meta, buf }) {
 // The terrace doors: the lift-and-slide sashes on the inner tracks slide over the fixed panes, glazing A's (the southern
 // one) north and the south glazing's (the western one) east (TDOOR.sashes: each its group, axis and travel, open and t:
 // a click moves one, the chip both); the glass door to the hall slides along the lobby's side of the corridor wall
-// (GLASS.group) or, as a pivot door, turns in the opening (GLASS.leaves: left, right). DOORS: their meshes, glass and
-// all (a click on one opens or shuts it: userData.door on its group, a sash's index or 'hall')
+// (GLASS.group) or, as a pivot door, turns in the opening (GLASS.leaves: left, right); the pantry's door slides on its
+// track into the gap between the tall units (PDOOR.group, holding one group for each of PDOORS). DOORS: their meshes, glass and all (a click on one opens
+// or shuts it: userData.door on its group, a sash's index, 'hall' or 'pantry')
 const TDOOR = { open: false, sashes: [] };
 const GLASS = { open: false, t: 0, group: null, leaves: {} };
+const PDOOR = { open: false, t: 0, group: null, kinds: {} };
 const DOORS = [];
 function buildDoors() {
   // each sash: its frame (8 cm stiles and rails), the pane, a pull on the room side by the jamb
@@ -2718,6 +2727,31 @@ function buildDoors() {
       DOORS.push(...flush(inner));
     }
   }
+  // the pantry's door: its track on the ceiling; the door, shut, in each of its kinds: the panel or the pane (its edges
+  // polished), the pulls (each 0.8 mm proud of its face, h from the middle)
+  {
+    const { x, t, g, w, tw, th, shut: y0, z0, z1 } = PSLIDE, y1 = y0 + w, p0 = y0 + 0.04, p1 = y0 + 0.064;
+    add(M.track, box(x - tw / 2, x + tw / 2, PANTRY.door[0] + 0.02, Y1, HK - th, HK, { faces: 'xXyz' }));
+    flush(groups.room);
+    const pulls = (h) => {
+      add(M.blackMetal, box(x + h, x + h + 0.0008, p0, p1, 0.96, 1.14, { faces: 'XyYzZ' }));
+      add(M.blackMetal, box(x - h - 0.0008, x - h, p0, p1, 0.96, 1.14, { faces: 'xyYzZ' }));
+    };
+    const kind = (k) => { const G = PDOOR.kinds[k] = new THREE.Group(); G.visible = k === pantryKey; PDOOR.group.add(G); DOORS.push(...flush(G)); };
+    PDOOR.group = new THREE.Group();
+    PDOOR.group.userData.door = 'pantry';
+    R.add(PDOOR.group);
+    add(M.veneer, box(x - t / 2, x + t / 2, y0, y1, z0, z1));
+    pulls(t / 2);
+    kind('wood');
+    add(M.pantryGlass, box(x - g / 2, x + g / 2, y0, y1, z0, z1, { faces: 'xX' }));
+    add(M.glassEdge, box(x - g / 2, x + g / 2, y0, y1, z0, z1, { faces: 'yYzZ' }), { shadow: false });
+    pulls(g / 2);
+    kind('glass');
+    add(M.pantryWhite, box(x - t / 2, x + t / 2, y0, y1, z0, z1));
+    pulls(t / 2);
+    kind('white');
+  }
 }
 let envTimer = 0;
 const envSoon = () => { clearTimeout(envTimer); envTimer = setTimeout(() => { captureEnv(); dirty = true; }, 150); };
@@ -2744,6 +2778,24 @@ function markDoor() {
 function setGlass(open) {
   GLASS.open = open;
   chip('t-glass', open, open ? 'Close glass door' : 'Open glass door');
+  dirty = true;
+}
+// the pantry's door (a click on it)
+function setPantryDoor(open) {
+  PDOOR.open = open;
+  dirty = true;
+}
+// what the pantry's door is: a plain panel in the wood (the first one built), a pane of dark smoked glass, or a
+// white lacquered slab
+const PDOORS = { wood: { label: 'Wood' }, glass: { label: 'Glass' }, white: { label: 'White' } };
+let pantryKey = 'wood';
+function setPantryKind(k) {
+  pantryKey = k;
+  for (const [key, g] of Object.entries(PDOOR.kinds)) g.visible = key === k;
+  document.querySelectorAll('#pantrydoors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
   dirty = true;
 }
 // The curtains (CURTAIN.runs): wave curtains whose folds deepen as they gather (the cloth's length stays the same).
@@ -2988,6 +3040,12 @@ function animateOpenings(dt) {
     GLASS.group.position.x = (SLIDE.open - SLIDE.shut) * ease(GLASS.t);
     poseLeaves(ease(GLASS.t));
     if (GLASS.t === 0 || GLASS.t === 1) envSoon();
+    moved = true;
+  }
+  if (PDOOR.group && PDOOR.t !== (PDOOR.open ? 1 : 0)) {
+    PDOOR.t = THREE.MathUtils.clamp(PDOOR.t + (PDOOR.open ? dt : -dt) / 1.1, 0, 1);
+    PDOOR.group.position.y = (PSLIDE.stop - PSLIDE.shut - PSLIDE.w) * ease(PDOOR.t);
+    if (PDOOR.t === 0 || PDOOR.t === 1) envSoon();
     moved = true;
   }
   if (CURT.runs.length && CURT.t !== (CURT.closed ? 1 : 0)) {
@@ -3793,6 +3851,7 @@ function renderLegend() {
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven, the coffee machine in a lit niche), drawers under the oven and the hob (a click opens any drawer, in the island too), wall units over the window strip', frontsC],
+    ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves 15 cm deep inside', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
@@ -3951,6 +4010,7 @@ function buildUI() {
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
   seg($('windows'), WINDOWS, (k) => setWindow(k), windowKey);
   seg($('halldoors'), HDOORS, (k) => setHallDoor(k), hallKey);
+  seg($('pantrydoors'), PDOORS, (k) => setPantryKind(k), pantryKey);
   seg($('swings'), SWINGS, (k) => setPivot(k), swingKey);
   seg($('pivots'), PIVOTS, (k) => setPivot(swingKey, k), pivotSide);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
@@ -4012,6 +4072,7 @@ function buildUI() {
     if (k === 'h') { setFire(!fireOn); return; }
     if (k === 'k') { setWindow(windowKey === 'tilt' ? 'fixed' : 'tilt'); return; }
     if (k === 'v') { setHallDoor(hallKey === 'slide' ? 'pivot' : 'slide'); return; }
+    if (k === 'n') { setPantryKind(next(Object.keys(PDOORS), pantryKey)); return; }
     if (k === 'i' && hallKey === 'pivot') { setPivot(swingKey === 'hall' ? 'room' : 'hall'); return; }
     if (k === 'j' && hallKey === 'pivot') { setPivot(swingKey, pivotSide === 'left' ? 'right' : 'left'); return; }
     if (k === 'b') { setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true); return; }
@@ -4036,8 +4097,8 @@ function buildUI() {
   const ray = new THREE.Raycaster(), shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
   const aim = (e) => ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
   const pick = (e) => { aim(e); return ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && !NO_AO.has(h.object.material)); };
-  // what a click there would open or shut: a drawer, a terrace door or the glass door to the hall (a door's glass
-  // counts, unlike the rest of the glass), as a function; the whole room searched only when one is in line
+  // what a click there would open or shut: a drawer, a terrace door, the glass door to the hall (a door's glass counts,
+  // unlike the rest of the glass) or the pantry's door, as a function; the whole room searched only when one is in line
   const actionAt = (e) => {
     aim(e);
     if (!ray.intersectObjects(DRAWERS.meshes, false).length && !ray.intersectObjects(DOORS, false).length) return undefined;
@@ -4046,7 +4107,9 @@ function buildUI() {
     for (let o = hit?.object; o; o = o.parent) {
       const { drawer: i, door: d } = o.userData;
       if (i !== undefined) return () => toggleDrawer(i);
-      if (d !== undefined) return d === 'hall' ? () => setGlass(!GLASS.open) : () => toggleSash(d);
+      if (d === 'hall') return () => setGlass(!GLASS.open);
+      if (d === 'pantry') return () => setPantryDoor(!PDOOR.open);
+      if (d !== undefined) return () => toggleSash(d);
     }
     return undefined;
   };
@@ -4230,7 +4293,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setCurtains, setLayout, setFire, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setPantryDoor, setPantryKind, PDOOR, PDOORS, setCurtains, setLayout, setFire, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
