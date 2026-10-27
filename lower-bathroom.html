@@ -99,6 +99,7 @@
   <div class="group"><h2>Vanity</h2><div class="seg" id="vanities"></div>
     <div class="chips" id="vanity-flip"><button class="chip" id="t-flip" aria-pressed="false" title="Mirror the vanity along the wall, swapping its door and shower ends (F)">Flip vanity</button></div>
   </div>
+  <div class="group"><h2>Shower glass</h2><div class="seg" id="glasses" title="In line with the tall cabinet, you step in from the window side; or turned 90° from the edge of the window, parallel to the mirror, you step in from the WC side (G)"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
   </div>
@@ -177,6 +178,15 @@ const VAN = { x0: 6.5325, z0: 0.3277, z1: 0.6777, split: 4.262 };   // floating 
 const BASIN_RIM = 0.90;                                              // raised from the model's 0.818
 const MIRROR = { y0: 2.774, y1: 4.47, z0: 1.133, x: X1 - 0.03 };   // z0 = top of the backsplash, x = mirror face (30 mm off the wall, backlit)
 const SCREEN_Y = 4.312, SCREEN_X1 = 5.58;                           // shower glass
+// the shower glass in either of two places (user, 2026-10-27): in line with the tall cabinet's end at SCREEN_Y (as
+// drawn; in from the window side), or turned 90 deg along the window's edge, parallel to the mirror, centred on
+// SCREEN_X (its wall channel flush with the window's reveal), from the north wall to SCREEN_Y (in from the WC side)
+const SCREEN_X = DOOR_N[0] - 0.011;
+const GLASSES = {
+  cabinet: { label: 'In from window', desc: 'in line with the tall cabinet, in from the window side' },
+  window: { label: 'In from WC', desc: 'from the edge of the window, parallel to the mirror, in from the WC side' },
+};
+let glassKey = 'cabinet';
 // the niche between the WC and the tall cabinet (user, 2026-10-25, after a photograph): from the WC wall (a) to the
 // cabinet's walnut end (b), both rounded to r at the front, black steel shelves (tops at `shelves`), a backlit marble back
 const WCN = { a: 3.062, b: 3.281, r: 0.03, shelves: [0.72, 1.3, 1.56, 2.18] };
@@ -1341,10 +1351,19 @@ function buildArchitecture() {
   mirrorRefl.meshes.push(mirrorMesh);
   add(M.mirrorEdge, box(MIRROR.x, MIRROR.x + 0.006, MIRROR.y0, MIRROR.y1, mz0, H - 0.002, { faces: 'yYZz' }), { shadow: false });
 
-  // shower glass, bronze wall channel, linear drain
-  add(M.glass, box(PRE, SCREEN_X1, SCREEN_Y - 0.005, SCREEN_Y + 0.005, 0.004, H - 0.003, { faces: 'yY' }), { shadow: false });
-  add(M.glassEdge, box(PRE, SCREEN_X1, SCREEN_Y - 0.005, SCREEN_Y + 0.005, 0.004, H - 0.003, { faces: 'XzZ' }), { shadow: false });
-  add(M.metal, box(PRE, PRE + 0.018, SCREEN_Y - 0.011, SCREEN_Y + 0.011, 0, H, { faces: 'XyY' }));
+  // shower glass in a bronze wall channel, in either of its places (GLASSES: a group each, applyGlass shows one)
+  GLASSES.cabinet.group = part(() => {
+    add(M.glass, box(PRE, SCREEN_X1, SCREEN_Y - 0.005, SCREEN_Y + 0.005, 0.004, H - 0.003, { faces: 'yY' }), { shadow: false });
+    add(M.glassEdge, box(PRE, SCREEN_X1, SCREEN_Y - 0.005, SCREEN_Y + 0.005, 0.004, H - 0.003, { faces: 'XzZ' }), { shadow: false });
+    add(M.metal, box(PRE, PRE + 0.018, SCREEN_Y - 0.011, SCREEN_Y + 0.011, 0, H, { faces: 'XyY' }));
+  });
+  GLASSES.window.group = part(() => {
+    const x = SCREEN_X, yw = Y1 - 0.015;   // the north wall's stone face
+    add(M.glass, box(x - 0.005, x + 0.005, SCREEN_Y, yw, 0.004, H - 0.003, { faces: 'xX' }), { shadow: false });
+    add(M.glassEdge, box(x - 0.005, x + 0.005, SCREEN_Y, yw, 0.004, H - 0.003, { faces: 'yzZ' }), { shadow: false });
+    add(M.metal, box(x - 0.011, x + 0.011, yw - 0.018, yw, 0, H, { faces: 'xXyZ' }));   // its top shows under the cove
+  });
+  for (const g of Object.values(GLASSES)) groups.room.add(g.group);
   // linear drain along the shower's back, in front of the ledge
   add(M.dark, box(PRE + 0.004, PRE + 0.044, SCREEN_Y + 0.05, Y1 - 0.04, -0.004, 0.0004, { faces: 'Z' }), { shadow: false });
   for (let y = SCREEN_Y + 0.056; y < Y1 - 0.046; y += 0.012) add(M.metal, box(PRE + 0.006, PRE + 0.042, y, y + 0.008, 0, 0.0012, { faces: 'ZxXyY' }), { shadow: false });
@@ -2229,6 +2248,15 @@ function setFlip(on) {
   b.setAttribute('aria-pressed', String(on));
   applyVanity();
 }
+// the shower glass in one of its places (GLASSES)
+function applyGlass(key = glassKey) {
+  glassKey = key;
+  for (const [k, g] of Object.entries(GLASSES)) g.group.visible = k === key;
+  document.querySelectorAll('#glasses button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  renderer.shadowMap.needsUpdate = true;
+  renderLegend();
+  dirty = true;
+}
 function applyVanity(key = vanityKey) {
   vanityKey = key;
   for (const [k, v] of Object.entries(VANITIES)) {
@@ -2682,7 +2710,7 @@ function renderLegend() {
     ['Joinery', wood.short + ' veneer, oiled: the WC wall with a cabinet above the WC, the tall cabinet; a click opens a door or a drawer', wood.swatch],
     ['Fittings', METALS[p.metal].label, METALS[p.metal].swatch],
     p.framed ? ['Mirror', 'slim black frame, LED backlight', '#1b1a19'] : null,
-    ['Shower glass', 'bronze tinted', '#8c7059'],
+    ['Shower glass', 'bronze tinted, ' + GLASSES[glassKey].desc, '#8c7059'],
     ['Door', 'flush, white lacquer', '#f2f0eb'],
     ['Window', 'heroal W 72 aluminium, bronze anodised: tilt & turn, triple glazed', '#4d443c'],
     ['Blinds', 'exterior venetian blinds, C80 slats, anthracite RAL 7016', '#383e42'],
@@ -2754,7 +2782,8 @@ const VIEWS = [
   { key: 'vanity', label: 'Mirror', pos: [5.02, 3.62, 1.62], tgt: [6.83, 3.62, 1.32], fov: 58 },
   { key: 'sun', label: 'Sun', pos: [5.75, 2.35, 1.55], tgt: [6.83, 4.0, 1.6], fov: 62, sun: true },
   { key: 'basin', label: 'Basin', pos: [6.0, 2.98, 1.42], tgt: [6.62, 3.78, 0.86], fov: 55 },
-  { key: 'shower', label: 'Shower', pos: [6.36, 3.32, 1.62], tgt: [5.02, 4.98, 1.22], fov: 64 },
+  { key: 'shower', label: 'Shower', pos: [6.36, 3.32, 1.62], tgt: [5.02, 4.98, 1.22], fov: 64,
+    glass: { window: { pos: [5.32, 2.58, 1.6], tgt: [5.05, 4.9, 1.15], fov: 66 } } },   // from beside the WC
   { key: 'wc', label: 'WC & cabinet', pos: [6.38, 4.12, 1.55], tgt: [4.8, 3.02, 1.08], fov: 62 },
   { key: 'floor', label: 'Floor', pos: [6.22, 2.3, 0.42], tgt: [5.3, 4.95, 0.3], fov: 62 },
   { key: 'plan', label: 'Plan', pos: [5.73, 3.25, 7.4], tgt: [5.73, 3.62, 0.0], fov: 30, plan: true },
@@ -2793,6 +2822,7 @@ function sunGlintView() {
 }
 function goTo(view, instant = false) {
   if (view.sun) view = { ...view, ...(sunGlintView() || {}) };
+  if (view.glass?.[glassKey]) view = { ...view, ...view.glass[glassKey] };
   current = view;
   const toPos = SU(...view.pos), toT = SU(...view.tgt);
   document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('on', b.dataset.key === view.key));
@@ -2849,6 +2879,7 @@ function buildUI() {
   seg($('woods'), dotted(WOODS, WOOD_PICK), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
   seg($('vanities'), VANITIES, (k) => withBusy(async () => { applyVanity(k); captureEnv(); }), vanityKey);
   $('t-flip').addEventListener('click', () => { if (!busy) withBusy(async () => { setFlip(!vanityFlip); captureEnv(); }); });
+  seg($('glasses'), GLASSES, (k) => withBusy(async () => { applyGlass(k); captureEnv(); }), glassKey);
   seg($('moods'), MOODS, (k) => setMood(k), moodKey);
   let envTimer = 0;
   $('sun').addEventListener('input', (e) => {
@@ -2896,6 +2927,7 @@ function buildUI() {
     if ((e.key === 's' || e.key === 'S') && !busy) { const n = STONE_PICK[(STONE_PICK.indexOf(stoneKey) + 1) % STONE_PICK.length]; withBusy(async () => { await applyStoneChoice(n); captureEnv(); }); return; }
     if ((e.key === 'o' || e.key === 'O') && !busy) { const n = WOOD_PICK[(WOOD_PICK.indexOf(woodKey) + 1) % WOOD_PICK.length]; withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
     if ((e.key === 'f' || e.key === 'F') && !busy) { withBusy(async () => { setFlip(!vanityFlip); captureEnv(); }); return; }
+    if ((e.key === 'g' || e.key === 'G') && !busy) { const k = Object.keys(GLASSES), n = k[(k.indexOf(glassKey) + 1) % k.length]; withBusy(async () => { applyGlass(n); captureEnv(); }); return; }
     const i = parseInt(e.key, 10);
     if (i >= 1 && i <= VIEWS.length) pickView(VIEWS[i - 1]);
   });
@@ -2979,7 +3011,7 @@ async function saveImage() {
     const d = new Date(), two = (n) => String(n).padStart(2, '0');
     const stamp = `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}-${two(d.getMinutes())}-${two(d.getSeconds())}`;
     const a = document.createElement('a');
-    a.download = `Refined bathroom - ${STONES[stoneKey].short}, ${WOODS[woodKey].short}, ${VANITIES[vanityKey].label}${vanityFlip ? ' flipped' : ''}, ${MOODS[moodKey].label} - ${stamp}.png`;
+    a.download = `Refined bathroom - ${STONES[stoneKey].short}, ${WOODS[woodKey].short}, ${VANITIES[vanityKey].label}${vanityFlip ? ' flipped' : ''}${glassKey === 'window' ? ', shower in from WC' : ''}, ${MOODS[moodKey].label} - ${stamp}.png`;
     a.href = URL.createObjectURL(blob);
     document.body.appendChild(a);
     a.click();
@@ -3078,6 +3110,7 @@ try {
   buildRadiators();
   flush(groups.radiators);
   buildVanities(skp);
+  applyGlass();
   buildSurroundings(await loadView());
   buildLights();
   setStatus('Cutting stone and veneer…');
@@ -3121,7 +3154,7 @@ try {
   buildUI();
   goTo(VIEWS[1], true);
   renderFrame();
-  window.__bath = { THREE, setLid, LID, OPENERS, setOpen, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+  window.__bath = { THREE, setLid, LID, OPENERS, setOpen, GLASSES, applyGlass, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
