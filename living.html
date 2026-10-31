@@ -118,7 +118,7 @@
 
 <div id="title" class="panel">
   <h1>Kitchen &amp; living</h1>
-  <p>Dům Pt · upper floor · the open kitchen, dining and living room</p>
+  <p>Dům Pt · upper floor · the open kitchen, dining and living room, the hallway and the stairs</p>
 </div>
 
 <div id="side" class="panel">
@@ -212,7 +212,8 @@ const SU = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
 // of tall white cabinets with a mirrored niche and a floating sideboard in front of it, the bedroom behind. On the west
 // the kitchen (KX0..KX1, YK..Y1) under a lowered ceiling: a run along the facade between tall units, its worktop running
 // into a window strip with exterior blinds outside, and an island facing the living room; the pantry south
-// of it behind a doorway; north of the living room the lobby, with the glass door to the hall and the bedroom corridor.
+// of it behind a doorway; north of the living room the lobby, with the glass door to the hall, and the hallway running
+// on north from it past the bedroom, the stairs and the powder room to a window (COR, STAIR).
 const X0 = 43.06, X1 = 50.23;          // the south glazing's inner face / the dining wall's front
 const Y0 = 10.105, YK = 14.545;        // the east wall's inner face / the kitchen's line (its fascia, the pantry's wall)
 const Y1 = 16.73;                      // the west facade's inner face
@@ -375,7 +376,23 @@ const SLIDE = { y0: 14.525, y1: 14.545, w: 1.018, shut: 49.566, open: 50.475, z0
 // the hall's mirror; right, by the coat hooks), the longer part into the hall or into the room (open, rad); round pulls
 // through the glass, pull in from the free edge
 const PIVOT = { x0: DOOR_S[0] + 0.005, x1: DOOR_S[1] - 0.005, d: 0.18, y: 14.67, t: 0.04, f: 0.035, z0: 0.008, z1: DOOR_H - 0.006, pull: 0.11, open: Math.PI / 2 };
-const BED = { wall: [50.57, 50.71], cor: [13.405, 13.545], end: 54.4 };
+const BED = { wall: [50.57, 50.71], cor: [13.405, 13.545] };
+// the hallway (the bedroom's corridor) running north from the lobby between the bedroom's and the wardrobe's wall (BED.cor)
+// and the hall, the stairs and the powder room (YK) to a fixed window floor to ceiling in the north facade (x1: the
+// facade's inner face; win: the anthracite frame x0..x1, y0..y1 in it, the glass at glass, g0..g1, sill and head): in its
+// east wall the bedroom's door (bed: a flush leaf hung on the bedroom's side, hinged at the south jamb, up to doorH) and
+// three oak panels (panels, z pz, 2 cm, as in the model); in its west wall the powder room's door (pdoor: hung flush
+// with the hallway, hinged at the south jamb, opening out); three small round downlights along its middle (lamps, at ly)
+const COR = { x1: 57.085, y0: 13.545, y1: 14.545, bed: [51.435, 52.335], pdoor: [54.345, 55.145], doorH: 2.15,
+  panels: [[52.85, 53.52], [54.02, 54.69], [55.22, 55.89]], pz: [0.968, 1.841], lamps: [50.795, 53.172, 55.549], ly: 14.055,
+  win: { x0: 57.235, x1: 57.385, glass: 57.31, y0: 13.605, y1: 14.479, g0: 13.681, g1: 14.397, sill: 0.07, head: 2.52 } };
+// the stairs down to the lower floor (lower), off the hallway's west side, wrapped round the powder room's core (core:
+// x0..x1 from YK to y1): 18 risers of r, treads g deep, 1 m wide. The first arm runs west between the hall's wall (hall)
+// and the core from its first riser (y0), a landing at the west facade (west), the second arm north along it, a landing
+// at the north facade (COR.x1), the third arm east under the hallway's end, where a glass balustrade guards the drop; an
+// LED step light low in the walls by every other tread, a downlight over the stairwell (lamp), a black steel handrail
+// along the outer walls
+const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower: -3.15, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, lamp: [54.885, 16.23] };
 // outside: the terrace, an L round the glazing (its slab x0..x1, y0..y1; its decking level with the floor), the glass
 // balustrade on its edges (the panes at y on the east, at x on the south, 1 m high), the roof's overhang over it lined in
 // wood (from x0, y0), the anthracite post at its corner and the fins at its west end
@@ -1252,6 +1269,8 @@ const E = {
   niche: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   wash: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   tvwash: new THREE.MeshBasicMaterial({ color: 0xffffff }),  // (the TV unit's, on its own switch)
+  cor: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the hallway's downlights' lenses
+  step: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the stairs' LED step lights
   skan: physical({ color: 0xf7f2ec, roughness: 0.3, emissive: 0xffffff, emissiveIntensity: 0 }),   // the Skan's diffusers
 };
 M.mirror.defines.NO_DIRECT_SPEC = '';
@@ -1872,21 +1891,150 @@ function buildArchitecture() {
   wall(KX1, 49.515, 14.795, Y1, 0, WT, 'x');
   wall(KX1, DOOR_S[0], YK, 14.795, 0, WT, 'xyX');
   wall(DOOR_S[0], DOOR_S[1], YK, 14.795, DOOR_H, WT, 'yz');
-  wall(DOOR_S[1], 52.545, YK, 14.795, 0, WT, 'yx');
+  wall(DOOR_S[1], STAIR.hall, YK, 14.795, 0, WT, 'yxX');
   wall(BUILT.x1, BED.wall[1], Y0, BED.cor[1], 0, WT, 'Y');
-  wall(BED.wall[1], BED.end, BED.cor[0], BED.cor[1], 0, WT, 'Y');
   // the steel column inside the corner of the glazing
   add(M.frame, box(COLUMN.x0, COLUMN.x1, COLUMN.y0, COLUMN.y1, 0, CURTAIN.pk, { faces: 'xXyY' }));
-  // the floor: one plane (the planar reflector) through the room, the lobby and on along the bedroom's corridor, the
-  // kitchen, the pantry, into the glazings' reveals and the openings
+  // the floor: one plane (the planar reflector) through the room, the lobby and on along the hallway into its window's
+  // reveal (and to the top of the stairs, into the bedroom's doorway), the kitchen, the pantry, into the glazings' reveals
+  // and the openings
   const fl = mergeGeometries([
-    [X0, X1, Y0, YK], [X1, BUILT.x1, Y0, BUILT.y1], [X1, 52.0, BUILT.y1, YK], [KX0, KX1, YK, Y1], [PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1], [PANTRY.x1, KX0, PANTRY.door[0], Y1],
+    [X0, X1, Y0, YK], [X1, BUILT.x1, Y0, BUILT.y1], [X1, COR.win.x0, BUILT.y1, YK], [STAIR.hall, STAIR.core.x0, YK, STAIR.y0 - 0.02], [COR.bed[0], COR.bed[1], BED.cor[0] + 0.04, BED.cor[1]], [KX0, KX1, YK, Y1], [PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1], [PANTRY.x1, KX0, PANTRY.door[0], Y1],
     [DOOR_S[0], DOOR_S[1], YK, 14.795], [EG_A.x0, EG_A.x1, EG.fy1, Y0], [EG_B.x0, EG_B.x1, EG.fy1, Y0],
   ].map(([a, b, c, d]) => box(a, b, c, d, -0.05, 0, { faces: 'Z' })));
   floorMesh = new THREE.Mesh(fl, M.floor);
   floorMesh.receiveShadow = true;
   groups.room.add(floorMesh);
   floorRefl.meshes.push(floorMesh);
+}
+
+// ---------------------------------------------------------------- the hallway and the stairs
+// The hallway north of the lobby to its window (COR) and the stairs down round the powder room off it (STAIR): the walls
+// and the doors in them, the oak panels, the window, the stairwell's walls, the steps and landings, the handrail, the
+// step lights, the glass balustrade over the last arm; its ceiling and the lamps' lenses (groups.ceiling)
+function buildHallway() {
+  const C = COR, S = STAIR, K = S.core, [wy0, wy1] = BED.cor, [b0, b1] = C.bed, [d0, d1] = C.pdoor, W = C.win, r = S.r, g = S.g;
+  // the east wall, the bedroom's and the wardrobe's: round the bedroom's doorway (its jambs and head plastered), its leaf
+  // flush with the bedroom's side, a black lever by its free (north) edge; the oak panels
+  wall(BED.wall[1], b0, wy0, wy1, 0, WT, 'YX');
+  wall(b0, b1, wy0, wy1, C.doorH, WT, 'Yz');
+  wall(b1, C.x1, wy0, wy1, 0, WT, 'Yx');
+  add(M.built, box(b0 + 0.003, b1 - 0.003, wy0, wy0 + 0.04, 0.008, C.doorH - 0.003));
+  const lever = (x, y, s) => {      // on a leaf's face at y, facing s (+1: +y), its grip towards the hinge (south)
+    add(M.blackMetal, cyl(0.026, 0.008, 'y', [x, y + s * 0.004, 1.05], 24));
+    add(M.blackMetal, cyl(0.009, 0.05, 'y', [x, y + s * 0.03, 1.05], 16));
+    add(M.blackMetal, box(x - 0.135, x + 0.01, y + s * 0.045 - 0.009, y + s * 0.045 + 0.009, 1.041, 1.059));
+  };
+  lever(b1 - 0.07, wy0 + 0.04, 1);
+  for (const [a, b] of C.panels) add(M.veneer, box(a, b, wy1, wy1 + 0.02, C.pz[0], C.pz[1], { faces: 'xXYzZ' }));
+  // the north end round the window: the reveal (plastered), the anthracite frame floor to ceiling, the glass
+  wall(C.x1, W.x1, wy0, W.y0, 0, WT, 'xY');
+  wall(C.x1, W.x1, W.y0, W.y1, H, WT, '');
+  wall(C.x1, W.x1, W.y1, S.west, S.lower, WT, 'xy');
+  wall(C.x1, W.x1, wy0, W.y1, S.lower, 0, 'x');
+  add(M.frame, box(W.x0, W.x1, W.y0, W.g0, 0, H, { faces: 'xY' }));
+  add(M.frame, box(W.x0, W.x1, W.g1, W.y1, 0, H, { faces: 'xy' }));
+  add(M.frame, box(W.x0, W.x1, W.g0, W.g1, W.head, H, { faces: 'xz' }));
+  add(M.frame, box(W.x0, W.x1, W.g0, W.g1, 0, W.sill, { faces: 'xZ' }));
+  add(M.windowGlass, box(W.glass - 0.01, W.glass + 0.01, W.g0, W.g1, W.sill, W.head, { faces: 'xX' }));
+  // the stairwell's outer walls down to the lower floor: the hall's north wall, the west facade (the north one above)
+  wall(52.545, S.hall, 14.795, S.west, S.lower, WT, 'X');
+  wall(S.hall, C.x1, S.west, S.west + 0.3, S.lower, WT, 'y');
+  // the core: below the floor its faces to the three arms; above it the powder room, its door in the hallway's side
+  // (hung flush with it, hinged at the south jamb, opening out; its lever by the free edge)
+  wall(K.x0, K.x1, YK, K.y1, S.lower, 0, 'xXY');
+  wall(K.x0, d0, YK, K.y1, 0, WT, 'yxXY');
+  wall(d0, d1, YK, K.y1, C.doorH, WT, 'yzY');
+  wall(d1, K.x1, YK, K.y1, 0, WT, 'yxXY');
+  add(M.built, box(d0 + 0.003, d1 - 0.003, YK + 0.001, YK + 0.041, 0.008, C.doorH - 0.003));
+  lever(d1 - 0.07, YK + 0.001, -1);
+  // where the last arm comes down under the hallway's end: the slab's edge over it, the lower floor's corner (its floor
+  // in the wood, its ceiling, its walls)
+  add(M.plaster, box(K.x1, C.x1, YK - 0.01, YK, -0.4, 0, { faces: 'Y' }));
+  add(M.ceiling, box(K.x1, C.x1, wy1, YK, -0.41, -0.4, { faces: 'z' }));
+  add(M.plaster, box(K.x1 - 0.01, K.x1, wy1, YK, S.lower, -0.4, { faces: 'X' }));
+  add(M.plaster, box(K.x1, C.x1, wy1 - 0.01, wy1, S.lower, -0.4, { faces: 'Y' }));
+  add(M.veneer, box(K.x1, C.x1, wy1, S.y0 - g, S.lower - 0.04, S.lower, { faces: 'Z' }));
+  // the steps (level k: k risers down): 4 cm treads in the wood, their nosings 2 cm over the risers (lacquered like the
+  // doors); each drops on its down edge (dn: the side of its box, X/Y/y). Arm one west, landing, arm two north, landing,
+  // arm three east; the floor's own nosing at the top. (sw: the wood's grain along the tread)
+  const step = (x0, x1, y0, y1, k, dn, sw) => {
+    const z = -k * r, n = 0.02, t = 0.012;
+    const T = { X: [x0, x1 + n, y0, y1], Y: [x0, x1, y0, y1 + n], y: [x0, x1, y0 - n, y1] }[dn];
+    add(M.veneer, box(T[0], T[1], T[2], T[3], z - 0.04, z, { swap: sw }));
+    const Q = { X: [x1 - t, x1, y0, y1], Y: [x0, x1, y1 - t, y1], y: [x0, x1, y0, y0 + t] }[dn];
+    add(M.built, box(Q[0], Q[1], Q[2], Q[3], z - r, z - 0.04, { faces: dn }));
+  };
+  add(M.veneer, box(S.hall, K.x0, S.y0 - 0.02, S.y0 + 0.02, -0.04, 0, { faces: 'yYzZ' }));
+  add(M.built, box(S.hall, K.x0, S.y0 - 0.012, S.y0, -r, -0.04, { faces: 'Y' }));
+  const ya = (k) => S.y0 + (k - 1) * g, xb = (k) => K.x0 + 0.1 + (k - 5) * g, yc = (k) => K.y1 - 0.1 - (k - 14) * g;
+  for (let k = 1; k <= 3; k++) step(S.hall, K.x0, ya(k), ya(k) + g, k, 'Y', false);
+  step(S.hall, K.x0 + 0.1, ya(4), S.west, 4, 'X', false);
+  for (let k = 5; k <= 12; k++) step(xb(k), xb(k) + g, K.y1, S.west, k, 'X', true);
+  step(xb(13), C.x1, K.y1 - 0.1, S.west, 13, 'y', false);
+  for (let k = 14; k <= 17; k++) step(K.x1, C.x1, yc(k) - g, yc(k), k, 'y', false);
+  // the handrail: a black steel tube (40 mm) 90 cm over the nosings, on brackets 6 cm off the outer walls, running on
+  // round the landings and a little past the arms' ends
+  {
+    const o = 0.06, h = 0.9, ax = S.hall + o, ay = S.west - o, nx = C.x1 - o, P = [
+      [ax, YK + 0.06, h], [ax, S.y0, h], [ax, ya(4) + g, -4 * r + h], [ax, ay, -4 * r + h],
+      [xb(5), ay, -4 * r + h], [xb(13), ay, -12 * r + h], [xb(13) + g, ay, -13 * r + h], [nx, ay, -13 * r + h],
+      [nx, yc(14), -13 * r + h], [nx, yc(17) - g, -17 * r + h], [nx, yc(17) - 2 * g, -18 * r + h], [nx, wy1 + 0.25, -18 * r + h],
+    ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+    const tube = (p, q, rr) => {
+      const d = new THREE.Vector3().subVectors(q, p), len = d.length();
+      const geo = new THREE.CylinderGeometry(rr, rr, len, 16, 1, true);
+      geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
+      return geo.translate((p.x + q.x) / 2, (p.y + q.y) / 2, (p.z + q.z) / 2);
+    };
+    P.forEach((p, i) => {
+      add(M.blackMetal, sphere(0.02, [p.x, p.y, p.z], 16));
+      if (i) add(M.blackMetal, tube(P[i - 1], p, 0.02));
+    });
+    // the brackets: to the wall behind each stretch, along each stretch about every metre
+    const bracket = (p) => {
+      const along = p.x < ax + 0.001 ? ['x', S.hall] : p.x > nx - 0.001 ? ['x', C.x1] : ['y', S.west];
+      const c = along[0] === 'x' ? [(p.x + along[1]) / 2, p.y, p.z - 0.035] : [p.x, (p.y + along[1]) / 2, p.z - 0.035];
+      add(M.blackMetal, cyl(0.007, o, along[0], c, 12));
+      add(M.blackMetal, cyl(0.007, 0.035, 'z', [p.x, p.y, p.z - 0.0175], 12));
+    };
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], n = Math.max(1, Math.round(a.distanceTo(b) / 1.0));
+      for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n));
+    }
+  }
+  // the LED step lights: small, low in the outer walls, by every other step
+  {
+    const lit = (dn, x, y, z) => {
+      const w = 0.06, hh = 0.012, e = 0.002;
+      if (dn === 'X') add(E.step, box(x, x + e, y - w, y + w, z - hh, z + hh, { faces: 'X' }), { shadow: false });
+      else if (dn === 'x') add(E.step, box(x - e, x, y - w, y + w, z - hh, z + hh, { faces: 'x' }), { shadow: false });
+      else add(E.step, box(x - w, x + w, y - e, y, z - hh, z + hh, { faces: 'y' }), { shadow: false });
+    };
+    const zl = (k) => -k * r + 0.22;
+    lit('X', S.hall, ya(2) + g / 2, zl(2));
+    lit('X', S.hall, (ya(4) + S.west) / 2, zl(4));
+    for (const k of [6, 8, 10, 12]) lit('y', xb(k) + g / 2, S.west, zl(k));
+    lit('x', C.x1, (K.y1 + S.west) / 2, zl(13));
+    for (const k of [15, 17]) lit('x', C.x1, yc(k) - g / 2, zl(k));
+  }
+  // a frameless glass balustrade along the hallway's edge over the last arm, fixed to the slab's edge by two steel discs,
+  // its top edge polished
+  {
+    const g0 = K.x1 + 0.01, g1 = C.x1 - 0.01, gy = YK + 0.008, top = 1.0;
+    add(M.windowGlass, box(g0, g1, gy, gy + 0.012, -0.25, top, { faces: 'yYxX' }));
+    add(M.glassEdge, box(g0, g1, gy, gy + 0.012, top - 0.002, top, { faces: 'Z' }), { shadow: false });
+    for (const x of [g0 + 0.18, g1 - 0.18]) add(M.stainless, cyl(0.025, 0.012, 'y', [x, gy + 0.018, -0.14], 24));
+  }
+  flush(groups.room);
+  // the ceiling over the stairwell (the hallway's: buildCeiling); the downlights' lenses: small, round, trimless, in a
+  // black ring (the hallway's three and the one over the stairwell)
+  const ceil = (mat, geo) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; groups.ceiling.add(m); return m; };
+  ceil(M.ceiling, box(S.hall, C.x1, YK, S.west, H, WT, { faces: 'z' }));
+  for (const [x, y] of [...C.lamps.map((x) => [x, C.ly]), S.lamp]) {
+    ceil(M.trim, cyl(0.036, 0.002, 'z', [x, y, H - 0.001], 32));
+    ceil(E.cor, cyl(0.029, 0.002, 'z', [x, y, H - 0.003], 32));
+  }
 }
 
 // ---------------------------------------------------------------- glazing
@@ -1948,7 +2096,7 @@ function buildGlazing() {
 function buildCeiling() {
   const put = (mat, geo) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; groups.ceiling.add(m); return m; };
   // the roof over it all and its overhang over the terrace, for the sun's shadows only
-  const roof = new THREE.Mesh(box(40.0, 55, 8.3, 17.4, WT + 0.01, WT + 0.2), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  const roof = new THREE.Mesh(box(40.0, 57.7, 8.3, 17.4, WT + 0.01, WT + 0.2), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
   roof.castShadow = true;
   roof.userData.noAO = roof.userData.occluder = true;
   R.add(roof);
@@ -1984,7 +2132,7 @@ function buildCeiling() {
       put(E.curtain, box(SX - 0.022, SX - 0.012, lo(1) - 0.05, hi(1) + 0.02, P - 0.002, P, { faces: 'z' }));
     }
   }
-  put(M.ceiling, box(X1, 52.0, BUILT.y1, YK, H, WT, { faces: 'z' }));
+  put(M.ceiling, box(X1, COR.win.x0, BUILT.y1, YK, H, WT, { faces: 'z' }));
   put(M.ceiling, box(X1, BUILT.x1, Y0, BUILT.y1, H, WT, { faces: 'z' }));      // (over the dining wall's cabinets: swapped, they are gone)
   put(M.ceiling, box(PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1, HK, WT, { faces: 'z' }));
   put(M.ceiling, box(PANTRY.x1, KX0, PANTRY.door[0], Y1, HK, WT, { faces: 'z' }));     // over the doorway and the door's gap
@@ -2891,6 +3039,7 @@ function setCurtains(closed) {
 // by its blinds (setSun sets L.skyLevel)
 function applySky() {
   L.sky.forEach(([a, k], i) => { a.intensity = L.skyLevel * k * (i < 3 ? 1 - 0.6 * CURT.t : blindLight()); });
+  if (L.north) L.north.intensity = L.skyLevel * BASE.north;
 }
 // ---------------------------------------------------------------- the kitchen window's exterior venetian blinds
 // Retractable, tiltable outdoor blinds in the window's outer reveal (as in the bathrooms): C80 aluminium slats in
@@ -3126,11 +3275,11 @@ const OUT = {}, LIVING = [];
 const VIEW = { r: 60, hfov: 180, top: 27.6, bottom: -32.5, centre: SU(46.6, 12.3, 1.5), turn: 25, drop: 2 };
 let sky;
 function buildSurroundings(viewTex) {
-  // beyond the lobby: the hall through its opening, and the bedroom's corridor running on north. Lambert surfaces, lit
-  // by an even glow (LIVING: each one's share of the daylight, or of the hall's lamps after dark; setSun)
+  // beyond the lobby: the hall through its opening (the hallway and the stairs are the room's: buildHallway). Lambert
+  // surfaces, lit by an even glow (LIVING: each one's share of the daylight, or of the hall's lamps after dark; setSun)
   const lam = (c, k) => { const mat = new THREE.MeshLambertMaterial({ color: c }); LIVING.push([mat, k]); return mat; };
   const wallM = lam(0xe4e0d8, 0.9), floorM = lam(0xc9c1b4, 1), ceilM = lam(0xeeeae4, 0.75), oakM = lam(0xb59372, 0.8), doorM = lam(0x3a3c3e, 0.6);
-  const mirM = lam(0x8f9692, 0.9), slatM = lam(0x8f7052, 0.7), whiteM = lam(0xeae7e1, 0.8);
+  const mirM = lam(0x8f9692, 0.9), slatM = lam(0x8f7052, 0.7);
   const S = new THREE.Group();
   R.add(S);
   const m = (mat, geo) => { const o = new THREE.Mesh(geo, mat); o.receiveShadow = o.castShadow = true; S.add(o); return o; };
@@ -3141,11 +3290,6 @@ function buildSurroundings(viewTex) {
   m(doorM, box(49.585, 51.087, Y1 - 0.01, Y1, 0, 2.6, { faces: 'y' }));
   m(oakM, box(51.945, 52.0, 14.795, Y1, 0.5, 2.6, { faces: 'x' }));
   m(slatM, box(50.525, 51.945, 14.795, 14.82, 0, 2.61, { faces: 'Y' }));
-  m(floorM, box(52.0, BED.end, BED.cor[1], YK, -0.05, 0, { faces: 'Z' }));
-  m(ceilM, box(52.0, BED.end, BED.cor[1], YK, H, H + 0.05, { faces: 'z' }));
-  m(wallM, box(52.545, BED.end, YK, YK + 0.1, 0, H, { faces: 'y' }));
-  m(wallM, box(BED.end, BED.end + 0.1, BED.cor[1], YK, 0, H, { faces: 'x' }));
-  for (const x of [51.2, 53.1]) m(whiteM, box(x, x + 0.9, BED.cor[1], BED.cor[1] + 0.005, 0, 2.1, { faces: 'Y' }));
 
   // outside (OUTDOOR materials): the terrace's decking, level with the floor, an L round the glazing, its anthracite edge;
   // the glass balustrade on its edges over an anthracite base channel; the roof's overhang over it lined in wood (OUT.roof:
@@ -3412,7 +3556,7 @@ async function loadView() {
 }
 
 // ---------------------------------------------------------------- lights
-const L = { spot: [], kdown: [], skan: [], area: [], sky: [], layout: [] };
+const L = { spot: [], kdown: [], skan: [], area: [], sky: [], layout: [], cor: [] };
 function buildLights() {
   const spot = (x, y, z, angle, pen, shadow, list) => {
     const s = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(angle), pen, 2);
@@ -3434,6 +3578,9 @@ function buildLights() {
   // table, the ring's over the coffee table
   for (const y of ROWS) for (const x of SPOTS) spot(x, y, H - 0.012, 22, 0.6, false, L.spot);
   for (const x of KSLOT.spots) spot(x, KSLOT.y, HK + 0.006, 34, 0.7, true, L.kdown);
+  // the hallway's three downlights and the one over the stairwell (no shadows), on their own channel
+  for (const x of COR.lamps) spot(x, COR.ly, H - 0.012, 36, 0.75, false, L.cor);
+  spot(...STAIR.lamp, H - 0.012, 44, 0.8, false, L.cor);
   // (the dining's and the living room's lamps keep where they are as drawn and swapped, for setLayout)
   const moves = (light, drawn, swapped) => { L.layout.push({ light, drawn, swapped }); return light; };
   const sw = (zone, x, y) => mapXY(LAYOUT[zone], x, y);
@@ -3489,10 +3636,19 @@ function buildLights() {
   L.sun.shadow.mapSize.set(2048, 2048);
   L.sun.shadow.bias = -0.0003;
   L.sun.shadow.normalBias = 0.02;
-  Object.assign(L.sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 0.5, far: 40 });
-  L.sun.target.position.copy(SU(46.5, 12.5, 1.0));
+  Object.assign(L.sun.shadow.camera, { left: -9.5, right: 9.5, top: 9.5, bottom: -9.5, near: 0.5, far: 44 });
+  L.sun.target.position.copy(SU(49.3, 13.0, 1.0));      // (the room and the hallway to its window)
   scene.add(L.sun, L.sun.target);
   const skyArea = (k, w, h, c, at) => L.sky.push([area(null, 0, w, h, c, at), k]);
+  // the hallway's window: the sky's light as a wide soft spot from its reveal down the hallway (not one more area light:
+  // they slow the shaders' compile; applySky)
+  {
+    const W = COR.win, y = (W.g0 + W.g1) / 2;
+    L.north = new THREE.SpotLight(0xffffff, 0, 0, THREE.MathUtils.degToRad(58), 1, 2);
+    L.north.position.copy(SU(W.x0 - 0.05, y, 1.45));
+    L.north.target.position.copy(SU(52.6, y, 0.5));
+    scene.add(L.north, L.north.target);
+  }
   for (const { x0, x1, j } of [EG_A, EG_B]) {
     const x = (x0 + x1) / 2, z = (EG.sill + EG.head) / 2;
     skyArea(1, x1 - x0 - 2 * j, EG.head - EG.sill, SU(x, EG.fy1 + 0.005, z), SU(x, 13, z));
@@ -3879,6 +4035,7 @@ function setSun(alt, az, day) {
     a.visible = day && up;
     a.color.copy(skyC);
   }
+  L.north.color.copy(skyC);
   applySky();
   // beyond the lobby: the hall and the corridor, in daylight or under their lamps after dark
   const lamp = MOODS[moodKey].hall ?? 0, daylight = day && up ? skyL : 0;
@@ -3917,27 +4074,28 @@ function kelvinRaw(k) {
 // Four moods. The lamps: spot: the spots on the tracks; kdown: the kitchen's spots over the worktop; skan: the pendants
 // over the table; ring: the ring over the sofa; island: the linear pendant over the island; the LED lines: curtain (in
 // the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); fire: the fireplace (swapped); hall: the hall's and
-// the corridor's lamps, seen beyond the lobby. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
+// the corridor's lamps, seen beyond the lobby; cor: the hallway's downlights and the stairwell's, step: the stairs' step
+// lights. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
 // horizon, for the dusk outside. Day: daylight only, the sun coming in through the east glazing in the morning, the south
 // at noon (and under the soffit in the evening, through the kitchen's window)
 const MOODS = {
-  evening: { label: 'Evening', spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
-  bright: { label: 'Bright', spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
-  night: { label: 'Night', spot: 0, kdown: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, spot: 0, kdown: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', cor: 0.45, step: 1, spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
+  bright: { label: 'Bright', cor: 1, step: 1, spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
+  night: { label: 'Night', cor: 0.06, step: 1, spot: 0, kdown: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, cor: 0, step: 0, spot: 0, kdown: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
+const BASE = { cor: 8, north: 2.5, fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
   // (each channel at the mood's level or as its switch has it; after dark the lamps stay in the scene when off, so a
   // switch flipped doesn't recompile every shader)
   const shown = (ch) => lv(ch) > 0 || !m.day;
-  for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.skan, 'skan'], [[L.ring], 'ring']]) {
+  for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.skan, 'skan'], [[L.ring], 'ring'], [L.cor, 'cor']]) {
     for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch); s.visible = shown(ch); }
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = a.userData.drawnOnly && layoutSwapped ? 0 : BASE[ALIAS[ch] ?? ch] * k * lv(ch); a.visible = shown(ch); }
-  for (const ch of ['spot', 'kdown']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
-  for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash', 'tvwash']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
+  for (const ch of ['spot', 'kdown', 'cor']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
+  for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash', 'tvwash', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   E.skan.emissive.copy(c);
   E.fire.color.setScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
   E.ember.color.set(0xff5a1e).multiplyScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
@@ -4254,6 +4412,7 @@ function renderLegend() {
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
+    ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers (the bedroom\'s, the powder room\'s), three small round downlights; off it the stairs down to the lower floor, round the powder room in three arms: ' + wn + ' treads over lacquered risers, a black steel handrail, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm', wood.swatch],
     ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
@@ -4324,7 +4483,9 @@ const VIEWS = [
   { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.9, 14.15, 1.6], tgt: [46.0, 9.9, 1.0] } },
   { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.2, 13.85, 1.35], tgt: [50.5, 10.7, 1.1] } },
   { key: 'worktop', label: 'Worktop', pos: [46.9, 15.0, 1.62], tgt: [46.9, 16.6, 0.95], fov: 70 },
-  { key: 'plan', label: 'Plan', pos: [46.65, 13.4, 15], tgt: [46.65, 13.42, 0], fov: 34, plan: true },
+  { key: 'hallway', label: 'Hallway', pos: [50.45, 14.25, 1.6], tgt: [57.2, 13.85, 1.15], fov: 62 },
+  { key: 'stairs', label: 'Stairs', pos: [53.45, 13.72, 1.62], tgt: [53.0, 16.4, -1.0], fov: 72 },
+  { key: 'plan', label: 'Plan', pos: [52.3, 13.2, 15], tgt: [52.3, 13.22, 0], fov: 48, plan: true },      // (with the hallway and the stairs)
 ];
 let current = VIEWS[0], tween = null;
 const fovFor = (fov) => {
@@ -4356,7 +4517,7 @@ function clampCamera() {
     y = Math.min(y, RUN.fy - 0.08);
     z = C(z, 0.25, HK - 0.08);
   } else {
-    x = C(x, X0 + 0.1, y > BUILT.y1 + 0.08 ? 51.8 : (layoutSwapped ? BUILT.x1 : X1) - 0.12);
+    x = C(x, X0 + 0.1, y > BUILT.y1 + 0.08 ? COR.x1 - 0.1 : (layoutSwapped ? BUILT.x1 : X1) - 0.12);      // (the lobby and the hallway)
     y = C(y, Y0 + 0.08, YK - 0.08);
     z = C(z, 0.25, H - 0.08);
   }
@@ -4368,7 +4529,7 @@ function clampCamera() {
   }
   p.set(x, z, -y);
   const t = controls.target;
-  t.set(C(t.x, 42.5, 51.5), C(t.y, 0, H), C(t.z, -17.5, -8.5));
+  t.set(C(t.x, 42.5, 57.4), C(t.y, -3.2, H), C(t.z, -17.5, -8.5));
 }
 
 // ---------------------------------------------------------------- UI
@@ -4663,6 +4824,7 @@ try {
   buildArchitecture();
   buildGlazing();
   buildCeiling();
+  buildHallway();
   buildKitchen();
   buildIsland();
   buildDining();
