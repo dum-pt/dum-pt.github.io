@@ -393,6 +393,10 @@ const COR = { x1: 57.085, y0: 13.545, y1: 14.545, bed: [51.435, 52.335], pdoor: 
 // LED step light low in the walls by every other tread, a downlight over the stairwell (lamp), a black steel handrail
 // along the outer walls
 const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower: -3.15, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, lamp: [54.885, 16.23] };
+// the window over the stairs' corner landing: in the model an opening in the west facade, 1 m wide (x0..x1), the upper
+// floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
+// pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
+const WW = { x0: 56.085, x1: 57.085, y0: 16.88, y1: 17.03, glass: 16.955, f: 0.076, sill: 0.07, head: 2.52, h: 2.6 };
 // outside: the terrace, an L round the glazing (its slab x0..x1, y0..y1; its decking level with the floor), the glass
 // balustrade on its edges (the panes at y on the east, at x on the south, 1 m high), the roof's overhang over it lined in
 // wood (from x0, y0), the anthracite post at its corner and the fins at its west end
@@ -1912,6 +1916,17 @@ function buildArchitecture() {
 // The hallway north of the lobby to its window (COR) and the stairs down round the powder room off it (STAIR): the walls
 // and the doors in them, the oak panels, the window, the stairwell's walls, the steps and landings, the handrail, the
 // step lights, the glass balustrade over the last arm; its ceiling and the lamps' lenses (groups.ceiling)
+// the window over the stairs' corner landing (WW): a fixed pane in an anthracite frame in the facade's outer half, the
+// reveal's head plastered like the ceiling (Z: its sill's level; Zt: the ceiling's)
+function westWindow(Z, Zt) {
+  const W = WW;
+  add(M.frame, box(W.x0, W.x0 + W.f, W.y0, W.y1, Z, Zt, { faces: 'yYX' }));
+  add(M.frame, box(W.x1 - W.f, W.x1, W.y0, W.y1, Z, Zt, { faces: 'yYx' }));
+  add(M.frame, box(W.x0 + W.f, W.x1 - W.f, W.y0, W.y1, Z + W.head, Zt, { faces: 'yYz' }));
+  add(M.frame, box(W.x0 + W.f, W.x1 - W.f, W.y0, W.y1, Z, Z + W.sill, { faces: 'yYZ' }));
+  add(M.windowGlass, box(W.x0 + W.f, W.x1 - W.f, W.glass - 0.01, W.glass + 0.01, Z + W.sill, Z + W.head, { faces: 'yY' }));
+  add(M.ceiling, box(W.x0, W.x1, STAIR.west, W.y0, Zt, Zt + 0.01, { faces: 'z' }));
+}
 function buildHallway() {
   const C = COR, S = STAIR, K = S.core, [wy0, wy1] = BED.cor, [b0, b1] = C.bed, [d0, d1] = C.pdoor, W = C.win, r = S.r, g = S.g;
   // the east wall, the bedroom's and the wardrobe's: round the bedroom's doorway (its jambs and head plastered), its leaf
@@ -1939,7 +1954,12 @@ function buildHallway() {
   add(M.windowGlass, box(W.glass - 0.01, W.glass + 0.01, W.g0, W.g1, W.sill, W.head, { faces: 'xX' }));
   // the stairwell's outer walls down to the lower floor: the hall's north wall, the west facade (the north one above)
   wall(52.545, S.hall, 14.795, S.west, S.lower, WT, 'X');
-  wall(S.hall, C.x1, S.west, S.west + 0.3, S.lower, WT, 'y');
+  // (over the corner landing the west facade's window, WW: from the upper floor to its ceiling)
+  wall(S.hall, WW.x0, S.west, S.west + 0.3, S.lower, WT, 'yX');
+  wall(WW.x0, C.x1, S.west, S.west + 0.3, S.lower, 0, 'yZ');
+  wall(WW.x0, C.x1, S.west, S.west + 0.3, H, WT, 'y');
+  wall(C.x1, W.x1, S.west, S.west + 0.3, 0, H, 'x');
+  westWindow(0, H);
   // the core: below the floor its faces to the three arms; above it the powder room, its door in the hallway's side
   // (hung flush with it, hinged at the south jamb, opening out; its lever by the free edge)
   wall(K.x0, K.x1, YK, K.y1, S.lower, 0, 'xXY');
@@ -1955,31 +1975,35 @@ function buildHallway() {
   add(M.plaster, box(K.x1 - 0.01, K.x1, wy1, YK, S.lower, -0.4, { faces: 'X' }));
   add(M.plaster, box(K.x1, C.x1, wy1 - 0.01, wy1, S.lower, -0.4, { faces: 'Y' }));
   add(M.veneer, box(K.x1, C.x1, wy1, S.y0 - g, S.lower - 0.04, S.lower, { faces: 'Z' }));
-  // the steps (level k: k risers down): 4 cm treads in the wood, their nosings 2 cm over the risers (lacquered like the
-  // doors); each drops on its down edge (dn: the side of its box, X/Y/y). Arm one west, landing, arm two north, landing,
-  // arm three east; the floor's own nosing at the top. (sw: the wood's grain along the tread)
+  // the steps (level k: k risers down), clad in the wood as solid blocks: 4 cm treads flush with their wooden risers (no
+  // nosings), each riser the full step high so the front reads as one face of wood, the grain along it; each drops on its
+  // down edge (dn: the side of its box, X/Y/y). Arm one west, landing, arm two north, landing, arm three east; the floor's
+  // edge at the top. (sw: the tread's grain along its length)
   const step = (x0, x1, y0, y1, k, dn, sw) => {
-    const z = -k * r, n = 0.02, t = 0.012;
-    const T = { X: [x0, x1 + n, y0, y1], Y: [x0, x1, y0, y1 + n], y: [x0, x1, y0 - n, y1] }[dn];
-    add(M.veneer, box(T[0], T[1], T[2], T[3], z - 0.04, z, { swap: sw }));
+    const z = -k * r, t = 0.012;
+    add(M.veneer, box(x0, x1, y0, y1, z - 0.04, z, { faces: 'xXyYzZ'.replace(dn, ''), swap: sw }));
     const Q = { X: [x1 - t, x1, y0, y1], Y: [x0, x1, y1 - t, y1], y: [x0, x1, y0, y0 + t] }[dn];
-    add(M.built, box(Q[0], Q[1], Q[2], Q[3], z - r, z - 0.04, { faces: dn }));
+    add(M.veneer, box(Q[0], Q[1], Q[2], Q[3], z - r, z, { faces: dn }));
   };
-  add(M.veneer, box(S.hall, K.x0, S.y0 - 0.02, S.y0 + 0.02, -0.04, 0, { faces: 'yYzZ' }));
-  add(M.built, box(S.hall, K.x0, S.y0 - 0.012, S.y0, -r, -0.04, { faces: 'Y' }));
+  add(M.veneer, box(S.hall, K.x0, S.y0 - 0.02, S.y0, -0.04, 0, { faces: 'yzZ' }));
+  add(M.veneer, box(S.hall, K.x0, S.y0 - 0.012, S.y0, -r, 0, { faces: 'Y' }));
   const ya = (k) => S.y0 + (k - 1) * g, xb = (k) => K.x0 + 0.1 + (k - 5) * g, yc = (k) => K.y1 - 0.1 - (k - 14) * g;
   for (let k = 1; k <= 3; k++) step(S.hall, K.x0, ya(k), ya(k) + g, k, 'Y', false);
   step(S.hall, K.x0 + 0.1, ya(4), S.west, 4, 'X', false);
   for (let k = 5; k <= 12; k++) step(xb(k), xb(k) + g, K.y1, S.west, k, 'X', true);
   step(xb(13), C.x1, K.y1 - 0.1, S.west, 13, 'y', false);
   for (let k = 14; k <= 17; k++) step(K.x1, C.x1, yc(k) - g, yc(k), k, 'y', false);
-  // the handrail: a black steel tube (40 mm) 90 cm over the nosings, on brackets 6 cm off the outer walls, running on
-  // round the landings and a little past the arms' ends
+  // the handrail: a black steel tube (40 mm) 90 cm over the nosing line, on the inner side: on brackets 6 cm off the powder
+  // room's core, round its two corners, from the floor here down to the core's end by the bottom step (where the niche
+  // opens on the lower floor); both ends turned back into the wall on a round plate
   {
-    const o = 0.06, h = 0.9, ax = S.hall + o, ay = S.west - o, nx = C.x1 - o, P = [
-      [ax, YK + 0.06, h], [ax, S.y0, h], [ax, ya(4) + g, -4 * r + h], [ax, ay, -4 * r + h],
-      [xb(5), ay, -4 * r + h], [xb(13), ay, -12 * r + h], [xb(13) + g, ay, -13 * r + h], [nx, ay, -13 * r + h],
-      [nx, yc(14), -13 * r + h], [nx, yc(17) - g, -17 * r + h], [nx, yc(17) - 2 * g, -18 * r + h], [nx, wy1 + 0.25, -18 * r + h],
+    const o = 0.06, h = 0.9, ix = K.x0 - o, iy = K.y1 + o, nx = K.x1 + o;
+    // the nosing lines of arm one (along y), arm two (along x), arm three (along y)
+    const z1 = (y) => -r * (y - S.y0) / g, z2 = (x) => -4 * r - r * (x - xb(5)) / g, z3 = (y) => -13 * r - r * (yc(14) - y) / g;
+    const y0 = YK + 0.1, y1 = 14.845;
+    const P = [
+      [K.x0, y0, h], [ix, y0, h], [ix, S.y0, h], [ix, iy, (z1(iy) + z2(ix)) / 2 + h],
+      [nx, iy, (z2(nx) + z3(iy)) / 2 + h], [nx, y1, z3(y1) + h], [K.x1, y1, z3(y1) + h],
     ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
     const tube = (p, q, rr) => {
       const d = new THREE.Vector3().subVectors(q, p), len = d.length();
@@ -1988,19 +2012,21 @@ function buildHallway() {
       return geo.translate((p.x + q.x) / 2, (p.y + q.y) / 2, (p.z + q.z) / 2);
     };
     P.forEach((p, i) => {
-      add(M.blackMetal, sphere(0.02, [p.x, p.y, p.z], 16));
+      if (i && i < P.length - 1) add(M.blackMetal, sphere(0.02, [p.x, p.y, p.z], 16));
       if (i) add(M.blackMetal, tube(P[i - 1], p, 0.02));
     });
-    // the brackets: to the wall behind each stretch, along each stretch about every metre
-    const bracket = (p) => {
-      const along = p.x < ax + 0.001 ? ['x', S.hall] : p.x > nx - 0.001 ? ['x', C.x1] : ['y', S.west];
-      const c = along[0] === 'x' ? [(p.x + along[1]) / 2, p.y, p.z - 0.035] : [p.x, (p.y + along[1]) / 2, p.z - 0.035];
-      add(M.blackMetal, cyl(0.007, o, along[0], c, 12));
+    add(M.blackMetal, cyl(0.032, 0.006, 'x', [K.x0 - 0.003, y0, h], 28));
+    add(M.blackMetal, cyl(0.032, 0.006, 'x', [K.x1 + 0.003, y1, z3(y1) + h], 28));
+    // the brackets: from the core's face to under the tube, along each arm about every metre
+    const bracket = (p, ax, w) => {
+      const c = [p.x, p.y, p.z - 0.035], k = ax === 'x' ? 0 : 1;
+      c[k] = (c[k] + w) / 2;
+      add(M.blackMetal, cyl(0.007, o, ax, c, 12));
       add(M.blackMetal, cyl(0.007, 0.035, 'z', [p.x, p.y, p.z - 0.0175], 12));
     };
-    for (let i = 1; i < P.length; i++) {
-      const a = P[i - 1], b = P[i], n = Math.max(1, Math.round(a.distanceTo(b) / 1.0));
-      for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n));
+    for (const [i, ax, w] of [[2, 'x', K.x0], [3, 'y', K.y1], [4, 'x', K.x1]]) {
+      const a = P[i], b = P[i + 1], n = Math.max(1, Math.round(a.distanceTo(b) / 1.0));
+      for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n), ax, w);
     }
   }
   // the LED step lights: small, low in the outer walls, by every other step
@@ -4412,7 +4438,7 @@ function renderLegend() {
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
-    ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers (the bedroom\'s, the powder room\'s), three small round downlights; off it the stairs down to the lower floor, round the powder room in three arms: ' + wn + ' treads over lacquered risers, a black steel handrail, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm', wood.swatch],
+    ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers (the bedroom\'s, the powder room\'s), three small round downlights; off it the stairs down to the lower floor, round the powder room in three arms: clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side round the powder room, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
     ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
