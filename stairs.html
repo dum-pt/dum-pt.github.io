@@ -79,9 +79,9 @@
   #prewalls { display: grid; grid-template-columns: repeat(3, 1fr); }
   #glazes { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; margin-top: 8px; }
   #glazes.off { opacity: 0.38; pointer-events: none; }
-  #paint-pick, #floor-pick { position: relative; overflow: hidden; cursor: pointer; background: conic-gradient(#c96b5b, #c9b45b, #7fae6e, #5b9bc9, #8e6bc9, #c96b5b); }
-  #paint-pick.on, #floor-pick.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
-  #paint-pick input, #floor-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+  #paint-pick, #floor-pick, #step-pick { position: relative; overflow: hidden; cursor: pointer; background: conic-gradient(#c96b5b, #c9b45b, #7fae6e, #5b9bc9, #8e6bc9, #c96b5b); }
+  #paint-pick.on, #floor-pick.on, #step-pick.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
+  #paint-pick input, #floor-pick input, #step-pick input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
   #paint-name, #floor-name { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
   #credit { margin: 8px 0 0; font-size: 10.5px; line-height: 1.35; color: var(--muted); }
   #credit a { color: inherit; }
@@ -106,6 +106,10 @@
     #views { bottom: 12px; }
   }
   #landings, #niches, #fabrics { display: grid; grid-template-columns: repeat(2, 1fr); }
+  #step2s { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #steptones { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 2px; }
+  #step-pick { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); flex: none; }
+  #step-name { font-size: 11.5px; color: var(--muted); }
 </style>
 <script type="importmap">
 { "imports": {
@@ -126,7 +130,9 @@
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the stairs' treads, the step cupboard's plinth, the oak panels upstairs and the lounge's TV unit and table (O)"></div></div>
   <div class="group"><h2>Landing room</h2><div class="seg" id="landings" title="The room at the foot of the stairs, empty in the model: a lounge (an IKEA ÄPPLARYD sofa on the north wall facing a TV and a cupboard floor to ceiling on the bathroom's wall, a coffee table, a floor lamp, a fig tree; this page's), or empty as drawn (L)"></div></div>
   <div class="group"><h2>Stair niche</h2><div class="seg" id="niches" title="The open niche in the powder room's base, facing the landing: the stairs' second step carried on across it, a plinth of four drawers over a gap for shoes, white doors set back over it to the ceiling; or two wide drawers down to the floor under the same doors; or closed by flush doors floor to ceiling, a cupboard 60 cm deep (N). Click a door or a drawer to open it"></div></div>
-  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The stone of the slim frames round the two doors in the wooden wall, honed (T)"></div></div>
+  <div class="group"><h2>Second step</h2><div class="seg" id="step2s" title="The stairs' second step and, carried on from it across the niche, the drawers' fronts and the tread in front of the cupboard's doors: in the wood like the other steps, in the stone (the Stone picker's, honed) or lacquered in any colour (E)"></div>
+    <div id="steptones"><label id="step-pick" title="Any colour (lacquered)"><input type="color" id="step-custom" aria-label="Any colour for the second step"></label><span id="step-name"></span></div></div>
+  <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The stone of the slim frames round the two doors in the wooden wall, and of the second step when it is in stone; honed (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the doors and the niche's cupboard (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Floor · epoxy</h2>
     <div id="floortones" title="The lower floor: seamless poured epoxy, satin, in any colour (F). The stairs and the upper floor stay in the wood"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
@@ -1111,6 +1117,7 @@ const M = {
   dark: physical({ color: 0x1b1714, roughness: 0.7 }),
   joint: physical({ color: 0x15120f, roughness: 0.9 }),                // the gaps between fronts
   veneer: physical({ clearcoat: 0.3, clearcoatRoughness: 0.3 }),       // the wood
+  step2: physical({ clearcoat: 0.3, clearcoatRoughness: 0.3 }),        // the second step and its drawers (STEP2: the wood's, the stone's or a lacquer)
   lacquer: physical({ color: 0xf0ede7, roughness: 0.38, clearcoat: 0.3, clearcoatRoughness: 0.3 }),   // the doors, the risers, the niche's cupboard
   // the windows' glass only adds its reflection to what is behind it
   windowGlass: physical({ color: 0x000000, roughness: 0.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
@@ -1913,11 +1920,11 @@ function buildStairs() {
   // its riser the full step high, flush with the tread's front (so the front reads as one face of wood, the grain along
   // it). Arm one west, landing, arm two north, landing, arm three east; the floor's edge at the top. (sw: the tread's
   // grain along its length)
-  const step = (x0, x1, y0, y1, k, dn, sw) => {
+  const step = (x0, x1, y0, y1, k, dn, sw, mat = M.veneer) => {
     const z = zk(k), t = 0.012;
-    add(M.veneer, box(x0, x1, y0, y1, z - 0.04, z, { faces: 'xXyYzZ'.replace(dn, ''), swap: sw }));
+    add(mat, box(x0, x1, y0, y1, z - 0.04, z, { faces: 'xXyYzZ'.replace(dn, ''), swap: sw }));
     const Q = { X: [x1 - t, x1, y0, y1], Y: [x0, x1, y1 - t, y1], y: [x0, x1, y0, y0 + t] }[dn];
-    add(M.veneer, box(Q[0], Q[1], Q[2], Q[3], z - r, z, { faces: dn }));
+    add(mat, box(Q[0], Q[1], Q[2], Q[3], z - r, z, { faces: dn }));
   };
   add(M.veneer, box(S.hall, K.x0, S.y0 - 0.02, S.y0, TOP - 0.04, TOP, { faces: 'yzZ' }));
   add(M.veneer, box(S.hall, K.x0, S.y0 - 0.012, S.y0, TOP - r, TOP, { faces: 'Y' }));
@@ -1926,14 +1933,15 @@ function buildStairs() {
   step(S.hall, K.x0 + 0.1, ya(4), S.west, 4, 'X', false);
   for (let k = 5; k <= 12; k++) step(xb(k), xb(k) + g, K.y1, S.west, k, 'X', true);
   step(xb(13), C.x1, K.y1 - 0.1, S.west, 13, 'y', false);
-  for (let k = 14; k <= 17; k++) step(k === 17 ? NICHE.x1 : S.x3, C.x1, yc(k) - g, yc(k), k, 'y', false);
+  // (the second step, k 16, in M.step2: the wood's, the stone's or a lacquer, the user's; its run on across the niche too)
+  for (let k = 14; k <= 17; k++) step(k === 17 ? NICHE.x1 : S.x3, C.x1, yc(k) - g, yc(k), k, 'y', false, k === 16 ? M.step2 : M.veneer);
   // the bottom step's side, at the niche's mouth: clad in the wood under its tread
   add(M.veneer, box(NICHE.x1, NICHE.x1 + 0.001, yc(17) - g, yc(17), 0, zk(17) - 0.04, { faces: 'x' }));
   // the second step run on across the end of the niche's wall (shortened back to the cupboards' doors) to the niche: one
   // block of wood, its riser in line with the step cupboard's drawers, its top with the step's top in front of the doors
   // (with the plain cupboard it ends at the niche, its side in the wood)
-  add(M.veneer, box(NICHE.x1, S.x3, yc(16) - g, NICHE.y1 - NICHE.deep, zk(17), zk(16), { faces: 'yZx' }));
-  add(M.veneer, box(NICHE.x1, S.x3, yc(16) - g, NICHE.y1 - NICHE.deep, 0, zk(17), { faces: 'x' }));
+  add(M.step2, box(NICHE.x1, S.x3, yc(16) - g, NICHE.y1 - NICHE.deep, zk(17), zk(16), { faces: 'yZx' }));
+  add(M.step2, box(NICHE.x1, S.x3, yc(16) - g, NICHE.y1 - NICHE.deep, 0, zk(17), { faces: 'x' }));
   // the handrail: a black steel tube (40 mm) 90 cm over the nosing line, on the inner side: on brackets 6 cm off the powder
   // room's core, round its two corners, from the upper floor down to the core's end by the bottom step; both ends turned
   // back into the wall on a round plate
@@ -2152,18 +2160,18 @@ function buildStepCupboard(G, floor = false) {
   };
   if (!floor) {
     // the gap: the plinth's underside and the gap's back in the wood, the LED line; the shoes in it
-    add(M.veneer, box(N.x0, N.x1, yf + 0.004, yf + gd + 0.02, z0, z0 + pt, { faces: 'z' }));
-    add(M.veneer, box(N.x0, N.x1, yf + gd, yf + gd + 0.02, 0, z0, { faces: 'y' }));
+    add(M.step2, box(N.x0, N.x1, yf + 0.004, yf + gd + 0.02, z0, z0 + pt, { faces: 'z' }));
+    add(M.step2, box(N.x0, N.x1, yf + gd, yf + gd + 0.02, 0, z0, { faces: 'y' }));
     add(E.niche, box(N.x0 + 0.03, N.x1 - 0.03, yf + 0.03, yf + 0.042, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
     for (const sh of SHOES) shoes(sh, yf + 0.17, 0);
   }
   // the plinth's carcass round the drawers (white inside): its bottom, its top (in the wood in front of the doors: the
   // step's top, the cupboard's floor behind them), the bays' sides; the gap's north side in the wood
   add(M.melamine, box(N.x0, N.x1, ys, yf + dd + 0.04, z0, z0 + pt, { faces: 'Z' }));
-  add(M.veneer, box(N.x0, N.x1, ys, yd, z1 - pt, z1, { faces: 'zZ' }));         // the step's top in front of the doors
+  add(M.step2, box(N.x0, N.x1, ys, yd, z1 - pt, z1, { faces: 'zZ' }));         // the step's top in front of the doors
   add(M.melamine, box(N.x0, N.x1, yd, N.y1, z1 - pt, z1, { faces: 'zZ' }));
-  if (!floor) add(M.veneer, box(N.x1 - 0.001, N.x1, yd, yf + gd + 0.02, 0, z0, { faces: 'x' }));      // the gap's side, as the step's
-  if (!floor) add(M.veneer, box(N.x0, N.x0 + 0.001, yf, yf + gd + 0.02, 0, z0, { faces: 'X', swap: true }));
+  if (!floor) add(M.step2, box(N.x1 - 0.001, N.x1, yd, yf + gd + 0.02, 0, z0, { faces: 'x' }));      // the gap's side, as the step's
+  if (!floor) add(M.step2, box(N.x0, N.x0 + 0.001, yf, yf + gd + 0.02, 0, z0, { faces: 'X' }));
   add(M.veneer, box(N.x0, N.x0 + N.clad, N.y0, yi, z1, HC, { faces: 'Xyz', swap: true }));   // the cladding, round into the niche
   add(M.melamine, box(N.x0, N.x1, yf + dd + 0.04, yf + dd + 0.05, z0, z1 - pt, { faces: 'y' }));
   for (let i = 1; i < nd; i++) add(M.melamine, box(N.x0 + i * wd - 0.008, N.x0 + i * wd + 0.008, ys + 0.004, yf + dd + 0.04, z0 + pt, z1 - pt, { faces: 'xXy' }));
@@ -2202,7 +2210,7 @@ function buildStepCupboard(G, floor = false) {
   // it, sliding out dd - 0.1 (the floor drawers' with the shoes in them)
   for (let i = 0; i < nd; i++) {
     const a = N.x0 + i * wd + gp, b = N.x0 + (i + 1) * wd - gp, g = new THREE.Group();
-    add(M.veneer, box(a, b, yf, ys, floor ? 0.004 : z0 + gp, z1 - gp, { faces: 'xXyYzZ' }));
+    add(M.step2, box(a, b, yf, ys, floor ? 0.004 : z0 + gp, z1 - gp, { faces: 'xXyYzZ' }));
     const bx0 = a + 0.02, bx1 = b - 0.02, by1 = yf + dd, bz0 = z0 + pt + 0.006, bz1 = z1 - pt - 0.012, bt = 0.012;
     add(M.melamine, box(bx0, bx0 + bt, ys, by1, bz0, bz1));
     add(M.melamine, box(bx1 - bt, bx1, ys, by1, bz0, bz1));
@@ -2779,6 +2787,10 @@ function setSunHour(h) {
 
 // ---------------------------------------------------------------- palettes
 let paletteKey = 'japandi', woodKey = PALETTES.japandi.wood;
+// the second step's finish (STEP2, the user's): the wood (the Wood picker's), the stone (the Stone picker's, honed) or a satin
+// lacquer in any colour (step2Color)
+const STEP2 = { wood: { label: 'Wood' }, stone: { label: 'Stone' }, colour: { label: 'Colour' } };
+let step2Key = 'wood', step2Color = '#5b5650';
 let landingKey = 'lounge', nicheKey = 'step', stoneKey = PALETTES.japandi.stone, fabricKey = PALETTES.japandi.fabric;
 let floorKey = 'planks', floorWood = PALETTES.japandi.floorWood, floorColor = null;
 let paintKey = PALETTES.japandi.paint, paintColor = PAINTS[paintKey].color;      // (paintKey null: a colour from the picker)
@@ -2819,6 +2831,7 @@ async function applyWoodChoice(key, refresh = true) {
   const wood = WOODS[key], tex = await photoTexture(wood.photo);
   applyPhoto(M.veneer, tex, { rough: wood.rough, polish: 0.3 });
   document.querySelectorAll('#woods button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  applyStep2(step2Key, step2Color, false);
   if (!refresh) return;
   dropPhotos();
   renderer.shadowMap.needsUpdate = true;
@@ -2890,12 +2903,32 @@ function dropPhotos() {
 }
 // the stone (STONE_PICK, the photographs of the other pages' picker): the slim frames round the doors in the wooden wall,
 // honed (a soft sheen, whatever the stone's own polish elsewhere)
+// the second step's finish: M.step2 takes on the wood's or the stone's map and finish (again whenever the wood or the
+// stone changes), or a satin lacquer in step2Color
+function applyStep2(k, color = step2Color, refresh = true) {
+  step2Key = k;
+  step2Color = color;
+  const m = M.step2, src = { wood: M.veneer, stone: M.stone }[k];
+  m.map = src ? src.map : null;
+  if (src) { m.color.copy(src.color); m.roughness = src.roughness; m.clearcoat = src.clearcoat; m.clearcoatRoughness = src.clearcoatRoughness; }
+  else { m.color.set(color); m.roughness = 0.42; m.clearcoat = 0.25; m.clearcoatRoughness = 0.35; }
+  m.needsUpdate = true;
+  document.querySelectorAll('#step2s button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  $('step-pick').classList.toggle('on', k === 'colour');
+  $('step-custom').value = step2Color;
+  $('step-name').textContent = k === 'colour' ? 'Lacquered, ' + step2Color : k === 'stone' ? 'Honed ' + STONES[stoneKey].short : WOODS[woodKey].short;
+  if (!refresh) return;
+  renderer.shadowMap.needsUpdate = true;
+  renderLegend();
+  dirty = true;
+}
 async function applyStoneChoice(k, refresh = true) {
   stoneKey = k;
   const stone = STONES[k];
   applyPhoto(M.stone, await photoTexture(stone.photo), { rough: Math.max(stone.rough, 0.4), polish: 0.1 });
   M.stone.clearcoatRoughness = 0.5;
   document.querySelectorAll('#stones button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  applyStep2(step2Key, step2Color, false);
   if (!refresh) return;
   dropPhotos();
   renderer.shadowMap.needsUpdate = true;
@@ -2904,6 +2937,7 @@ async function applyStoneChoice(k, refresh = true) {
 }
 function renderLegend() {
   const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), metal = METALS[p.metal], fab = FABRICS[fabricKey];
+  const sn = { wood: wn, stone: 'honed ' + STONES[stoneKey].short, colour: 'lacquered' }[step2Key];
   const tone = floorTone(), fw = !floorColor ? WOODS[floorWood].short.toLowerCase() : tone ? tone[1].label.toLowerCase() : 'oak stained ' + floorColor;
   const epoxy = epoxyKey ? EPOXIES[epoxyKey].label.toLowerCase() : 'your colour (' + epoxyColor + ')';
   const rows = [
@@ -2914,11 +2948,16 @@ function renderLegend() {
       ? 'the room at the foot of the stairs, empty in the model, as a lounge (this page\'s): an IKEA ÄPPLARYD sofa as in the Kitchen & living page, three seats and a chaise longue (290 cm), in ' + fab.desc + ' with ' + fab.cushionLabel + ' cushions, against the north wall with the chaise by the window, under a poster 2 × 1.4 m of a bridge\'s towers rising out of a sea of clouds in a slim black frame; facing it on the bathroom\'s wall a 65" TV over a floating ' + wn + ' unit with an LED line under it and, to their right, a cupboard floor to ceiling, 1 m wide and 60 cm deep, behind two handleless doors lacquered a shade lighter than the walls; a round ' + wn + ' coffee table, a wool rug, a floor lamp in ' + metal.label + ' with a linen drum shade by the sofa\'s arm, a fig tree in the corner by the window'
       : 'the room at the foot of the stairs, empty as in the model', landingKey === 'lounge' ? fab.color : paintColor],
     ['Stair niche', {
-      floor: 'the stairs\' second step carried on across the niche as two wide ' + wn + ' drawers down to the floor (each 1 m wide and 35 cm high, the second step\'s height, their fronts in line with its riser, the wood running on into it; 55 cm deep, the shoes in them), their top a tread in front of the doors; over them the same cupboard to the ceiling behind four white lacquered handleless doors, set back into the niche, ' + Math.round(NICHE.deep * 100) + ' cm deep to its back wall: coats on a rail under a hat shelf behind the south pair, shelves with baskets behind the north pair. Click a door or a drawer to open it (this page\'s)',
+      floor: 'the stairs\' second step carried on across the niche as two wide ' + sn + ' drawers down to the floor (each 1 m wide and 35 cm high, the second step\'s height, their fronts in line with its riser, running on into it; 55 cm deep, the shoes in them), their top a tread in front of the doors; over them the same cupboard to the ceiling behind four white lacquered handleless doors, set back into the niche, ' + Math.round(NICHE.deep * 100) + ' cm deep to its back wall: coats on a rail under a hat shelf behind the south pair, shelves with baskets behind the north pair. Click a door or a drawer to open it (this page\'s)',
       cupboard: 'the niche closed by four flush handleless doors floor to ceiling, lacquered a shade lighter than the walls: a cupboard ' + Math.round(NICHE.deep * 100) + ' cm deep to the niche\'s back wall, its doors set back ' + Math.round((NICHE.y1 - NICHE.y0 - NICHE.deep) * 100) + ' cm into the niche, the second step running on to its side (this page\'s)',
-      step: 'the stairs\' second step carried on across the niche, in its riser\'s plane and to its height: a ' + wn + ' plinth of four drawers floating over a gap the first step high (36 cm deep, for shoes; an LED line under the plinth\'s front edge lights the floor); the plinth\'s top a ' + wn + ' tread in front of the doors, running on into the second step (the niche\'s wall between them shortened back to the doors); over it a cupboard to the ceiling behind four white lacquered handleless doors, set back into the niche, ' + Math.round(NICHE.deep * 100) + ' cm deep to its back wall: coats on a rail under a hat shelf behind the south pair, shelves with baskets behind the north pair. Click a door or a drawer to open it (this page\'s)',
+      step: 'the stairs\' second step carried on across the niche, in its riser\'s plane and to its height: a ' + sn + ' plinth of four drawers floating over a gap the first step high (36 cm deep, for shoes; an LED line under the plinth\'s front edge lights the floor); the plinth\'s top a ' + sn + ' tread in front of the doors, running on into the second step (the niche\'s wall between them shortened back to the doors); over it a cupboard to the ceiling behind four white lacquered handleless doors, set back into the niche, ' + Math.round(NICHE.deep * 100) + ' cm deep to its back wall: coats on a rail under a hat shelf behind the south pair, shelves with baskets behind the north pair. Click a door or a drawer to open it (this page\'s)',
     }[nicheKey], nicheKey === 'cupboard' ? M.lacquer.color.getStyle() : '#f5f4f0'],
     ['Stairs', 'as in the model: 18 risers of 17.5 cm, 27.5 cm treads, in three arms round the powder room, the first two 1 m wide, the last 1.07 m (its inner wall under the slab set back 7 cm into the niche\'s side), its bottom two steps running on across the end of the niche\'s wall (shortened back to the cupboard\'s doors) to the niche, the bottom one 1.255 m; clad in ' + wn + ' as solid blocks, the treads flush with their risers (no nosings), the risers and the bottom step\'s open side in the wood too; a black steel handrail on the inner side, round the powder room\'s core; LED step lights in the outer walls by every other step; a frameless glass balustrade upstairs over the last arm', wood.swatch],
+    ['Second step', 'the stairs\' second step and, carried on from it across the niche, the drawers\' fronts and the tread in front of the cupboard\'s doors' + (nicheKey === 'step' ? ' (the shoe gap under them lined to match)' : nicheKey === 'cupboard' ? ' (with the plain cupboard only the step, running on to the niche)' : '') + ': ' + {
+      wood: 'in ' + wn + ' like the other steps',
+      stone: 'in honed ' + STONES[stoneKey].label.replace(', vein cut', '') + ' (the Stone picker\'s, as the door frames), solid-looking blocks, the drawers\' fronts cut from the same stone',
+      colour: 'lacquered, satin, in your colour (' + step2Color + ')',
+    }[step2Key] + ' (this page\'s)', step2Key === 'colour' ? step2Color : step2Key === 'stone' ? STONES[stoneKey].swatch : wood.swatch],
     ['Lower hallway', '8 m from the landing to the study\'s door, 1 m wide: its west wall clad in ' + wn + ' floor to ceiling, upright panels with shadow joints, the doors of the two rooms on that side white lacquered leaves set back in their openings, in slim frames of honed ' + STONES[stoneKey].label.replace(', vein cut', '') + ' (jambs and head lining the reveal, 2 cm wide on the face, flush with the wood, a 4 mm shadow gap between them and the wood); on the east wall the doors of the two bedrooms and the bathroom, flush with the wall, lacquered a shade lighter than the walls, shadow gaps round them; black levers, shown shut; four small downlights; along the wooden wall an LED line in a recess in the ceiling (7 cm wide, 8 cm deep, the wood running up into it) washing the wood from above; three prints in black frames on the wood (this page\'s)', wood.swatch],
     ['Study door', 'the model\'s glass across the hallway\'s end, drawn as a door of satin glass in a slim black frame: the study\'s daylight, or its lamp after dark, shows through it', '#e6e4df'],
     ['Glazing', 'anthracite aluminium (RAL 7016): the landing room\'s east window floor to ceiling (a turn sash and a fixed pane) under the upper floor\'s overhang; fixed windows floor to ceiling in the north facade, at the landing and upstairs; over the stairs\' corner landing a fixed window 1 m wide in the west facade, the upper floor\'s full height (2.6 m; in the model an opening, glazed here), its daylight down the stairwell', '#383b3e'],
@@ -3242,6 +3281,10 @@ function buildUI() {
   seg($('woods'), Object.fromEntries(WOOD_PICK.map((k) => [k, { label: `<i class="dot" style="background:${WOODS[k].swatch}"></i>${WOODS[k].short}` }])), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
   seg($('landings'), LANDINGS, (k) => withBusy(async () => { setLanding(k); captureEnv(); }), landingKey);
   seg($('niches'), NICHES, (k) => withBusy(async () => { setNiche(k); captureEnv(); }), nicheKey);
+  seg($('step2s'), STEP2, (k) => withBusy(async () => { applyStep2(k); captureEnv(); }), step2Key);
+  $('step-custom').value = step2Color;
+  $('step-custom').addEventListener('input', (e) => { if (!busy) applyStep2('colour', e.target.value); });
+  $('step-custom').addEventListener('change', (e) => { if (!busy) withBusy(async () => { applyStep2('colour', e.target.value); captureEnv(); }); });
   seg($('stones'), Object.fromEntries(STONE_PICK.map((k) => [k, { label: STONES[k].short }])), (k) => withBusy(async () => { await applyStoneChoice(k); captureEnv(); }), stoneKey);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
   // closes)
@@ -3291,6 +3334,7 @@ function buildUI() {
     if (e.target.closest && e.target.closest('input, textarea')) return;
     const k = e.key.toLowerCase();
     if (k === 'p') { saveImage(); return; }
+    if (k === 'e') { pickNext('step2s', Object.keys(STEP2), step2Key, (n) => withBusy(async () => { applyStep2(n); captureEnv(); })); return; }
     if (busy) return;
     if (k === 'o') { const n = next(WOOD_PICK, woodKey); withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
     if (k === 't') { const n = next(STONE_PICK, stoneKey); withBusy(async () => { await applyStoneChoice(n); captureEnv(); }); return; }
@@ -3480,7 +3524,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, LANDINGS, NICHES, FABRICS, applyFabric, FLOORS, LA, NI, OUT, ROOMS,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, STEP2, applyStep2, LANDINGS, NICHES, FABRICS, applyFabric, FLOORS, LA, NI, OUT, ROOMS,
     setLanding, setNiche, applyEpoxy, EPOXIES, OPENS, toggleOpen, SW, SWITCH, SOCK, SOCKETS, CIRCUITS, SWITCHED, flip, applyStoneChoice, STONES, STONE_PICK, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, texCache, bakeSet, captureImage, saveImage,
     goTo, pickView, setMood, setSunHour, BASE, MOODS, applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT,
     reflectors, floorRefl, solar, setSun, groups, treadZ,
