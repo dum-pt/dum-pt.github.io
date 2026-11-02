@@ -134,7 +134,6 @@
     </div></div>
   <div class="group"><h2>Stone</h2><div class="seg" id="stones" title="The worktop, the island's top and its waterfall end; Carrara as drawn (T)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
-  <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The sofa's cover, ÄPPLARYD's Lejde in light grey or grey-black; the cushions on it take a colour to go with it (U)"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks (as drawn) or herringbone (F)"></div>
     <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain); each style starts with its own"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
@@ -1026,7 +1025,7 @@ const METALS = {
 // fluted panel, the metal, the lounge chair's shell, the rug, the curtains; the plaster; ev: the exposure (pale rooms
 // throw back more)
 const PALETTES = {
-  noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', fabric: 'dark', floorWood: 'smoked',
+  noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', fabric: 'light', floorWood: 'smoked',
     flute: '#252423', fluteLabel: 'black lacquer', metal: 'gunmetal', lounge: '#2a2826', rug: '#3b3835', curtain: '#a49c90', plaster: 'lime plaster', ev: 1.5 },
   cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', fabric: 'light', floorWood: 'natoak',
     flute: '#cbbba6', fluteLabel: 'a sand lacquer', metal: 'brass', lounge: '#8a4e30', rug: '#b9a58c', curtain: '#dccdb6', plaster: 'clay plaster', ev: 0.75 },
@@ -1035,11 +1034,10 @@ const PALETTES = {
   japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'chalk', stone: 'carrara', fronts: 'flat', fabric: 'light', floorWood: 'whiteoak',
     flute: '#efebe4', fluteLabel: 'white lacquer', metal: 'black', lounge: '#6e2229', rug: '#d8d0c2', curtain: '#eee9e0', plaster: 'limewash', ev: 0.5 },
 };
-// the sofa's cover: IKEA ÄPPLARYD's Lejde, a woven cotton blend, in light grey or grey-black; and the colour of the
-// cushions on it
+// the sofa's cover: IKEA ÄPPLARYD's Lejde, a woven cotton blend, in light grey (the grey-black and its picker were
+// dropped at the user's request, 2026-11-02); and the colour of the cushions on it
 const FABRICS = {
   light: { label: 'Light grey', desc: 'Lejde light grey', color: '#d0cec9', rough: 0.95, sheen: 0.3, cushion: '#a88d6c', cushionLabel: 'camel' },
-  dark: { label: 'Dark grey', desc: 'Lejde grey-black', color: '#565657', rough: 0.95, sheen: 0.35, cushion: '#9e543a', cushionLabel: 'rust' },
 };
 // the kitchen's fronts: flat veneer in the wood (as drawn), fluted wood, or lacquered in the wall colour
 const FRONTS = {
@@ -4587,7 +4585,6 @@ function buildUI() {
   seg($('stones'), Object.fromEntries(STONE_PICK.map((k) => [k, { label: STONES[k].short }])), (k) => withBusy(async () => { await applyStoneChoice(k); captureEnv(); }), stoneKey);
   seg($('woods'), Object.fromEntries(WOOD_PICK.map((k) => [k, { label: `<i class="dot" style="background:${WOODS[k].swatch}"></i>${WOODS[k].short}` }])), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
   seg($('fronts'), FRONTS, (k) => withBusy(async () => { applyFronts(k); captureEnv(); }), frontsKey);
-  seg($('fabrics'), FABRICS, (k) => withBusy(async () => { applyFabric(k); captureEnv(); }), fabricKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
   seg($('windows'), WINDOWS, (k) => setWindow(k), windowKey);
   seg($('halldoors'), HDOORS, (k) => setHallDoor(k), hallKey);
@@ -4670,7 +4667,6 @@ function buildUI() {
     if (k === 'o') { const n = next(WOOD_PICK, woodKey); withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
     if (k === 'w') { const n = next(Object.keys(PAINTS), paintKey); withBusy(async () => { applyPaint(PAINTS[n].color, n); captureEnv(); }); return; }
     if (k === 'r') { const n = next(Object.keys(FRONTS), frontsKey); withBusy(async () => { applyFronts(n); captureEnv(); }); return; }
-    if (k === 'u') { const n = next(Object.keys(FABRICS), fabricKey); withBusy(async () => { applyFabric(n); captureEnv(); }); return; }
     if (k === 'f') { const n = next(Object.keys(FLOORS), floorKey); withBusy(async () => { await setFloor(n); captureEnv(); }); return; }
     const i = parseInt(e.key, 10);
     if (i >= 1 && i <= VIEWS.length) pickView(VIEWS[i - 1]);
