@@ -105,7 +105,7 @@
     #side { max-height: calc(100vh - 126px); max-height: calc(100dvh - 126px); }   /* the drawer: above the view bar, on the visible screen */
     #views { bottom: 12px; }
   }
-  #landings, #niches { display: grid; grid-template-columns: repeat(2, 1fr); }
+  #landings, #niches, #fabrics { display: grid; grid-template-columns: repeat(2, 1fr); }
   #framestones { display: grid; grid-template-columns: repeat(3, 1fr); }
 </style>
 <script type="importmap">
@@ -126,7 +126,8 @@
 <div id="side" class="panel">
   <div class="group"><h2>Style</h2><div class="seg" id="palettes" title="The four characters of the other rooms: dark and intimate, warm and cosy, a deep green jewel box, calm Japandi (as drawn) (S)"></div></div>
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the stairs' treads, the niche's bench and shelf, the oak panels upstairs and the lounge's sideboard and table; each style starts with its own (O)"></div></div>
-  <div class="group"><h2>Landing room</h2><div class="seg" id="landings" title="The room at the foot of the stairs, empty in the model: a lounge (a sofa on the north wall, a coffee table, a floor lamp, a sideboard, a fig tree; this page's), or empty as drawn (L)"></div></div>
+  <div class="group"><h2>Landing room</h2><div class="seg" id="landings" title="The room at the foot of the stairs, empty in the model: a lounge (an IKEA ÄPPLARYD sofa on the north wall facing a TV and a cupboard floor to ceiling on the bathroom's wall, a coffee table, a floor lamp, a fig tree; this page's), or empty as drawn (L)"></div></div>
+  <div class="group"><h2>Sofa</h2><div class="seg" id="fabrics" title="The landing room sofa's cover, ÄPPLARYD's Lejde in light grey or grey-black; the cushions on it take a colour to go with it (U)"></div></div>
   <div class="group"><h2>Stair niche</h2><div class="seg" id="niches" title="The open niche in the powder room's base, facing the landing: a floating bench with a shelf over it, lit from under both; or closed by flush doors floor to ceiling, a deep cupboard; or the stairs' second step carried on across it, a plinth of drawers over a gap for shoes, white doors over it to the ceiling (N). Click a door or a drawer to open it"></div></div>
   <div class="group"><h2>Door frames</h2><div class="seg" id="framestones" title="The stone of the portals round the two doors in the wooden wall, honed"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the doors and the niche's cupboard; each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
@@ -216,10 +217,10 @@ const EW = { x0: 54.085, x1: 55.835, fy0: 9.805, fy1: 9.955, yo: 9.625, f: 0.08,
 const NW = { x0: 57.235, x1: 57.385, glass: 57.31, y0: 13.606, y1: 14.48, g0: 13.682, g1: 14.398, sill: 0.08, head: 2.47, top: 2.55 };
 // the soil stack in the landing room's corner by the window (the model's), boxed in
 const PIPE = { x0: 53.702, x1: 53.872, y0: LR.y0, y1: 10.245 };
-// the niche in the core's base (as in the model: 2.07 m wide, 80 cm deep, to the ceiling; x0..x1, its mouth at y0, its
+// the niche in the core's base (2.00 m wide, 7 cm less than in the model for the wider last arm; 80 cm deep, to the ceiling; x0..x1, its mouth at y0, its
 // back at y1): a floating bench in the wood (its top at seat, sd deep, st thick) with a cushion, a shelf over it (at shelf,
 // sh thick, 26 cm deep), LED lines under the bench and along the niche's head; or a cupboard of flush doors across it
-const NICHE = { x0: 53.83, x1: 55.9, y0: 14.795, y1: 15.6, seat: 0.45, sd: 0.44, st: 0.05, shelf: 1.62, sh: 0.04, sw: 0.26 };
+const NICHE = { x0: 53.83, x1: 55.83, y0: 14.795, y1: 15.6, seat: 0.45, sd: 0.44, st: 0.05, shelf: 1.62, sh: 0.04, sw: 0.26 };
 // the landing's downlights: two in the room (with shadows), two over the landing (before the niche, at the stairs' foot)
 const LDOWN = [[54.35, 11.75], [55.95, 11.75]];
 const SDOWN = [[54.865, 14.0], [56.585, 13.95]];
@@ -229,13 +230,20 @@ const SDOWN = [[54.865, 14.0], [56.585, 13.95]];
 // radius, height); a wool rug (x0, x1, y0, y1); a floor lamp by the sofa's south end (h high, a linen drum shade sh high,
 // radii r at its top and bottom); a low floating sideboard in the wood on the south wall with a print over it; a fig tree
 // by the window
-const SOFA = { at: [56.6, 12.07], rot: -Math.PI / 2,  x0: 53.86, x1: 56.14, y0: 12.3, y1: 13.22, base: 0.3, seat: 0.43, back: 0.66, cushions: 0.8, arm: 0.58, armW: 0.16, backD: 0.18, legs: 0.1 };
-const CTABLE = { x: 55.32, y: 12.07, r: 0.42, h: 0.35 };
-const LRUG = [54.35, 56.95, 10.85, 13.3];
-const FLAMP = { x: 56.83, y: 13.4, h: 1.52, r: [0.19, 0.21], sh: 0.28 };
-const SIDEB = { x0: LR.x0, x1: 53.4, y0: 10.55, y1: 12.45, z0: 0.16, z1: 0.6 };
-const PRINT = { y0: 10.95, y1: 12.05, z0: 1.12, z1: 1.97 };
-const TREE = { x: 56.66, y: 10.5 };
+// the sofa: an IKEA ÄPPLARYD as on the living page, three seats and a chaise longue (290 x 93 cm, the chaise 162 cm deep),
+// built in its own frame (x along it, the back along y1, the seat's front at y0; the arm at x0, the chaise cx0..x1 out to
+// cy0, its end open), turned onto the north wall facing south with the chaise at the window's end (at: where its frame's
+// middle lands)
+const SOFA = { at: [56.59, 11.605], rot: -Math.PI / 2, x0: 0, x1: 2.9, y0: 0, y1: 0.93, cx0: 1.97, cy0: -0.69, legs: 0.2, base: 0.35, seat: 0.47, back: 0.7, cushions: 0.82, arm: 0.72, armW: 0.17, backD: 0.17 };
+const CTABLE = { x: 55.32, y: 11.98, r: 0.42, h: 0.35 };
+const LRUG = [54.35, 56.95, 10.75, 13.2];
+const FLAMP = { x: 56.83, y: 13.33, h: 1.52, r: [0.19, 0.21], sh: 0.28 };
+// facing it on the bathroom's wall: the cupboard floor to ceiling at the west end (against the hallway wall's stub), the
+// floating TV unit up to it, the TV (65") over the unit, centred on the sofa
+const CUPB = { x0: LR.x0, x1: 53.59, y0: 12.405, y1: 13.405 };
+const SIDEB = { x0: LR.x0, x1: 53.39, y0: 10.75, y1: 12.405, z0: 0.194, z1: 0.544 };
+const TV = { y0: 10.875, y1: 12.335, z0: 0.772, z1: 1.542 };
+const TREE = { x: 53.4, y: 10.47 };
 // the upper hallway, as in the Kitchen & living and the Master bedroom pages (its heights over TOP): from the lobby (x0:
 // a plain wall closes it here) north between the bedroom's and the wardrobe's wall (wy0..y0) and the hall, the stairs
 // and the powder room (y1) to its window (win); in its east wall the bedroom's door (bdoor) and three oak panels (panels,
@@ -244,12 +252,14 @@ const TREE = { x: 56.66, y: 10.5 };
 const COR = { x0: 49.6, x1: 57.085, wy0: 13.405, y0: 13.545, y1: 14.545, hdoor: [49.625, 50.525], hH: 2.35, bdoor: [51.435, 52.335], pdoor: [54.345, 55.145], doorH: 2.15,
   panels: [[52.85, 53.52], [54.02, 54.69], [55.22, 55.89]], pz: [0.968, 1.841], lamps: [50.795, 53.172, 55.549], ly: 14.055,
   win: { x0: 57.235, x1: 57.385, glass: 57.31, y0: 13.605, y1: 14.479, g0: 13.681, g1: 14.397, sill: 0.07, head: 2.52 } };
+// the last arm 1.07 m wide (x3: its inner face, under the slab, 7 cm into the core's base, the niche's wall moved with it;
+// over the slab the core stays at x1), its bottom step on across the niche's wall end to the niche.
 // the stairs, from the model: 18 risers of r, treads g deep, 1 m wide, wound round the powder room's core (core: x0..x1
 // from COR.y1 to y1). From the top: the first arm west between the hall's wall (hall) and the core from its first riser
 // (y0), a landing at the west facade (west), the second arm north along it, a landing at the north facade, the third arm
 // east down to the landing under the upper hallway's end (a glass balustrade guards the drop up there); LED step lights low
 // in the walls by every other tread, a downlight over the stairwell (lamp), a black steel handrail on the outer walls
-const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, lamp: [54.885, 16.23] };
+const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, x3: 56.015, lamp: [54.885, 16.23] };
 // the window over the stairs' corner landing: in the model an opening in the west facade, 1 m wide (x0..x1), the upper
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
 // pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
@@ -257,7 +267,7 @@ const WW = { x0: 56.085, x1: 57.085, y0: 16.88, y1: 17.03, glass: 16.955, f: 0.0
 // the recess in the lowered ceiling along the wooden wall (w wide off the wood's face, d deep), an LED line in it washing
 // the wood (the wood runs up into it); the poster over the sofa (2 x 1.4 m, on the north wall, y0..y1, z0..z1)
 const COVE = { w: 0.07, d: 0.08 };
-const POSTER = { y0: 11.07, y1: 13.07, z0: 0.92, z1: 2.32, fw: 0.012, fd: 0.025 };
+const POSTER = { y0: 10.605, y1: 12.605, z0: 0.95, z1: 2.35, fw: 0.012, fd: 0.025 };
 // The zones the lamps light (the lamps without shadows, and the area lights, would light through the slab and the walls;
 // patchShader: zoneOf, reaches): 0 the lower floor, 1 the upper hallway, 2 the well of the last arm (beside the core's
 // north end, open from the landing up to the upper ceiling) up to the slab, 6 the same over it, 3 the second arm (behind
@@ -359,9 +369,9 @@ const zoneGlsl = /* glsl */`
       int zoneOf( vec3 w ) {
         float x = w.x, y = - w.z, z = w.y;
         if ( y < 9.62 || y > 17.03 || x < 42.9 || x > 57.39 ) return 5;
-        if ( x > 53.8 && x < 55.95 && y > 14.78 && y < 15.65 && z < 2.76 ) return 4;
+        if ( x > 53.8 && x < ${(NICHE.x1 + 0.05).toFixed(3)} && y > 14.78 && y < 15.65 && z < 2.76 ) return 4;
         if ( y > 14.535 && y < 16.8 && x > 52.6 && x < 57.2 ) {
-          if ( x > ${STAIR.core.x1.toFixed(3)} ) return z < 2.95 ? 2 : 6;
+          if ( x > ${(STAIR.x3 - 0.005).toFixed(3)} ) return z < 2.95 ? 2 : 6;
           if ( y > ${STAIR.core.y1.toFixed(3)} ) return x < 53.735 ? 7 : 3;
           if ( x < ${STAIR.core.x0.toFixed(3)} ) return y > ${STAIR.y0.toFixed(3)} ? 7 : ( z < 2.95 ? 0 : 1 );
         }
@@ -903,18 +913,24 @@ const METALS = {
 // paint, the floor's wood, the metal (the floor lamp), the sofa's cover, the cushions, the rug; the plaster; ev: the
 // exposure (pale rooms throw back more)
 const PALETTES = {
-  noir: { epoxy: 'graphite', label: 'Noir', wood: 'smoked', paint: 'charcoal', floorWood: 'smoked', metal: 'gunmetal', sofa: '#3a3836', sofaLabel: 'charcoal wool', cushion: '#8f8578',
+  noir: { fabric: 'dark', epoxy: 'graphite', label: 'Noir', wood: 'smoked', paint: 'charcoal', floorWood: 'smoked', metal: 'gunmetal', sofa: '#3a3836', sofaLabel: 'charcoal wool', cushion: '#8f8578',
     rug: '#3b3835', plaster: 'lime plaster', ev: 1.5 },
-  cosy: { epoxy: 'sand', label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', floorWood: 'natoak', metal: 'brass', sofa: '#b59a7c', sofaLabel: 'camel wool', cushion: '#9e5f3e',
+  cosy: { fabric: 'light', epoxy: 'sand', label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', floorWood: 'natoak', metal: 'brass', sofa: '#b59a7c', sofaLabel: 'camel wool', cushion: '#9e5f3e',
     rug: '#b9a58c', plaster: 'clay plaster', ev: 0.75 },
-  jewel: { epoxy: 'greige', label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', floorWood: 'natoak', metal: 'brass', sofa: '#2c4a3d', sofaLabel: 'bottle green velvet', cushion: '#b98a62',
+  jewel: { fabric: 'light', epoxy: 'greige', label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', floorWood: 'natoak', metal: 'brass', sofa: '#2c4a3d', sofaLabel: 'bottle green velvet', cushion: '#b98a62',
     rug: '#cdbfa8', plaster: 'lime plaster', ev: 1.0 },
-  japandi: { epoxy: 'warmwhite', label: 'Japandi', wood: 'whiteoak', paint: 'chalk', floorWood: 'whiteoak', metal: 'black', sofa: '#d3ccc0', sofaLabel: 'oatmeal linen', cushion: '#b9a487',
+  japandi: { fabric: 'light', epoxy: 'warmwhite', label: 'Japandi', wood: 'whiteoak', paint: 'chalk', floorWood: 'whiteoak', metal: 'black', sofa: '#d3ccc0', sofaLabel: 'oatmeal linen', cushion: '#b9a487',
     rug: '#d8d0c2', plaster: 'limewash', ev: 0.5 },
 };
 // the landing room (empty in the model): a lounge facing the east window, or as drawn
 const LANDINGS = { lounge: { label: 'Lounge' }, empty: { label: 'Empty' } };
 // the niche in the core's base: a floating bench with a shelf, lit; or a cupboard of flush doors across it
+// the sofa's cover: IKEA ÄPPLARYD's Lejde, a woven cotton blend, in light grey or grey-black (as on the living page); the
+// cushions on it take a colour to go with it
+const FABRICS = {
+  light: { label: 'Light grey', desc: 'Lejde light grey', color: '#d0cec9', rough: 0.95, sheen: 0.3, cushion: '#a88d6c', cushionLabel: 'camel' },
+  dark: { label: 'Dark grey', desc: 'Lejde grey-black', color: '#565657', rough: 0.95, sheen: 0.35, cushion: '#9e543a', cushionLabel: 'rust' },
+};
 const NICHES = { bench: { label: 'Bench' }, cupboard: { label: 'Cupboard' }, step: { label: 'Step & doors' } };
 // the stone of the doors' portals in the wooden wall (STONES, honed)
 const FRAME_STONES = { travertine: { label: 'Travertine' }, limestone: { label: 'Limestone' }, pietra: { label: 'Pietra grey' } };
@@ -1088,6 +1104,8 @@ const M = {
   stainless: physical({ color: 0xc8c8c5, metalness: 1, roughness: 0.28 }),
   fabric: physical({ color: 0xd3ccc0, roughness: 1, sheen: 0.8, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.6 }),   // the sofa, the bench's cushion
   cushion: fabricMat(0xb9a487),
+  throw: fabricMat(0xd9d1c4),                                  // the throw on the chaise
+  screen: physical({ color: 0x050506, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.03 }),   // the TV
   rug: physical({ color: 0xd8d0c2, roughness: 1, sheen: 0.5, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.7 }),
   shade: physical({ color: 0xf0e9dc, roughness: 0.95, side: THREE.DoubleSide }),   // the floor lamp's linen drum (its glow: applyMood)
   basket: physical({ color: 0x9c8466, roughness: 0.9 }),
@@ -1688,7 +1706,7 @@ function buildArchitecture() {
   // north side by the last arm; their faces to the stairs too
   wall(K.x0, N.x0, N.y0, K.y1, 0, HL, 'xXY');
   wall(N.x0, N.x1, N.y1, K.y1, 0, HL, 'yY');
-  wall(N.x1, K.x1, N.y0, K.y1, 0, HL, 'xyXY');
+  wall(N.x1, STAIR.x3, N.y0, K.y1, 0, HL, 'xyXY');
   flush(groups.room);
   // the floor: the hallway, the landing room, the landing before the niche and the stairs' foot, the niche; into the
   // windows' reveals and the doorways
@@ -1754,12 +1772,12 @@ function buildCeiling() {
   put(M.ceiling, box(xc - 0.01, xc, yc, wc, HC, zc, { faces: 'X' }));
   put(M.ceiling, box(LH.x1, LH.x1 + 0.01, yc, wc, HC, zc, { faces: 'x' }));
   put(E.cove, box(xc + 0.02, LH.x1 - 0.02, yc + 0.008, yc + 0.02, zc - 0.002, zc - 0.001, { faces: 'z' }));
-  for (const [a, b, c, d] of [[LH.x0 - 0.03, xc, e1, w0], [xc, LH.x1, e1, yc], [LR.x0, LR.x1, LR.y0 + POCKET, e0], [LH.x1, LR.x1, e0, w0], [N.x0, N.x1, w0, N.y1], [N.x1, K.x1, w0, N.y0], [LR.x1, NW.x0, NW.y0, NW.y1]]) {
+  for (const [a, b, c, d] of [[LH.x0 - 0.03, xc, e1, w0], [xc, LH.x1, e1, yc], [LR.x0, LR.x1, LR.y0 + POCKET, e0], [LH.x1, LR.x1, e0, w0], [N.x0, N.x1, w0, N.y1], [N.x1, STAIR.x3, w0, N.y0], [LR.x1, NW.x0, NW.y0, NW.y1]]) {
     put(M.ceiling, box(a, b, c, d, HC, HC + 0.01, { faces: 'z' }));
   }
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0 + POCKET, LR.y0 + POCKET + 0.01, HC, HL, { faces: 'y' }));
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0, LR.y0 + POCKET, HL, HL + 0.01, { faces: 'z' }));
-  put(M.ceiling, box(K.x1, COR.x1, w0 - 0.01, w0, HC, HL, { faces: 'Y' }));
+  put(M.ceiling, box(STAIR.x3, COR.x1, w0 - 0.01, w0, HC, HL, { faces: 'Y' }));
   // the downlights: round, recessed, a black trim round the lens
   for (const [list, lens] of [[LH.lamps.map((x) => [x, LH.ly]), E.hall], [[...LDOWN, ...SDOWN], E.land]]) for (const [x, y] of list) {
     put(M.trim, new THREE.RingGeometry(0.03, 0.042, 40).rotateX(Math.PI).translate(x, y, HC - 0.0008));
@@ -1823,6 +1841,7 @@ function buildUpper() {
   add(M.lacquer, box(d0 + 0.003, d1 - 0.003, YK + 0.001, YK + 0.041, Z + 0.008, Z + C.doorH - 0.003));
   lever(d1 - 0.065, YK + 0.001, -1, -1, Z + 1.05);
   add(M.plaster, box(K.x0, K.x1, YK, K.y1, HL, Z, { faces: 'xXY' }));
+  add(M.plaster, box(S.x3, K.x1, YK, K.y1, HL - 0.001, HL, { faces: 'z' }));     // (its underside over the wider last arm)
   add(M.plaster, box(K.x1, C.x1, YK - 0.01, YK, HL, Z, { faces: 'Y' }));
   flush(groups.upper);
   // the ceilings: the hallway's (into the window's reveal), the stairwell's; the downlights' lenses: small, round,
@@ -1879,20 +1898,20 @@ function buildStairs() {
   step(S.hall, K.x0 + 0.1, ya(4), S.west, 4, 'X', false);
   for (let k = 5; k <= 12; k++) step(xb(k), xb(k) + g, K.y1, S.west, k, 'X', true);
   step(xb(13), C.x1, K.y1 - 0.1, S.west, 13, 'y', false);
-  for (let k = 14; k <= 17; k++) step(K.x1, C.x1, yc(k) - g, yc(k), k, 'y', false);
-  // the bottom step's side, open to the landing past the core's corner: clad in the wood under its tread
-  add(M.veneer, box(K.x1, K.x1 + 0.001, yc(17) - g, NICHE.y0, 0, zk(17) - 0.04, { faces: 'x' }));
+  for (let k = 14; k <= 17; k++) step(k === 17 ? NICHE.x1 : S.x3, C.x1, yc(k) - g, yc(k), k, 'y', false);
+  // the bottom step's side, at the niche's mouth: clad in the wood under its tread
+  add(M.veneer, box(NICHE.x1, NICHE.x1 + 0.001, yc(17) - g, NICHE.y0, 0, zk(17) - 0.04, { faces: 'x' }));
   // the handrail: a black steel tube (40 mm) 90 cm over the nosing line, on the inner side: on brackets 6 cm off the powder
   // room's core, round its two corners, from the upper floor down to the core's end by the bottom step; both ends turned
   // back into the wall on a round plate
   {
-    const o = 0.06, h = 0.9, ix = K.x0 - o, iy = K.y1 + o, nx = K.x1 + o;
+    const o = 0.06, h = 0.9, ix = K.x0 - o, iy = K.y1 + o, nx = S.x3 + o;
     // the nosing lines of arm one (along y), arm two (along x), arm three (along y)
     const z1 = (y) => TOP - r * (y - S.y0) / g, z2 = (x) => zk(4) - r * (x - xb(5)) / g, z3 = (y) => zk(13) - r * (yc(14) - y) / g;
     const y0 = YK + 0.1, y1 = NICHE.y0 + 0.05;
     const P = [
       [K.x0, y0, TOP + h], [ix, y0, TOP + h], [ix, S.y0, TOP + h], [ix, iy, (z1(iy) + z2(ix)) / 2 + h],
-      [nx, iy, (z2(nx) + z3(iy)) / 2 + h], [nx, y1, z3(y1) + h], [K.x1, y1, z3(y1) + h],
+      [nx, iy, (z2(nx) + z3(iy)) / 2 + h], [nx, y1, z3(y1) + h], [S.x3, y1, z3(y1) + h],
     ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
     const tube = (p, q, rr) => {
       const d = new THREE.Vector3().subVectors(q, p), len = d.length();
@@ -1905,7 +1924,7 @@ function buildStairs() {
       if (i) add(M.blackMetal, tube(P[i - 1], p, 0.02));
     });
     add(M.blackMetal, cyl(0.032, 0.006, 'x', [K.x0 - 0.003, y0, TOP + h], 28));
-    add(M.blackMetal, cyl(0.032, 0.006, 'x', [K.x1 + 0.003, y1, z3(y1) + h], 28));
+    add(M.blackMetal, cyl(0.032, 0.006, 'x', [S.x3 + 0.003, y1, z3(y1) + h], 28));
     // the brackets: from the core's face to under the tube, along each arm about every metre
     const bracket = (p, ax, w) => {
       const c = [p.x, p.y, p.z - 0.035], k = ax === 'x' ? 0 : 1;
@@ -1913,7 +1932,7 @@ function buildStairs() {
       add(M.blackMetal, cyl(0.007, o, ax, c, 12));
       add(M.blackMetal, cyl(0.007, 0.035, 'z', [p.x, p.y, p.z - 0.0175], 12));
     };
-    for (const [i, ax, w] of [[2, 'x', K.x0], [3, 'y', K.y1], [4, 'x', K.x1]]) {
+    for (const [i, ax, w] of [[2, 'x', K.x0], [3, 'y', K.y1], [4, 'x', S.x3]]) {
       const a = P[i], b = P[i + 1], n = Math.max(1, Math.round(a.distanceTo(b) / 1.0));
       for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n), ax, w);
     }
@@ -2117,32 +2136,35 @@ function booksAlongX(x0, y0, z, n, seed) {
 }
 
 // ---------------------------------------------------------------- the landing room's lounge (LA.lounge)
-// This page's (the model has the room empty): a low three-seat sofa against the north wall, facing the sideboard;
-// a round coffee table in the wood; a wool rug; a floor lamp in the style's metal by the sofa's south end, a linen drum
-// shade; a floating sideboard in the wood on the bathroom's wall, an LED line under it, a print over it; a fig tree by the
-// window. In the lower hallway, always: three framed prints on the west wall between its doors
+// This page's (the model has the room empty): an IKEA ÄPPLARYD sofa (three seats and a chaise longue, as on the living
+// page) against the north wall under a poster, the chaise by the window; a round coffee table in the wood; a wool rug; a
+// floor lamp in the style's metal by the sofa's arm, a linen drum shade; facing the sofa on the bathroom's wall a cupboard
+// floor to ceiling at its west end and, up to it, a floating TV unit in the wood (an LED line under it) under the TV; a fig
+// tree in the corner by the window. In the lower hallway, always: three framed prints on the west wall between its doors
 function buildLanding() {
-  const S = SOFA, F = M.fabric, xa = S.x0 + S.armW, xb = S.x1 - S.armW, yb = S.y1 - S.backD;
+  const S = SOFA, F = M.fabric, xa = S.x0 + S.armW, yb = S.y1 - S.backD;
   const sofaM = new THREE.Matrix4().makeTranslation(S.at[0], S.at[1], 0).multiply(new THREE.Matrix4().makeRotationZ(S.rot))
     .multiply(new THREE.Matrix4().makeTranslation(-(S.x0 + S.x1) / 2, -(S.y0 + S.y1) / 2, 0));
   const addS = (mat, geo) => add(mat, geo.applyMatrix4(sofaM));
   const ub = (mat, x0, x1, y0, y1, z0, z1, r = 0.035) => addS(mat, projectUV(rbox(x1 - x0, y1 - y0, z1 - z0, Math.min(r, (z1 - z0) / 2 - 0.002, (y1 - y0) / 2 - 0.002, (x1 - x0) / 2 - 0.002), [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2])));
-  // the sofa: slim black legs, the base, the arms, the back's frame; three seat cushions, three back cushions leaning on the
-  // back and rising over it; scatter cushions
-  for (const x of [S.x0 + 0.07, S.x1 - 0.07]) for (const y of [S.y0 + 0.07, S.y1 - 0.07]) addS(M.blackMetal, cyl(0.009, S.legs + 0.01, 'z', [x, y, (S.legs + 0.01) / 2], 12, 0.013));
-  ub(F, S.x0, S.x1, S.y0, S.y1, S.legs, S.base, 0.04);
-  ub(F, S.x0, xa, S.y0, S.y1, S.legs, S.arm, 0.05);
-  ub(F, xb, S.x1, S.y0, S.y1, S.legs, S.arm, 0.05);
-  ub(F, xa - 0.002, xb + 0.002, yb, S.y1, S.legs, S.back, 0.05);
-  const w = (xb - xa) / 3, bh = S.cushions - S.seat;
-  for (let i = 0; i < 3; i++) {
-    const a = xa + i * w, b = a + w;
-    ub(F, a + 0.004, b - 0.004, S.y0 + 0.004, yb, S.base, S.seat, 0.05);
-    addS(F, projectUV(pillow(w - 0.012, 0.17, bh + 0.02).rotateX(-0.16).translate((a + b) / 2, yb - 0.08, S.seat + bh / 2)));
+  // the sofa: the two sections (the sofa's, the chaise's) each on four slim tapered black legs (20 cm clear under it),
+  // their upholstered bases; the arm at x0, the back's frame along the whole length; puffy seat cushions (two on the sofa,
+  // a long one on the chaise), three back cushions leaning on the back and rising over it; scatter cushions, a throw on
+  // the chaise
+  for (const [a, b, c, d] of [[S.x0, S.cx0, S.y0, S.y1], [S.cx0, S.x1, S.cy0, S.y1]]) {
+    for (const x of [a + 0.07, b - 0.07]) for (const y of [c + 0.07, d - 0.07]) addS(M.blackMetal, cyl(0.009, S.legs + 0.01, 'z', [x, y, (S.legs + 0.01) / 2], 12, 0.013));
+    ub(F, a + 0.002, b - 0.002, c, d, S.legs, S.base, 0.04);
   }
-  for (const [x, rz, tilt, s, mat] of [[xa + 0.3, 0.12, -0.42, 0.46, M.cushion], [xa + 0.74, -0.1, -0.36, 0.42, M.cushion], [xb - 0.32, -0.14, -0.4, 0.48, M.cushion]]) {
+  ub(F, S.x0, xa, S.y0, S.y1, S.legs, S.arm, 0.05);
+  ub(F, xa + 0.002, S.x1, yb, S.y1, S.legs, S.back, 0.05);
+  const w = (S.cx0 - xa) / 2, bh = S.cushions - S.seat;
+  for (let i = 0; i < 2; i++) ub(F, xa + i * w + 0.004, xa + (i + 1) * w - 0.004, S.y0 + 0.004, yb, S.base, S.seat, 0.05);
+  ub(F, S.cx0 + 0.004, S.x1 - 0.004, S.cy0 + 0.004, yb, S.base, S.seat, 0.05);
+  for (const [a, b] of [[xa, xa + w], [xa + w, S.cx0], [S.cx0, S.x1]]) addS(F, projectUV(pillow(b - a - 0.012, 0.17, bh + 0.02).rotateX(-0.16).translate((a + b) / 2, yb - 0.08, S.seat + bh / 2)));
+  for (const [x, rz, tilt, s, mat] of [[S.x1 - 0.323, -0.12, -0.42, 0.46, M.cushion], [S.x1 - 0.803, 0.1, -0.36, 0.42, M.throw], [xa + 0.377, 0.16, -0.4, 0.5, M.cushion], [xa + 0.837, -0.08, -0.33, 0.4, M.cushion]]) {
     addS(mat, projectUV(pillow(s, 0.16, s).rotateX(tilt).rotateZ(rz).translate(x, yb - 0.27, S.seat + s / 2 * Math.cos(tilt) - 0.01)));
   }
+  ub(M.throw, S.cx0 + 0.04, S.x1 - 0.04, S.cy0 + 0.12, S.cy0 + 0.5, S.seat - 0.005, S.seat + 0.028, 0.012);
   // the poster over the sofa: a print in a slim black aluminium frame, on the north wall
   {
     const P = POSTER, x = LR.x1, f = P.fw, d = P.fd;
@@ -2173,22 +2195,31 @@ function buildLanding() {
     add(M.metal, cyl(0.02, 0.05, 'z', [x, y, h - sh * 0.5 - 0.04], 16), { shadow: false });
     add(M.shade, projectUV(new THREE.CylinderGeometry(rt, rb, sh, 64, 1, true).applyMatrix4(zUp).translate(x, y, h - sh / 2)), { shadow: false });
   }
-  // the sideboard: floating on the bathroom's wall, four handleless fronts in the wood, an LED line under it; on it a vase
-  // of twigs, books, a bowl; the print over it in an oak frame
+  // the TV unit: floating on the bathroom's wall up to the cupboard, four handleless fronts in the wood, an LED line under
+  // it; on it books and a bowl, low under the TV. The TV on the wall over it: a slim black frame, the screen
   {
     const B = SIDEB, n = 4, w2 = (B.y1 - B.y0) / n, f = B.x1 - 0.02, gp = 0.0015, z = B.z1;
     add(M.veneer, box(B.x0, f, B.y0, B.y1, B.z0, B.z1, { faces: 'yYzZ' }));
     for (let i = 0; i < n; i++) add(M.veneer, box(f, B.x1, B.y0 + i * w2 + gp, B.y0 + (i + 1) * w2 - gp, B.z0 + gp, B.z1 - gp, { faces: 'XyYzZ' }));
     add(M.joint, box(f - 0.005, f, B.y0, B.y1, B.z0, B.z1, { faces: 'X' }), { shadow: false });
     add(E.glow, box(B.x1 - 0.07, B.x1 - 0.058, B.y0 + 0.04, B.y1 - 0.04, B.z0 - 0.002, B.z0, { faces: 'z' }), { shadow: false });
-    add(M.pottery, lathe(VASE.map(([r, h]) => [r * 1.15, h * 1.5]), [53.19, B.y0 + 0.3, z], 36));
-    twigs(53.19, B.y0 + 0.3, z + 0.32, 8, 0.65, 21);
-    book(53.2, B.y1 - 0.62, z, 0.24, 0.31, 0.03, 0.08, M.book3);
-    book(53.2, B.y1 - 0.62, z + 0.03, 0.21, 0.27, 0.025, -0.06, M.book2);
-    add(M.potteryDark, lathe(BOWL.map(([r, h]) => [r, h * 1.1]), [53.19, B.y1 - 0.25, z], 40));
-    const P = PRINT, fw = 0.025;
-    add(M.veneer, box(LR.x0, LR.x0 + 0.03, P.y0, P.y1, P.z0, P.z1, { faces: 'XyYzZ' }));
-    add(printMat(4, P.y0 + fw, P.z0 + fw, P.y1 - P.y0 - 2 * fw, P.z1 - P.z0 - 2 * fw), box(LR.x0 + 0.03, LR.x0 + 0.0305, P.y0 + fw, P.y1 - fw, P.z0 + fw, P.z1 - fw, { faces: 'X' }), { shadow: false });
+    book(53.2, B.y0 + 0.3, z, 0.24, 0.31, 0.03, 0.08, M.book3);
+    book(53.2, B.y0 + 0.3, z + 0.03, 0.21, 0.27, 0.025, -0.06, M.book2);
+    add(M.potteryDark, lathe(BOWL.map(([r, h]) => [r, h * 1.1]), [53.19, B.y1 - 0.3, z], 40));
+    const V = TV, x = LR.x0;
+    add(M.trim, box(x, x + 0.03, V.y0, V.y1, V.z0, V.z1, { faces: 'yYzZ' }));
+    add(M.screen, box(x, x + 0.0305, V.y0 + 0.004, V.y1 - 0.004, V.z0 + 0.004, V.z1 - 0.004, { faces: 'X' }));
+  }
+  // the cupboard: floor to ceiling, 60 cm deep, two handleless push-to-open doors lacquered a shade lighter than the walls,
+  // 3 mm shadow gaps round them (a dark backing), its side to the TV in the same lacquer; against the hallway wall's stub
+  {
+    const C = CUPB, t = 0.02, f = C.x1 - t, gp = 0.0015, m = (C.y0 + C.y1) / 2;
+    add(M.lacquer, box(C.x0, f, C.y0, C.y0 + 0.019, 0, HC, { faces: 'y' }));
+    add(M.joint, box(f - 0.004, f, C.y0 + 0.019, C.y1, 0, HC, { faces: 'X' }), { shadow: false });
+    for (const [a, b] of [[C.y0, m], [m, C.y1]]) {
+      add(M.lacquer, box(f, C.x1, a + gp, b - gp, 0.005, HC - 0.003, { faces: 'XyYz' }));
+    }
+    add(M.lacquer, box(C.x0, C.x1, C.y0, C.y1, HC - 0.002, HC - 0.001, { faces: 'Z' }), { shadow: false });     // (its top, for the plan)
   }
   // the fig tree: a terracotta pot, its soil, three slim trunks, big leaves in loose clusters
   {
@@ -2614,7 +2645,7 @@ function setSunHour(h) {
 
 // ---------------------------------------------------------------- palettes
 let paletteKey = 'japandi', woodKey = PALETTES.japandi.wood;
-let landingKey = 'lounge', nicheKey = 'bench', frameStoneKey = 'travertine';
+let landingKey = 'lounge', nicheKey = 'bench', frameStoneKey = 'travertine', fabricKey = PALETTES.japandi.fabric;
 let floorKey = 'planks', floorWood = PALETTES.japandi.floorWood, floorColor = null;
 let paintKey = PALETTES.japandi.paint, paintColor = PAINTS[paintKey].color;      // (paintKey null: a colour from the picker)
 const WHITE = new THREE.Color(0xffffff);
@@ -2627,7 +2658,7 @@ async function applyPalette(key) {
   // the floor's pattern stay
   applyPaint(PAINTS[p.paint].color, p.paint, false);
   await applyWoodChoice(p.wood, false);
-  for (const [m, c] of [[M.fabric, p.sofa], [M.cushion, p.cushion]]) { m.color.set(c); tintSheen(m); }
+  applyFabric(p.fabric, false);
   M.rug.color.set(p.rug);
   const metal = METALS[p.metal];
   M.metal.color.set(metal.color);
@@ -2678,6 +2709,22 @@ function applyPaint(color, key = null, refresh = true) {
   renderLegend();
   dirty = true;
 }
+// the sofa's cover (FABRICS), the cushions to go with it
+function applyFabric(key, refresh = true) {
+  fabricKey = key;
+  const f = FABRICS[key], m = M.fabric;
+  m.color.set(f.color);
+  m.roughness = f.rough;
+  m.sheen = f.sheen ?? 0;
+  m.sheenColor.set(f.color).lerp(WHITE, 0.4);
+  m.sheenRoughness = 0.5;
+  M.cushion.color.set(f.cushion);
+  tintSheen(M.cushion);
+  document.querySelectorAll('#fabrics button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
+  if (!refresh) return;
+  renderLegend();
+  dirty = true;
+}
 // the landing room (LANDINGS) and the niche (NICHES): their groups on show; their lamps follow (applyMood)
 function setLanding(k, refresh = true) {
   landingKey = k;
@@ -2722,7 +2769,7 @@ async function applyFrameStone(k, refresh = true) {
   dirty = true;
 }
 function renderLegend() {
-  const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), metal = METALS[p.metal];
+  const p = PALETTES[paletteKey], wood = WOODS[woodKey], wn = wood.short.toLowerCase(), metal = METALS[p.metal], fab = FABRICS[fabricKey];
   const tone = floorTone(), fw = !floorColor ? WOODS[floorWood].short.toLowerCase() : tone ? tone[1].label.toLowerCase() : 'oak stained ' + floorColor;
   const epoxy = epoxyKey ? EPOXIES[epoxyKey].label.toLowerCase() : 'your colour (' + epoxyColor + ')';
   const rows = [
@@ -2730,19 +2777,19 @@ function renderLegend() {
     ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights; along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
     ['Floor', 'seamless poured epoxy, satin, ' + epoxy + ', through the hallway, the landing room, the landing and the niche; the stairs in ' + wn + '; upstairs ' + fw + ' planks', epoxyColor],
     ['Landing room', landingKey === 'lounge'
-      ? 'the room at the foot of the stairs, empty in the model, as a lounge (this page\'s): a low three-seat sofa in ' + p.sofaLabel + ' against the north wall, facing the sideboard, under a poster 2 × 1.4 m of a bridge\'s towers rising out of a sea of clouds in a slim black frame, a round ' + wn + ' coffee table, a wool rug, a floor lamp in ' + metal.label + ' with a linen drum shade at the sofa\'s end, a floating ' + wn + ' sideboard on the bathroom\'s wall with an LED line under it and a print over it, a fig tree by the window'
-      : 'the room at the foot of the stairs, empty as in the model', landingKey === 'lounge' ? p.sofa : paintColor],
+      ? 'the room at the foot of the stairs, empty in the model, as a lounge (this page\'s): an IKEA ÄPPLARYD sofa as in the Kitchen & living page, three seats and a chaise longue (290 cm), in ' + fab.desc + ' with ' + fab.cushionLabel + ' cushions, against the north wall with the chaise by the window, under a poster 2 × 1.4 m of a bridge\'s towers rising out of a sea of clouds in a slim black frame; facing it on the bathroom\'s wall a 65" TV over a floating ' + wn + ' unit with an LED line under it and, to their right, a cupboard floor to ceiling, 1 m wide and 60 cm deep, behind two handleless doors lacquered a shade lighter than the walls; a round ' + wn + ' coffee table, a wool rug, a floor lamp in ' + metal.label + ' with a linen drum shade by the sofa\'s arm, a fig tree in the corner by the window'
+      : 'the room at the foot of the stairs, empty as in the model', landingKey === 'lounge' ? fab.color : paintColor],
     ['Stair niche', {
-      bench: 'the open niche in the powder room\'s base, facing the landing (2.07 m wide, 80 cm deep, as in the model): a floating ' + wn + ' bench with a cushion, a shelf over it with books and pottery, LED lines under both, two baskets under the bench (this page\'s)',
+      bench: 'the open niche in the powder room\'s base, facing the landing (2.00 m wide, 7 cm less than in the model for the wider last arm, 80 cm deep): a floating ' + wn + ' bench with a cushion, a shelf over it with books and pottery, LED lines under both, two baskets under the bench (this page\'s)',
       cupboard: 'the niche closed by four flush handleless doors floor to ceiling, lacquered a shade lighter than the walls: an 80 cm deep cupboard (this page\'s)',
       step: 'the stairs\' second step carried on across the niche, in its riser\'s plane and to its height: a ' + wn + ' plinth of four drawers floating over a gap the first step high (36 cm deep, for shoes; an LED line under the plinth\'s front edge lights the floor); over it a cupboard to the ceiling behind four white lacquered handleless doors: coats on a rail under a hat shelf behind the south pair, shelves with baskets behind the north pair. Click a door or a drawer to open it (this page\'s)',
     }[nicheKey], nicheKey === 'cupboard' ? M.lacquer.color.getStyle() : nicheKey === 'step' ? '#f5f4f0' : wood.swatch],
-    ['Stairs', 'as in the model: 18 risers of 17.5 cm, 27.5 cm treads, 1 m wide, in three arms round the powder room; clad in ' + wn + ' as solid blocks, the treads flush with their risers (no nosings), the risers and the bottom step\'s open side in the wood too; a black steel handrail on the inner side, round the powder room\'s core; LED step lights in the outer walls by every other step; a frameless glass balustrade upstairs over the last arm', wood.swatch],
+    ['Stairs', 'as in the model: 18 risers of 17.5 cm, 27.5 cm treads, in three arms round the powder room, the first two 1 m wide, the last 1.07 m (its inner wall under the slab set back 7 cm into the niche\'s side), its bottom step 1.255 m, running on across the end of the niche\'s wall to the niche; clad in ' + wn + ' as solid blocks, the treads flush with their risers (no nosings), the risers and the bottom step\'s open side in the wood too; a black steel handrail on the inner side, round the powder room\'s core; LED step lights in the outer walls by every other step; a frameless glass balustrade upstairs over the last arm', wood.swatch],
     ['Lower hallway', '8 m from the landing to the study\'s door, 1 m wide: its west wall clad in ' + wn + ' floor to ceiling, upright panels with shadow joints, the doors of the two rooms on that side white lacquered leaves set back in their openings, in slim frames of honed ' + STONES[frameStoneKey].label.toLowerCase().replace(', honed', '') + ' (jambs and head lining the reveal, 2 cm wide on the face, flush with the wood); on the east wall the doors of the two bedrooms and the bathroom, flush with the wall, lacquered a shade lighter than the walls, shadow gaps round them; black levers, shown shut; four small downlights; along the wooden wall an LED line in a recess in the ceiling (7 cm wide, 8 cm deep, the wood running up into it) washing the wood from above; three prints in black frames on the wood (this page\'s)', wood.swatch],
     ['Study door', 'the model\'s glass across the hallway\'s end, drawn as a door of satin glass in a slim black frame: the study\'s daylight, or its lamp after dark, shows through it', '#e6e4df'],
     ['Glazing', 'anthracite aluminium (RAL 7016): the landing room\'s east window floor to ceiling (a turn sash and a fixed pane) under the upper floor\'s overhang; fixed windows floor to ceiling in the north facade, at the landing and upstairs; over the stairs\' corner landing a fixed window 1 m wide in the west facade, the upper floor\'s full height (2.6 m; in the model an opening, glazed here), its daylight down the stairwell', '#383b3e'],
     ['Upstairs', 'the upper hallway\'s north end round the stairs, as in the Kitchen & living and the Master bedroom pages: three ' + wn + ' panels on the bedroom\'s wall; the bedroom\'s, the powder room\'s and the hall\'s doors, shut', wood.swatch],
-    ['Light', 'small round downlights (four in the hallway, two in the landing room, two over the landing, one over the stairwell, three upstairs), the floor lamp; LED lines under the niche\'s bench and shelf and under the sideboard; the step lights', '#ffe2c2'],
+    ['Light', 'small round downlights (four in the hallway, two in the landing room, two over the landing, one over the stairwell, three upstairs), the floor lamp; LED lines under the niche\'s bench and shelf and under the TV unit; the step lights', '#ffe2c2'],
     ['Outside', 'paving along the east facade, box balls, a lawn and a clipped hedge (this page\'s); the view from the plot beyond', '#4d6a35'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
@@ -2966,7 +3013,8 @@ controls.maxDistance = 16;
 controls.screenSpacePanning = true;
 controls.maxDistance = 20;
 const VIEWS = [
-  { key: 'landing', label: 'Landing room', pos: [53.55, 13.25, 1.6], tgt: [56.6, 11.0, 0.85], fov: 74 },
+  { key: 'landing', label: 'Landing room', pos: [54.0, 13.3, 1.6], tgt: [56.5, 11.2, 0.8], fov: 74 },
+  { key: 'tv', label: 'TV wall', pos: [56.45, 12.0, 1.12], tgt: [53.0, 11.75, 1.0], fov: 70 },
   { key: 'window', label: 'From the window', pos: [55.0, 10.45, 1.55], tgt: [55.3, 15.2, 1.25], fov: 74 },
   { key: 'stairs', label: 'Stairs', pos: [53.55, 10.9, 1.6], tgt: [56.6, 15.0, 1.45], fov: 66 },
   { key: 'up', label: 'Up the stairs', pos: [56.62, 13.72, 1.55], tgt: [56.4, 16.4, 1.85], fov: 74 },
@@ -2999,7 +3047,7 @@ function goTo(view, instant = false) {
 // the one it was last in otherwise
 function treadZ(x, y) {
   const S = STAIR, K = S.core, g = S.g;
-  if (x >= K.x1) {                                         // the last arm and the landing at the north facade
+  if (x >= S.x3) {                                         // the last arm and the landing at the north facade
     if (y < 14.53) return 0;
     if (y >= K.y1 - 0.1) return zk(13);
     return zk(17 - Math.floor((y - 14.53) / g));
@@ -3057,6 +3105,7 @@ function buildUI() {
   seg($('palettes'), PALETTES, (k) => withBusy(async () => { await applyPalette(k); captureEnv(); }), paletteKey);
   seg($('woods'), Object.fromEntries(WOOD_PICK.map((k) => [k, { label: `<i class="dot" style="background:${WOODS[k].swatch}"></i>${WOODS[k].short}` }])), (k) => withBusy(async () => { await applyWoodChoice(k); captureEnv(); }), woodKey);
   seg($('landings'), LANDINGS, (k) => withBusy(async () => { setLanding(k); captureEnv(); }), landingKey);
+  seg($('fabrics'), FABRICS, (k) => withBusy(async () => { applyFabric(k); captureEnv(); }), fabricKey);
   seg($('niches'), NICHES, (k) => withBusy(async () => { setNiche(k); captureEnv(); }), nicheKey);
   seg($('framestones'), FRAME_STONES, (k) => withBusy(async () => { await applyFrameStone(k); captureEnv(); }), frameStoneKey);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
@@ -3110,6 +3159,7 @@ function buildUI() {
     if (busy) return;
     if (k === 's') { pickNext('palettes', Object.keys(PALETTES), paletteKey, (n) => withBusy(async () => { await applyPalette(n); captureEnv(); })); return; }
     if (k === 'o') { const n = next(WOOD_PICK, woodKey); withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
+    if (k === 'u') { const n = next(Object.keys(FABRICS), fabricKey); withBusy(async () => { applyFabric(n); captureEnv(); }); return; }
     if (k === 'l') { const n = next(Object.keys(LANDINGS), landingKey); withBusy(async () => { setLanding(n); captureEnv(); }); return; }
     if (k === 'n') { const n = next(Object.keys(NICHES), nicheKey); withBusy(async () => { setNiche(n); captureEnv(); }); return; }
     if (k === 'w') { const n = next(Object.keys(PAINTS), paintKey); withBusy(async () => { applyPaint(PAINTS[n].color, n); captureEnv(); }); return; }
@@ -3287,7 +3337,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, LANDINGS, NICHES, FLOORS, LA, NI, OUT, ROOMS,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, LANDINGS, NICHES, FABRICS, applyFabric, FLOORS, LA, NI, OUT, ROOMS,
     setLanding, setNiche, applyEpoxy, EPOXIES, OPENS, toggleOpen, applyFrameStone, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, texCache, bakeSet, captureImage, saveImage,
     goTo, pickView, setMood, setSunHour, BASE, MOODS, applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT,
     reflectors, floorRefl, solar, setSun, groups, treadZ,

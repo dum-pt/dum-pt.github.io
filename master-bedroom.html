@@ -300,7 +300,7 @@ const COR = { x0: 49.6, x1: 57.085, y0: CDOOR.y1, y1: 14.545, hdoor: [49.625, 50
 // (hall) and the core from its first riser (y0), a landing at the west facade (west), the second arm north along it, a
 // landing at the north facade, the third arm east under the hallway's end, where a glass balustrade guards the drop; an
 // LED step light low in the walls by every other tread, a downlight over the stairwell (lamp), a black steel handrail
-const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower: -3.15, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, lamp: [54.885, 16.23] };
+const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower: -3.15, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, x3: 56.015, lamp: [54.885, 16.23] };
 // the window over the stairs' corner landing: in the model an opening in the west facade, 1 m wide (x0..x1), the upper
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
 // pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
@@ -1641,7 +1641,10 @@ function buildHallway() {
   westWindow(0, H);
   // the core: below the floor its faces to the three arms; above it the powder room, its door in the hallway's side
   // (hung flush with it, hinged at the south jamb, opening out; its lever by the free edge)
-  wall(K.x0, K.x1, YK, K.y1, S.lower, 0, 'xXY');
+  // (the core's base under the slab set back 7 cm over the last arm, 1.07 m wide: S.x3)
+  wall(K.x0, S.x3, YK, K.y1, S.lower, -0.4, 'xXY');
+  wall(K.x0, K.x1, YK, K.y1, -0.4, 0, 'xXY');
+  add(M.plaster, box(S.x3, K.x1, YK, K.y1, -0.401, -0.4, { faces: 'z' }));
   wall(K.x0, d0, YK, K.y1, 0, WT, 'yxXY');
   wall(d0, d1, YK, K.y1, C.doorH, WT, 'yzY');
   wall(d1, K.x1, YK, K.y1, 0, WT, 'yxXY');
@@ -1671,18 +1674,18 @@ function buildHallway() {
   step(S.hall, K.x0 + 0.1, ya(4), S.west, 4, 'X', false);
   for (let k = 5; k <= 12; k++) step(xb(k), xb(k) + g, K.y1, S.west, k, 'X', true);
   step(xb(13), C.x1, K.y1 - 0.1, S.west, 13, 'y', false);
-  for (let k = 14; k <= 17; k++) step(K.x1, C.x1, yc(k) - g, yc(k), k, 'y', false);
+  for (let k = 14; k <= 17; k++) step(S.x3, C.x1, yc(k) - g, yc(k), k, 'y', false);
   // the handrail: a black steel tube (40 mm) 90 cm over the nosing line, on the inner side: on brackets 6 cm off the powder
   // room's core, round its two corners, from the floor here down to the core's end by the bottom step (where the niche
   // opens on the lower floor); both ends turned back into the wall on a round plate
   {
-    const o = 0.06, h = 0.9, ix = K.x0 - o, iy = K.y1 + o, nx = K.x1 + o;
+    const o = 0.06, h = 0.9, ix = K.x0 - o, iy = K.y1 + o, nx = S.x3 + o;
     // the nosing lines of arm one (along y), arm two (along x), arm three (along y)
     const z1 = (y) => -r * (y - S.y0) / g, z2 = (x) => -4 * r - r * (x - xb(5)) / g, z3 = (y) => -13 * r - r * (yc(14) - y) / g;
     const y0 = YK + 0.1, y1 = 14.845;
     const P = [
       [K.x0, y0, h], [ix, y0, h], [ix, S.y0, h], [ix, iy, (z1(iy) + z2(ix)) / 2 + h],
-      [nx, iy, (z2(nx) + z3(iy)) / 2 + h], [nx, y1, z3(y1) + h], [K.x1, y1, z3(y1) + h],
+      [nx, iy, (z2(nx) + z3(iy)) / 2 + h], [nx, y1, z3(y1) + h], [S.x3, y1, z3(y1) + h],
     ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
     const tube = (p, q, rr) => {
       const d = new THREE.Vector3().subVectors(q, p), len = d.length();
@@ -1695,7 +1698,7 @@ function buildHallway() {
       if (i) add(M.blackMetal, tube(P[i - 1], p, 0.02));
     });
     add(M.blackMetal, cyl(0.032, 0.006, 'x', [K.x0 - 0.003, y0, h], 28));
-    add(M.blackMetal, cyl(0.032, 0.006, 'x', [K.x1 + 0.003, y1, z3(y1) + h], 28));
+    add(M.blackMetal, cyl(0.032, 0.006, 'x', [S.x3 + 0.003, y1, z3(y1) + h], 28));
     // the brackets: from the core's face to under the tube, along each arm about every metre
     const bracket = (p, ax, w) => {
       const c = [p.x, p.y, p.z - 0.035], k = ax === 'x' ? 0 : 1;
@@ -1703,7 +1706,7 @@ function buildHallway() {
       add(M.blackMetal, cyl(0.007, o, ax, c, 12));
       add(M.blackMetal, cyl(0.007, 0.035, 'z', [p.x, p.y, p.z - 0.0175], 12));
     };
-    for (const [i, ax, w] of [[2, 'x', K.x0], [3, 'y', K.y1], [4, 'x', K.x1]]) {
+    for (const [i, ax, w] of [[2, 'x', K.x0], [3, 'y', K.y1], [4, 'x', S.x3]]) {
       const a = P[i], b = P[i + 1], n = Math.max(1, Math.round(a.distanceTo(b) / 1.0));
       for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n), ax, w);
     }
