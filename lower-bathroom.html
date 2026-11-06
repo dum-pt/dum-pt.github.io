@@ -332,12 +332,14 @@ function patchShader(shader) {
       varying vec3 vWPos;
       #ifdef PLANAR
         uniform mat4 planarMatrix;
+        uniform vec3 planarN;
+        uniform float planarD;
         varying vec4 vPlanarUv;
       #endif`)
     .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
       vWPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;
       #ifdef PLANAR
-        vPlanarUv = planarMatrix * vec4( vWPos, 1.0 );
+        vPlanarUv = planarMatrix * vec4( vWPos - planarN * ( dot( vWPos, planarN ) - planarD ), 1.0 );
       #endif`);
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <common>', `#include <common>
@@ -425,6 +427,8 @@ class Planar {
     this.uniforms = {
       planarTex: { value: this.rt.texture },
       planarMatrix: { value: new THREE.Matrix4() },
+      planarN: { value: this.n },
+      planarD: { value: this.n.dot(this.p) },
       planarOn: { value: 0 },
       planarLod: { value: lod },
       planarDistort: { value: distort },
@@ -3177,6 +3181,7 @@ function captureEnv(passes = 2) {
   // face of the capture into face 0; glass is left out of the environment instead
   const glass = [];
   scene.traverse((o) => { if (o.isMesh && o.visible && o.material.transmission > 0) { glass.push(o); o.visible = false; } });
+  SPL.group.visible = false;
   for (let i = 0; i < passes; i++) {
     cubeCam.update(renderer, scene);
     const next = pmrem.fromCubemap(cubeRT.texture);
@@ -3185,6 +3190,7 @@ function captureEnv(passes = 2) {
     envRT = next;
   }
   for (const o of glass) o.visible = true;
+  SPL.group.visible = true;
   groups.ceiling.visible = groups.pendants.visible = ceilingWas;
   reflectors.forEach((r, i) => { r.uniforms.planarOn.value = saved[i]; });
 }
