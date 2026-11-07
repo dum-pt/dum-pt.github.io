@@ -105,7 +105,7 @@
     #side { max-height: calc(100vh - 126px); max-height: calc(100dvh - 126px); }   /* the drawer: above the view bar, on the visible screen */
     #views { bottom: 12px; }
   }
-  #bedwalls, #wfronts { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #bedwalls, #wfronts, #pdoors { display: grid; grid-template-columns: repeat(3, 1fr); }
   #beddings { display: grid; grid-template-columns: repeat(4, 1fr); }
   #curtains { display: grid; grid-template-columns: repeat(2, 1fr); }
 </style>
@@ -130,6 +130,7 @@
   <div class="group"><h2>Bed wall</h2><div class="seg" id="bedwalls" title="The wall behind the bed: as drawn, a dark accent wall with a 1 m panel in the wood, an LED line on its top washing up the wall; slats in the wood floor to ceiling on the dark wall, washed from a slot in the ceiling; or as drawn with an upholstered channel headboard over the bed (B)"></div></div>
   <div class="group"><h2>Bedding</h2><div class="seg" id="beddings" title="Stonewashed linen on the bed, a throw across its foot and cushions to go with it; each style starts with its own (U)"></div></div>
   <div class="group"><h2>Wardrobe</h2><div class="seg" id="wfronts" title="The walk-in wardrobe's runs: open shelving in the wood with rails, drawers and LED lines; the same behind glass doors in a slim metal frame; or behind flush handleless doors a shade lighter than the walls. A click opens a door or a drawer (R)"></div></div>
+  <div class="group"><h2>Wardrobe door</h2><div class="seg" id="pdoors" title="The pocket door into the wardrobe, sliding into the bed wall: lacquered like the other doors, smoked glass in a slim black frame, or black. A click on it, or L, slides it (J)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls (the bed wall keeps the style's dark accent), and a shade lighter of the doors and the flush wardrobe fronts; each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks (as drawn) or herringbone (F)"></div>
     <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain); each style starts with its own"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
@@ -254,11 +255,12 @@ const SLATS = { w: 0.035, pitch: 0.055, slot: [53.515, 53.555] };
 // the TV on the south wall (the model's: its screen inset by s)
 const TV = { x0: 50.745, x1: 50.809, y0: 9.907, y1: 11.162, z0: 1.232, z1: 1.895, s: 0.021 };
 // the dressing corner (the model's): a floating oak top (x0..x1, y0..y1, z0..z1; its free corners rounded, r) before the
-// mirror; the oak column at col: closed below the top, over it an open niche (y, its back at back, its front at front, up
-// to nz1) lined in oak, four marble shelves (their tops at shelves, 2 cm); a closed oak cabinet in the corner (cab, up to
-// cz1)
+// mirror; the oak column at col: open shelves its whole height (y, its back at back, its front at front), lined in oak:
+// under the top on a base, one marble shelf (its top at low), over it the niche up to nz1, four marble shelves (their tops
+// at shelves, 2 cm); the tall oak cabinet in the corner (cab, up to cz1), its door opening (DCAB), shelves in it (cabShelves)
 const DRESS = { x0: X0, x1: 51.16, y0: 11.835, y1: 13.065, z0: 0.73, z1: 0.78, r: 0.15, col: [12.735, 13.085], niche: [12.755, 13.065],
-  back: 50.74, front: 51.01, nz1: 2.575, shelves: [1.11, 1.44, 1.77, 2.1], cab: [13.085, Y1], cz1: 2.595 };
+  back: 50.74, front: 51.01, nz1: 2.575, shelves: [1.11, 1.44, 1.77, 2.1], base: 0.06, low: 0.4, cab: [13.085, Y1], cz1: 2.595,
+  cabShelves: [0.42, 0.78, 1.14, 1.5, 1.86, 2.22], cabOpen: 1.5 };
 // the mirror on the south wall (the model's 'Mirror 01'): its face at x, its outline in (y, z): straight along the floor and
 // up the column's side, round at its free end, its top sweeping up to the ceiling
 const MIRROR = { x: 50.72, y1: DRESS.col[0], curve: [[11.997, 0], [11.962, 0.077], [11.867, 0.442], [11.835, 0.82], [11.867, 1.195], [11.962, 1.56],
@@ -970,6 +972,12 @@ const BEDDINGS = {
 const BEDWALLS = { drawn: { label: 'As drawn' }, slats: { label: 'Slats' }, uph: { label: 'Upholstered' } };
 // the wardrobe's fronts: none (open shelving), glass doors, flush doors; how much of their LED lines' light gets out
 const WFRONTS = { open: { label: 'Open', k: 1 }, glass: { label: 'Glass', k: 0.55 }, flush: { label: 'Flush', k: 0 } };
+// the pocket door's leaf (POCKET): lacquered like the other doors, smoked glass in a slim black frame, or lacquered black
+const PDOORS = {
+  light: { label: 'Light', legend: 'a flush leaf lacquered like the others, flush pulls in black, an edge pull to draw it out' },
+  glass: { label: 'Smoked glass', legend: 'smoked grey glass in a slim black aluminium frame, a grip groove in its leading stile, an edge pull' },
+  black: { label: 'Black', legend: 'a flush leaf lacquered black, flush pulls in black, an edge pull to draw it out' },
+};
 // the curtains: sheer linen or dim-out; how much of the daylight they keep out, drawn
 const CURTAINS = { sheer: { label: 'Sheer linen', block: 0.6, opacity: 0.86 }, dim: { label: 'Dim-out', block: 0.93, opacity: 0.985 } };
 // the floor: wide planks of the floor's wood (as drawn) or herringbone of it
@@ -1126,6 +1134,8 @@ const M = {
   windowGlass: physical({ color: 0x000000, roughness: 0.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
   // the wardrobe's glass doors: a bronze tint, a clear reflection (see-through without the cost of transmission)
   wGlass: physical({ color: 0x3a2f26, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.3, clearcoat: 1, clearcoatRoughness: 0.03, depthWrite: false }),
+  pGlass: physical({ color: 0x1d1e20, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.62, clearcoat: 1, clearcoatRoughness: 0.03, depthWrite: false }),   // the pocket door's smoked glass
+  lacquerBlack: physical({ color: 0x1c1c1d, roughness: 0.5, clearcoat: 0.3, clearcoatRoughness: 0.35 }),   // the pocket door, black
   frame: physical({ color: 0x383b3e, roughness: 0.5, clearcoat: 0.25, clearcoatRoughness: 0.45 }),   // RAL 7016, powder-coated aluminium
   trim: physical({ color: 0x141414, roughness: 0.6 }),
   metal: physical({ metalness: 1, roughness: 0.32 }),                  // the rails, the glass doors' frames (the style's)
@@ -1313,7 +1323,7 @@ const LINEN = canvasTex(512, 0.3, (g, n, rnd, wrap) => {
 for (const m of [M.duvet, M.sheet]) { m.map = m.bumpMap = LINEN; m.bumpScale = 1.2; }
 // the upholstered headboard and the poufs: a fine basket weave (the cover's colour tints it), also its bump
 for (const m of [M.fabric, M.pouf, M.throw]) { m.map = m.bumpMap = WEAVE; m.bumpScale = 1.5; }
-const NO_AO = new Set([M.windowGlass, M.mirrorEdge, M.railGlass, M.wGlass, M.clearGlass]);
+const NO_AO = new Set([M.windowGlass, M.mirrorEdge, M.railGlass, M.wGlass, M.pGlass, M.clearGlass]);
 
 function applyStone(mat, set, def) {
   mat.map = set.map; mat.normalMap = set.normalMap; mat.roughnessMap = set.roughnessMap;
@@ -1998,22 +2008,28 @@ function buildDressing() {
     sh.closePath();
     add(M.veneer, projectUV(new THREE.ExtrudeGeometry(sh, { depth: D.z1 - D.z0, bevelEnabled: false, curveSegments: 16 }).translate(0, 0, D.z0)));
   }
-  // the column: closed below the top (a door), over it the niche lined in the wood (its sides, its back, its top), the
-  // marble shelves, an LED line under each one's front edge and under the niche's top; the tall cabinet in the corner (a
-  // door); the doors' joints
-  add(M.veneer, box(D.x0, f, c0, c1, 0, D.z0, { faces: 'XyY' }));
+  // the column: open shelves its whole height, lined in the wood (its sides, its back, its top; its side by the cabinet
+  // the whole height): under the top a base and one marble shelf; over it the niche, the marble shelves, an LED line under
+  // each one's front edge and under the niche's top
+  add(M.veneer, box(D.x0, f, c0, n0, 0, D.z0, { faces: 'XyY' }));
   add(M.veneer, box(D.x0, f, c0, n0, D.z1, D.cz1, { faces: 'XyY' }));
-  add(M.veneer, box(D.x0, f, n1, c1, D.z1, D.cz1, { faces: 'XyY' }));
-  add(M.veneer, box(D.x0, D.back, n0, n1, D.z1, D.nz1, { faces: 'X' }));
+  add(M.veneer, box(D.x0, f, n1, c1, 0, D.cz1, { faces: 'XyY' }));
+  add(M.veneer, box(D.x0, D.back, n0, n1, 0, D.nz1, { faces: 'X' }));
+  add(M.veneer, box(D.back, f, n0, n1, 0, D.base, { faces: 'XZ' }));
+  add(M.marble, box(D.back, f, n0, n1, D.low - 0.02, D.low, { faces: 'XzZ' }));
   add(M.veneer, box(D.x0, f, n0, n1, D.nz1, D.cz1, { faces: 'Xz' }));
   for (const z of D.shelves) add(M.marble, box(D.back, f, n0, n1, z - 0.02, z, { faces: 'XzZ' }));
   for (const z of [...D.shelves.map((s) => s - 0.02), D.nz1]) add(E.niche, box(f - 0.03, f - 0.022, n0 + 0.01, n1 - 0.01, z - 0.0008, z, { faces: 'z' }), { shadow: false });
-  add(M.veneer, box(D.x0, f, D.cab[0], D.cab[1], 0, D.cz1, { faces: 'Xyz' }));
-  const joint = (y0, y1, z0, z1) => {
-    for (const [a, b, c, d] of [[y0, y1, z0, z0 + 0.003], [y0, y1, z1 - 0.003, z1], [y0, y0 + 0.003, z0, z1], [y1 - 0.003, y1, z0, z1]]) add(M.joint, box(f, f + 0.0006, a, b, c, d, { faces: 'X' }), { shadow: false });
-  };
-  joint(c0 + 0.02, c1 - 0.002, 0.012, D.z0 - 0.003);
-  joint(D.cab[0] + 0.002, D.cab[1] - 0.02, 0.012, D.cz1 - 0.02);
+  // the tall cabinet in the corner: its side by the wall, its top, its back, a base and shelves, all in the wood (its
+  // other side the column's); its door: buildDoors (DCAB)
+  {
+    const [a] = D.cab, s = D.cab[1] - 0.02, fi = f - 0.022;
+    add(M.veneer, box(D.x0, f, s, D.cab[1], 0, D.cz1, { faces: 'Xy' }));
+    add(M.veneer, box(D.x0, f, a, s, D.cz1 - 0.02, D.cz1, { faces: 'Xz' }));
+    add(M.veneer, box(D.x0, D.back, a, s, 0, D.cz1 - 0.02, { faces: 'X' }));
+    add(M.veneer, box(D.back, fi, a, s, 0, D.base, { faces: 'XZ' }));
+    for (const z of D.cabShelves) add(M.veneer, box(D.back, fi, a, s, z - 0.018, z, { faces: 'XzZ' }));
+  }
   // the mirror on the wall: its outline (the curve smoothed), a thin dark edge round it
   {
     const curve = new THREE.CatmullRomCurve3(MIRROR.curve.map(([y, z]) => V3(0, y, z)), false, 'centripetal').getPoints(96).map((p) => [p.y, Math.max(0, p.z)]);
@@ -2277,6 +2293,17 @@ function buildProps() {
     add(M.potteryDark, lathe(VASE.map(([r, h]) => [r * 0.8, h * 0.85]), [x + 0.02, y, D.shelves[1]], 32));
     stack(x + 0.01, y, D.shelves[2], 4, 0.2, 0.26, 12);
     add(M.box, projectUV(rbox(0.22, 0.26, 0.2, 0.01, [x + 0.01, y, D.shelves[3] + 0.1])));
+    // under the top: a linen box on the base, folded towels on the marble shelf
+    add(M.box, projectUV(rbox(0.22, 0.26, 0.2, 0.01, [x + 0.01, y, D.base + 0.1])));
+    stack(x + 0.01, y, D.low, 4, 0.2, 0.26, 31);
+    // in the tall cabinet: towels and boxes
+    const xc = (D.back + D.front - 0.022) / 2, yc = (D.cab[0] + D.cab[1] - 0.02) / 2, [s0, s1, s2, s3, s4] = D.cabShelves;
+    add(M.box, projectUV(rbox(0.2, 0.26, 0.2, 0.01, [xc, yc, D.base + 0.1])));
+    stack(xc, yc, s0, 5, 0.2, 0.26, 32);
+    stack(xc, yc, s1, 4, 0.2, 0.26, 33);
+    add(M.box, projectUV(rbox(0.2, 0.26, 0.22, 0.01, [xc, yc, s2 + 0.11])));
+    stack(xc, yc, s3, 3, 0.2, 0.26, 34);
+    add(M.box, projectUV(rbox(0.2, 0.24, 0.16, 0.01, [xc, yc, s4 + 0.08])));
   }
   // on the chest: a dark vase of bare branches in the corner, two books with a small white bowl on them
   {
@@ -2326,11 +2353,14 @@ function buildMeshes({ meta, buf }) {
 // The terrace door's sash, hinged at its east stile, swinging into the room (TDOOR); the corridor's door and the
 // en-suite's, flush leaves with black levers (LEAF); the wardrobe's doors (WDOORS). Each turns in a group at its hinge (the
 // leaf built in place in an inner group set back by it). DOORS: their meshes, glass and all (a click on one opens or shuts
-// it: userData.door on its group: 'terrace', 'corridor', 'ensuite', 'pocket' or 'w' and the wardrobe door's index); the
+// it: userData.door on its group: 'terrace', 'corridor', 'ensuite', 'pocket', 'dress' (DCAB) or 'w' and the wardrobe
+// door's index); the
 // pocket door (LEAF.pocket) slides instead, open to begin with
 const DOORS = [];
 const TDOOR = { open: false, t: 0, g: null };
+const DCAB = { open: false, t: 0, g: null };       // the dressing corner's tall cabinet (DRESS)
 const LEAF = { corridor: { open: false, t: 0, g: null }, ensuite: { open: false, t: 0, g: null }, pocket: { open: true, t: 1, g: null } };
+const PD = {};                                  // the pocket door's leaf in each finish (PDOORS)
 const LEAF_CHIP = { corridor: ['t-cdoor', 'corridor door'], ensuite: ['t-edoor', 'bathroom door'], pocket: ['t-pdoor', 'wardrobe door'] };
 function hinged(key, px, py, build) {
   const outer = new THREE.Group(), inner = new THREE.Group();
@@ -2386,21 +2416,48 @@ function buildDoors() {
     });
     R.add(LEAF.ensuite.g);
   }
-  // the pocket door into the wardrobe: built shut, then slid open (its group moves along y); a flush pull on each face by
-  // the leading edge (a black cup, its recess darker), an edge pull in the leading edge to draw it out of the pocket
+  // the dressing corner's tall cabinet: its door in the wood, handleless (a touch latch), hinged by the corridor wall,
+  // opening into the room until it is nearly back against the wall
   {
-    const P = POCKET, [o0, o1] = PART.open, y0 = o0 + P.gap, y1 = o1 + P.lap, z1 = PART.head - P.top, zc = 1.05, yp = y0 + 0.05;
-    LEAF.pocket.g = hinged('pocket', 0, 0, () => {
-      add(M.lacquer, box(P.x0, P.x1, y0, y1, 0.008, z1));
-      for (const [x, s, f] of [[P.x0, -1, 'x'], [P.x1, 1, 'X']]) {
-        add(M.blackMetal, box(Math.min(x, x + s * 0.0015), Math.max(x, x + s * 0.0015), yp - 0.016, yp + 0.016, zc - 0.09, zc + 0.09));
-        const r = x + s * 0.0017;
-        add(M.joint, box(Math.min(r, r - s * 0.0002), Math.max(r, r - s * 0.0002), yp - 0.01, yp + 0.01, zc - 0.08, zc + 0.08, { faces: f }), { shadow: false });
+    const D = DRESS, f = D.front, a = D.cab[0] + 0.003, b = D.cab[1] - 0.023;
+    DCAB.g = hinged('dress', f, b, () => add(M.veneer, box(f - 0.02, f, a, b, 0.006, D.cz1 - 0.023)));
+    R.add(DCAB.g);
+  }
+  // the pocket door into the wardrobe: built shut, then slid open (its group moves along y), once for each finish (PD,
+  // PDOORS): a flush leaf with a flush pull on each face by the leading edge (a black cup, its recess darker); or smoked
+  // glass in a slim black frame, its leading stile wider with a grip groove either side; an edge pull in the leading edge
+  // to draw it out of the pocket
+  {
+    const P = POCKET, [o0, o1] = PART.open, y0 = o0 + P.gap, y1 = o1 + P.lap, z0 = 0.008, z1 = PART.head - P.top, zc = 1.05, yp = y0 + 0.05;
+    const outer = new THREE.Group();
+    outer.userData.door = 'pocket';
+    for (const k of Object.keys(PDOORS)) {
+      if (k === 'glass') {
+        const s = 0.022, sl = 0.036, gx = (P.x0 + P.x1) / 2;
+        add(M.blackMetal, box(P.x0, P.x1, y0, y0 + sl, z0, z1));
+        add(M.blackMetal, box(P.x0, P.x1, y1 - s, y1, z0, z1));
+        add(M.blackMetal, box(P.x0, P.x1, y0 + sl, y1 - s, z0, z0 + s, { faces: 'xXZ' }));
+        add(M.blackMetal, box(P.x0, P.x1, y0 + sl, y1 - s, z1 - s, z1, { faces: 'xXz' }));
+        add(M.pGlass, box(gx - 0.004, gx + 0.004, y0 + sl, y1 - s, z0 + s, z1 - s, { faces: 'xX' }));
+        add(M.joint, box(P.x0 - 0.0003, P.x0, y0 + 0.01, y0 + 0.024, zc - 0.2, zc + 0.2, { faces: 'x' }), { shadow: false });
+        add(M.joint, box(P.x1, P.x1 + 0.0003, y0 + 0.01, y0 + 0.024, zc - 0.2, zc + 0.2, { faces: 'X' }), { shadow: false });
+      } else {
+        add(k === 'black' ? M.lacquerBlack : M.lacquer, box(P.x0, P.x1, y0, y1, z0, z1));
+        for (const [x, sg, f] of [[P.x0, -1, 'x'], [P.x1, 1, 'X']]) {
+          add(M.blackMetal, box(Math.min(x, x + sg * 0.0015), Math.max(x, x + sg * 0.0015), yp - 0.016, yp + 0.016, zc - 0.09, zc + 0.09));
+          const r = x + sg * 0.0017;
+          add(M.joint, box(Math.min(r, r - sg * 0.0002), Math.max(r, r - sg * 0.0002), yp - 0.01, yp + 0.01, zc - 0.08, zc + 0.08, { faces: f }), { shadow: false });
+        }
       }
       add(M.blackMetal, box(P.x0 + 0.008, P.x1 - 0.008, y0 - 0.0015, y0, zc - 0.06, zc + 0.06));
       add(M.joint, box(P.x0 + 0.012, P.x1 - 0.012, y0 - 0.0017, y0 - 0.0015, zc - 0.05, zc + 0.05, { faces: 'y' }), { shadow: false });
-    });
-    LEAF.pocket.g.position.y = P.travel;
+      const g = new THREE.Group();
+      DOORS.push(...flush(g));
+      outer.add(g);
+      PD[k] = g;
+    }
+    outer.position.y = P.travel;
+    LEAF.pocket.g = outer;
     R.add(LEAF.pocket.g);
   }
   // the wardrobe's doors, each built twice (WF): a pane of bronze glass in a slim frame in the style's metal, a long
@@ -2624,6 +2681,7 @@ function animateOpenings(dt) {
   run(LEAF.corridor, 1.5, (k) => { LEAF.corridor.g.rotation.z = -CDOOR.open * k; });
   run(LEAF.ensuite, 1.5, (k) => { LEAF.ensuite.g.rotation.z = EDOOR.open * k; });
   run(LEAF.pocket, 1.2, (k) => { LEAF.pocket.g.position.y = POCKET.travel * k; });
+  run(DCAB, 1.0, (k) => { DCAB.g.rotation.z = DRESS.cabOpen * k; });
   for (const d of WDOORS) run(d, 1.0, (k) => { d.g.rotation.z = d.sign * 1.75 * k; });
   if (CURT.runs.length && CURT.t !== (CURT.closed ? 1 : 0)) {
     CURT.t = THREE.MathUtils.clamp(CURT.t + (CURT.closed ? dt : -dt) / 2.4, 0, 1);
@@ -3271,7 +3329,7 @@ function setSunHour(h) {
 
 // ---------------------------------------------------------------- palettes
 let paletteKey = 'japandi', woodKey = PALETTES.japandi.wood, beddingKey = PALETTES.japandi.bedding;
-let bedWallKey = 'drawn', wfrontKey = 'open';
+let bedWallKey = 'drawn', wfrontKey = 'open', pdoorKey = 'light';
 let floorKey = 'planks', floorWood = PALETTES.japandi.floorWood, floorColor = null;
 let paintKey = PALETTES.japandi.paint, paintColor = PAINTS[paintKey].color;      // (paintKey null: a colour from the picker)
 const WHITE = new THREE.Color(0xffffff);
@@ -3391,6 +3449,17 @@ function setWFront(k, refresh = true) {
   renderLegend();
   dirty = true;
 }
+// the pocket door's finish (PDOORS)
+function setPDoor(k, refresh = true) {
+  pdoorKey = k;
+  for (const [key, g] of Object.entries(PD)) g.visible = key === k;
+  document.querySelectorAll('#pdoors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  if (!refresh) return;
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
 // frees the GPU copies of the photos not on show (they upload again when needed)
 function dropPhotos() {
   const keep = new Set([STONES.carrara.photo[0], WOODS[woodKey].photo[0]]);
@@ -3411,14 +3480,14 @@ function renderLegend() {
     ['Bed wall', bedWall, bedWallKey === 'uph' ? p.uph : p.accent],
     ['Bed', 'the model\'s: a ' + wn + ' frame, 206 × 186 cm, floating on a dark grey plinth set back, an LED line under it; the 180 × 200 mattress in ' + bed.desc + ', two square pillows and two to sleep on, a cushion, ' + bed.throwLabel + ' across the foot', bed.duvet],
     ['Nightstands', 'floating ' + wn + ' boxes either side, their edges rounded, a drawer in each (a click opens it), an LED line under; black reading lights on the wall over them', wood.swatch],
-    ['Dressing', 'as in the model, by the corridor door: a floating ' + wn + ' top before a tall organic mirror; a ' + wn + ' column with a lit niche of Carrara shelves, a tall cabinet in the corner; the Firkant pouf (Icons of Denmark), a Gessi diffuser', '#e3e1dd'],
+    ['Dressing', 'as in the model, by the corridor door: a floating ' + wn + ' top before a tall organic mirror; a ' + wn + ' column of open shelves (a lit niche of Carrara shelves over the top, a Carrara shelf under it), a tall cabinet in the corner, its door opening (a click), shelves of towels and boxes in it; the Firkant pouf (Icons of Denmark), a Gessi diffuser', '#e3e1dd'],
     ['Chest', 'a chest of drawers in the corner by the wardrobe\'s opening, against the corridor wall: ' + wn + ', 90 × 42 cm, 76 cm high, its edges rounded, on a dark grey plinth set back; three drawers with fluted fronts (round reeds floor to top) and round knobs in ' + metal.label + ' (a click opens one); on it a framed print leaning on the wall (50 × 70 cm, layered hills under a low sun on a white mat, a slim black frame), a dark vase of bare branches, books', wood.swatch],
     ['TV', 'a 55-inch TV on the south wall, facing the bed', '#1b1b1c'],
     ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall with a pocket door: ' + wn + ' runs ' + fronts + ' along the corridor wall (60 cm deep: hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + ') and the east wall either side of the bathroom door (50 cm: drawers, hanging); rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
     ['Floor', floor + ', on into the wardrobe; wool rugs under the bed and along the wardrobe', floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, lit by an LED line in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
-    ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom; into the wardrobe a pocket door, sliding into the bed wall towards the corridor (frameless, the reveals plastered; flush pulls in black, an edge pull to draw it out; a click slides it)', M.lacquer.color.getStyle()],
+    ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom; into the wardrobe a pocket door, sliding into the bed wall towards the corridor (no casing, the reveals plastered): ' + PDOORS[pdoorKey].legend + ' (a click slides it)', M.lacquer.color.getStyle()],
     ['Hallway', 'outside the bedroom\'s door, as in the Kitchen & living page: from the lobby north to a fixed window floor to ceiling, three ' + wn + ' panels on the bedroom\'s wall, the powder room\'s flush door, three small downlights; off it the stairs down to the lower floor round the powder room in three arms, clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side, LED step lights, a glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
     ['Light', 'round downlights (three in the bedroom, two in the wardrobe), the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, under the bed and the nightstands, in the wardrobe', '#ffe2c2'],
   ];
@@ -3707,6 +3776,7 @@ function buildUI() {
   seg($('bedwalls'), BEDWALLS, (k) => withBusy(async () => { setBedWall(k); captureEnv(); }), bedWallKey);
   seg($('beddings'), Object.fromEntries(Object.entries(BEDDINGS).map(([k, b]) => [k, { label: `<i class="dot" style="background:${b.duvet}"></i>${b.label}` }])), (k) => applyBedding(k), beddingKey);
   seg($('wfronts'), WFRONTS, (k) => withBusy(async () => { setWFront(k); captureEnv(); }), wfrontKey);
+  seg($('pdoors'), PDOORS, (k) => withBusy(async () => { setPDoor(k); captureEnv(); }), pdoorKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
   seg($('curtains'), CURTAINS, (k) => setCurtainKind(k), curtainKey);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
@@ -3769,6 +3839,7 @@ function buildUI() {
     if (k === 'g') { setLeaf('corridor'); return; }
     if (k === 'n') { setLeaf('ensuite'); return; }
     if (k === 'l') { setLeaf('pocket'); return; }
+    if (k === 'j') { const n = next(Object.keys(PDOORS), pdoorKey); withBusy(async () => { setPDoor(n); captureEnv(); }); return; }
     if (k === 'c') { setCurtains(!CURT.closed); return; }
     if (k === 'k') { pickNext('curtains', Object.keys(CURTAINS), curtainKey, setCurtainKind); return; }
     if (k === 'e') { setDeviceColor(devColor === 'black' ? 'white' : 'black'); return; }
@@ -3801,6 +3872,7 @@ function buildUI() {
       if (i !== undefined) return () => toggleDrawer(i);
       if (d === 'terrace') return () => setDoor(!TDOOR.open);
       if (d === 'corridor' || d === 'ensuite' || d === 'pocket') return () => setLeaf(d);
+      if (d === 'dress') return () => { DCAB.open = !DCAB.open; dirty = true; };
       if (d !== undefined) return () => toggleWDoor(+d.slice(1));
     }
     return undefined;
@@ -3980,6 +4052,7 @@ try {
   setStatus('Laying out the wood and the linen…');
   setBedWall(bedWallKey, false);
   setWFront(wfrontKey, false);
+  setPDoor(pdoorKey, false);
   setCurtainKind(curtainKey, false);
   await applyPalette(paletteKey);
   setStatus('Lighting the room…');
@@ -3992,7 +4065,7 @@ try {
   goTo(VIEWS[0], true);
   renderFrame();
   window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, BEDDINGS, BEDWALLS, WFRONTS, CURTAINS, FLOORS, BW, WF,
-    applyBedding, setBedWall, setWFront, setCurtainKind, setFloor, setDoor, setLeaf, setCurtains, toggleDrawer, DRAWERS, toggleWDoor, WDOORS, DOORS, TDOOR, LEAF, CURT, OUT,
+    applyBedding, setBedWall, setWFront, setCurtainKind, setFloor, setDoor, setLeaf, setCurtains, toggleDrawer, DRAWERS, toggleWDoor, WDOORS, DOORS, TDOOR, LEAF, DCAB, setPDoor, CURT, OUT,
     DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, texCache, bakeSet, captureImage, saveImage,
     goTo, pickView, setMood, setSunHour, BASE, MOODS, applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT,
     reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
