@@ -254,7 +254,7 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs:
 // the pantry: its walls (14 cm: the kitchen's at x1..KX0, the living room's at YK..y0), the doorway from the kitchen (oak-
 // lined, up to the lowered ceiling), oak shelves 15 cm deep along its south wall (to sx1, at shelves), a tall freezer at
 // the facade (tall: its sides, its front's face; 60 cm, as in the house model, but ending at the wall's line by the
-// sliding door's gap: its door hinged on that side, opening by open rad), a counter in the wood from it to the south
+// sliding door's gap; its door hinged on the counter's side, opening by open rad), a counter in the wood from it to the south
 // wall (its underside and top: counter), the shelves over it turning along the facade (an L: that leg deep); a downlight in its ceiling over the shelves (lamp), its light kept to the
 // pantry (gate: on its distance, see outdoorLights)
 const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.365, tall: [43.81, 44.41, 16.1],
@@ -3462,10 +3462,10 @@ function buildSwings() {
     }
   }
   // the pantry freezer's: its front in the wood (as the units' ends), the freezer's own door on its back (white, a seal
-  // round its edge), hinged by the doorway
+  // round its edge), hinged on the counter's side
   {
     const { x1, tall, open } = PANTRY, a = tall[0], fy = tall[2], ff = fy + 0.02, d1 = ff + 0.048;
-    const sw = swing('freezer', [x1 - g, fy, 0], (o, e) => { o.rotation.z = open * e; }, { dur: 0.8 });
+    const sw = swing('freezer', [a + g, fy, 0], (o, e) => { o.rotation.z = -open * e; }, { dur: 0.8 });
     add(M.cabEnd, box(a + g, x1 - g, fy, ff, RUN.plinth + g, H1 - g));
     const p = a + 0.035, q = x1 - 0.035, u = RUN.plinth + 0.04, v = H1 - 0.04, r = 0.016;
     add(M.pantryWhite, box(p, q, ff, d1, u, v, { faces: 'xXzZY' }));
