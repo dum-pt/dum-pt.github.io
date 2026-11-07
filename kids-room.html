@@ -98,6 +98,7 @@
   #accents button { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
   #accents button.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
   #accent-name { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+  #sills { display: grid; grid-template-columns: repeat(2, 1fr); }
   #curtains { display: grid; grid-template-columns: repeat(2, 1fr); }
 </style>
 <script type="importmap">
@@ -116,7 +117,7 @@
 </div>
 
 <div id="side" class="panel">
-  <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the bed, the nightstand, the shelves over the desk and the window sill (O)"></div></div>
+  <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the bed, the nightstand, the shelves over the desk and a raised sill (O)"></div></div>
   <div class="group"><h2>Bed wall</h2><div class="seg" id="features" title="The walls round the bed, from the south window to the door: plain, painted to 1.2 m in a second colour, or a mountain range painted in three tones of it (B)"></div>
     <div id="accents" title="The bed wall's colour"></div><div id="accent-name"></div></div>
   <div class="group"><h2>Bedding</h2><div class="seg" id="beddings" title="Stonewashed linen on the bed, with a throw across its foot and a cushion to go with it (U)"></div></div>
@@ -125,6 +126,7 @@
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the door; the cabinet stays white (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks or herringbone (F)"></div>
     <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain)"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
+  <div class="group"><h2>South window</h2><div class="seg" id="sills" title="The window over the desk: to the floor, as the plan draws it, or on the sill the model raises to 82 cm (S)"></div></div>
   <div class="group"><h2>Curtains</h2><div class="seg" id="curtains" title="The curtain on the east window: sheer linen or a heavier dim-out linen that keeps most of the light out (K)"></div></div>
   <div class="group"><h2>Blinds</h2>
     <div class="winrow" title="Exterior venetian blinds on both windows: retracted (left) to let down (right); L lets them down or retracts them"><span>Blinds</span><input type="range" id="blind" min="0" max="1" step="0.01" value="0" aria-label="Blinds"></div>
@@ -186,16 +188,17 @@ const pause = () => new Promise((r) => setTimeout(r, 16));
 const SU = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
 
 // ---------------------------------------------------------------- room, measured from the house model
-// Room 0.06 ('POKOJ', 13.25 m2 in D.2 PŮDORYS 1.PP) on the lower floor, a boy's room, in the coordinates of the house model
+// Room 0.06 ('POKOJ', 13.25 m2 in D.2 PŮDORYS 1.PP) on the lower floor, a boy's room, under a plasterboard ceiling lowered
+// to 2.55 m (the slab at 2.75 m), in the coordinates of the house model
 // ('Projekt Rozp model.skp'); its floor is at 0, +x runs north, +y west. The room is 3.75 x 3.30 m (X0..X1, Y0..Y1); the
 // partition to room 0.07 steps north by 60 cm (at YJ), which makes the niche in its north-east corner (X1..XN, Y0..YJ).
 // East: a window floor to ceiling, a turn sash and a fixed pane, under the upper floor's overhang. South: a narrow fixed
-// window over the desk, its sill raised to 82 cm in the model (the plan draws it to the floor), looking out under the
-// terrace. West: the wall to the lower hallway, the door at its north end. Bed, desk and chair stand where the model has
+// window over the desk, to the floor as the plan draws it or on the sill the model raises to 82 cm (SILLS), looking out
+// under the terrace. West: the wall to the lower hallway, the door at its north end. Bed, desk and chair stand where the model has
 // them; the nightstand fills the gap between the desk and the bed.
 const X0 = 43.215, X1 = 46.965, XN = 47.565;     // the south wall's face, the partition's, the niche's back
 const Y0 = 10.105, Y1 = 13.405, YJ = 11.635;     // the east wall's inner face, the hallway wall's, the niche's west side
-const H = 2.75, WT = 2.95;                       // the ceiling; the slab's top (section height)
+const H = 2.55, HS = 2.75, WT = 2.95;           // the lowered ceiling; the slab's underside (the curtain's recess); its top
 const YO = 9.625, XO = 42.73;                    // the east and the south facade's outer faces
 const SO = 2.55;                                 // the soffit outside, under the upper floor and the terrace
 const BACK_X = X0;                               // (no backlit mirror here: the shared glow stays off)
@@ -203,9 +206,13 @@ const BACK_X = X0;                               // (no backlit mirror here: the
 // sash at its south end (sash, stiles s wide; hinged at its south stile, opening into the room, open: rad), the mullion,
 // a fixed pane; the glass at glass; sill, head, the frame's top
 const EW = { x0: 44.585, x1: 46.335, fy0: 9.805, fy1: 9.955, f: 0.08, sash: [44.665, 45.288], s: 0.03, sy0: 9.85, sy1: 9.965, mull: [45.288, 45.375], glass: 9.895, sill: 0.08, head: 2.52, top: 2.6, open: 1.4 };
-// the south window (the model's, its lower part walled up to z0 there): a fixed pane in an anthracite frame (x0..x1,
-// y0..y1), the glass at glass (g0..g1), from z0 (rail: the bottom bar) to head, the frame's top
-const SW = { x0: 42.915, x1: 43.065, glass: 42.99, y0: 10.731, y1: 11.605, g0: 10.813, g1: 11.529, z0: 0.822, rail: 0.08, head: 2.47, top: 2.55 };
+// the south window (the model's): a fixed pane in an anthracite frame (x0..x1, y0..y1), the glass at glass (g0..g1), from
+// the frame's foot (z0, the sill shown: SILLS; rail: the bottom bar) to head, the frame's top
+const SW = { x0: 42.915, x1: 43.065, glass: 42.99, y0: 10.731, y1: 11.605, g0: 10.813, g1: 11.529, z0: 0, rail: 0.08, head: 2.47, top: 2.55 };
+// its two heights (S): to the floor, as the plan draws it, or on the sill the model raises to 82 cm, the wall under it
+// walled up, a sill board of the wood on it. Both are built, each with what only it has (SILL.parts); setSill shows one
+const SILLS = { floor: { label: 'To the floor', z0: 0 }, raised: { label: 'Raised sill', z0: 0.822 } };
+const SILL = { key: 'floor', parts: { floor: [], raised: [] } };
 // the door from the hallway (x0..x1 in its wall, to head): a flush leaf t thick, flush with the hallway's face as in the
 // Stairs & lower hallway page (y0..y1), hinged at its north jamb as the plan has it, opening into the room against the
 // partition (open: rad)
@@ -228,7 +235,7 @@ const DESK = { x0: 43.22, x1: 44.02, y0: Y0, y1: 11.705, z0: 0.755, z1: 0.775, r
 // and 58 cm deep there): 2 cm doors flush with the partition's face, the carcass behind them from xc to the niche's back;
 // a plinth set back 1 cm, three doors to z1 (w wide, at y), three more over them to the ceiling, 3 mm gaps; t: the boards.
 // Behind the first two doors a rail over two drawers, behind the third shelves
-const CAB = { xc: 46.985, plinth: 0.08, z1: 2.36, gap: 0.003, t: 0.018 };
+const CAB = { xc: 46.985, plinth: 0.08, z1: 2.1, gap: 0.003, t: 0.018 };
 CAB.w = (YJ - Y0 - 4 * CAB.gap) / 3;
 CAB.y = [0, 1, 2].map((i) => Y0 + CAB.gap + i * (CAB.w + CAB.gap));
 CAB.split = CAB.y[2] - CAB.gap / 2;
@@ -238,24 +245,32 @@ CAB.split = CAB.y[2] - CAB.gap / 2;
 const SHELF = { x0: 43.235, x1: 44.02, y1: 10.305, zs: [1.22, 1.56, 1.9], t: 0.025 };
 const CORK = { y0: 10.33, y1: 10.7, z0: 1.05, z1: 2.0 };
 const PRINT = { y0: 11.82, y1: 12.42, z0: 1.05, z1: 1.95 };
-// the round wool rug (x, y, r), the paper globe pendant over it (x, y, its middle at z, radius r), the basket by the
-// partition (x, y, r, h)
+// the round wool rug (x, y, r), the basket by the partition (x, y, r, h)
 const RUG = { x: 45.8, y: 11.8, r: 0.85 };
-const GLOBE = { x: 45.8, y: 11.8, z: 2.33, r: 0.2 };
 const BASKET = { x: 46.68, y: 12.02, r: 0.2, h: 0.36 };
+// the room's light: a black magnetic track, 2 m, flush in the ceiling down the room's middle (x0..x1 at y, w wide); on it
+// four spots, black cylinders (r round, len long) hung from a stem at drop under the ceiling, each turned to its at (the
+// desk, the bed, the rug, the cabinet) with its beam's half angle a; between them an opal line (line: x0..x1, h deep)
+const TRACK = { x0: 44.09, x1: 46.09, y: 11.755, w: 0.025, r: 0.028, len: 0.11, drop: 0.05, line: [44.8, 45.4], h: 0.035, spots: [
+  { x: 44.2, at: [43.62, 10.85, 0.775], a: 22 },
+  { x: 44.5, at: [44.45, 12.8, 0.55], a: 24 },
+  { x: 45.65, at: [45.75, 11.8, 0], a: 26 },
+  { x: 45.95, at: [46.95, 10.9, 1.15], a: 22 },
+] };
 // the reading light on the south wall over the nightstand (at y, z: a round black plate, a short arm out, the head angled
 // at the pillow, at); the desk lamp (base, elbow, head; aimed at at)
 const READ = { y: 11.86, z: 1.08, out: 0.2, at: [43.62, 12.5, 0.6] };
 const DLAMP = { base: [43.36, 10.32], elbow: [43.33, 10.3, 1.08], head: [43.53, 10.53, 1.16], at: [43.6, 10.72, 0.775] };
-// the curtain on the east window: wave folds on a slim black track on the ceiling, gathered at the south end (a, clear of
-// the desk) and drawn to b; top: the cloth's top; wave folds every 14 cm closed, 1.8 times fullness; gathered, 2.8 cm a fold
-const CURTAIN = { top: 2.71, wave: 0.14, full: 1.8, fold: 0.028, runs: [{ a: [44.12, 10.2], b: [46.42, 10.2] }] };
+// the curtain on the east window: wave folds on a slim black track in a recess along the east wall, out to recess, up to
+// the slab (HS), the lowered ceiling stopping short of it; gathered at the south end (a, clear of the desk) and drawn to b;
+// top: the cloth's top; wave folds every 14 cm closed, 1.8 times fullness; gathered, 2.8 cm a fold
+const CURTAIN = { top: 2.71, recess: 10.305, wave: 0.14, full: 1.8, fold: 0.028, runs: [{ a: [44.12, 10.2], b: [46.42, 10.2] }] };
 // exterior venetian blinds in both windows' outer reveals, as in the bathrooms (the plan's ŽALUZIOVÝ BOX), each in a frame
 // of its own turned by rot, its +y pointing out of the facade: x along the window (x0..x1), the slats' centre line at y,
 // from head down to sill
 const BLIND_UNITS = [
   { x0: -EW.x1, x1: -EW.x0, y: -9.715, head: SO, sill: 0.01, rot: Math.PI },
-  { x0: SW.y0, x1: SW.y1, y: -42.82, head: SO, sill: SW.z0, rot: Math.PI / 2 },
+  { x0: SW.y0, x1: SW.y1, y: -42.82, head: SO, sill: Math.max(SW.z0, 0.01), rot: Math.PI / 2 },
 ];
 // the two sides of the wall between the room and the hallway (y: its middle). The lamps that cast no shadows would shine
 // through it: each lights only its own side (patchShader; the side rides on SpotLight.distance, room or hall, far beyond
@@ -430,7 +445,7 @@ const outdoorLights = THREE.ShaderChunk.lights_fragment_begin
       if ( UNROLLED_LOOP_INDEX == 1 ) directLight.color = vec3( 0.0 );
     #endif`)
   .replace('getPointLightInfo( pointLight, geometryPosition, directLight );', `getPointLightInfo( pointLight, geometryPosition, directLight );
-    directLight.color *= step( - ${SIDE.y.toFixed(3)}, vWPos.z );      // (the pendant is the room's: not through the wall to the hallway)
+    directLight.color *= step( - ${SIDE.y.toFixed(3)}, vWPos.z );      // (a point light would be the room's: not through the wall to the hallway)
     #ifdef OUTDOOR
       directLight.color = vec3( 0.0 );
     #endif`)
@@ -1042,7 +1057,6 @@ const M = {
   cork: physical({ color: 0xffffff, roughness: 0.95 }),
   globeMap: physical({ color: 0xffffff, roughness: 0.35, clearcoat: 0.5, clearcoatRoughness: 0.2 }),
   paper: physical({ color: 0xf1ede2, roughness: 0.85 }),
-  shade: physical({ color: 0xf3efe6, roughness: 0.9 }),                // the paper pendant (lit: applyMood)
   basket: physical({ color: 0xb79a72, roughness: 0.9 }),
   ball: physical({ color: 0xa8552e, roughness: 0.55, clearcoat: 0.2 }),
   toyRed: physical({ color: 0xb04a35, roughness: 0.4, clearcoat: 0.4, clearcoatRoughness: 0.3 }),
@@ -1072,6 +1086,8 @@ const E = {
   glow: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the LED lines: under the bed and the nightstand,
   shelf: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // under the lowest shelf
   cor: new THREE.MeshBasicMaterial({ color: 0xffffff }),      // the hallway's downlights' lenses
+  track: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the track's spots' lenses
+  line: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // its opal line
 };
 // outside (lit as OUTDOOR: the sun and the sky's glow, setSun): white render, anthracite metal, the soffit's boards, the
 // paving, the lawn, the hedge
@@ -1269,21 +1285,6 @@ M.globeMap.map = pictureTex(512, 256, (g, w, h) => {
   }
   g.putImageData(im, 0, 0);
 });
-// the paper pendant: its wire ribs round it, darker against the light; lit, it glows most round its middle
-{
-  const paper = (rib, draw) => pictureTex(8, 1024, (g, w, h) => {
-    draw(g, w, h);
-    g.fillStyle = `rgba(70,58,44,${rib})`;
-    for (let k = 0; k <= 22; k++) g.fillRect(0, k / 22 * h - 1.5, w, 3);
-  });
-  M.shade.map = paper(0.1, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); });
-  M.shade.emissiveMap = paper(0.3, (g, w, h) => {
-    const l = g.createLinearGradient(0, 0, 0, h);
-    l.addColorStop(0, '#8f8f8f'); l.addColorStop(0.5, '#fff'); l.addColorStop(1, '#a8a8a8');
-    g.fillStyle = l;
-    g.fillRect(0, 0, w, h);
-  });
-}
 const NO_AO = new Set([M.windowGlass, M.clearGlass, M.feature]);
 
 function applyStone(mat, set, def) {
@@ -1536,10 +1537,9 @@ function wall(x0, x1, y0, y1, z0, z1, faces, mat = M.plaster) {
   if (z1 >= WT) add(M.poche, box(x0, x1, y0, y1, z0, z1, { faces: 'Z' }), { shadow: false });
 }
 function buildArchitecture() {
-  // the south wall, round its window: the piers, the wall under the raised sill, the lintel
+  // the south wall, round its window: the piers, the lintel (the wall under a raised sill: buildSills)
   wall(XO, X0, Y0, SW.y0, 0, WT, 'XY');
   wall(XO, X0, SW.y1, DOOR.y1, 0, WT, 'Xy');
-  wall(XO, X0, SW.y0, SW.y1, 0, SW.z0, 'XZ');
   wall(XO, X0, SW.y0, SW.y1, SW.top, WT, 'Xz');
   // the east wall, round its window; on past the niche
   wall(XO, EW.x0, YO, Y0, 0, WT, 'YX');
@@ -1553,10 +1553,10 @@ function buildArchitecture() {
   wall(X0, DOOR.x0, Y1, DOOR.y1, 0, WT, 'yXY');
   wall(DOOR.x1, X1, Y1, DOOR.y1, 0, WT, 'yxY');
   wall(DOOR.x0, DOOR.x1, Y1, DOOR.y1, DOOR.head, WT, 'yzY');
-  // the floor: one plane (the planar reflector) through the room, the niche under the cabinet, the east window's reveal and
-  // the doorway
+  // the floor: one plane (the planar reflector) through the room, the niche under the cabinet, the windows' reveals (under
+  // a raised sill, in the wall) and the doorway
   const fl = mergeGeometries([
-    [X0, X1, Y0, Y1], [X1, XN, Y0, YJ], [EW.x0, EW.x1, EW.fy1, Y0], [DOOR.x0, DOOR.x1, Y1, DOOR.y0],
+    [X0, X1, Y0, Y1], [X1, XN, Y0, YJ], [EW.x0, EW.x1, EW.fy1, Y0], [SW.x1, X0, SW.y0, SW.y1], [DOOR.x0, DOOR.x1, Y1, DOOR.y0],
   ].map(([a, b, c, d]) => box(a, b, c, d, -0.05, 0, { faces: 'Z' })));
   floorMesh = new THREE.Mesh(fl, M.floor);
   floorMesh.receiveShadow = true;
@@ -1586,15 +1586,27 @@ function buildGlazing() {
     add(F, box(m0, m1, fy0, fy1, sill, head, { faces: 'xXyY' }));
     add(M.windowGlass, box(m1, x1 - f, glass - 0.012, glass + 0.012, sill, head, { faces: 'yY' }));
   }
-  // the south window: its frame, the fixed pane; a sill board in the wood on the wall under it, out to the room's face
-  {
-    const { x0, x1, y0, y1, g0, g1, z0, rail, head, top, glass } = SW;
+  // the south window's frame head (the rest: buildSills)
+  add(F, box(SW.x0, SW.x1, SW.g0, SW.g1, SW.head, SW.top, { faces: 'xXz' }));
+}
+// the south window at each of its heights (SILLS), in a group of its own (SILL.parts; setSill): the frame's sides and bottom
+// bar and the fixed pane from its foot; on the raised sill the wall under it and a sill board of the wood on that, out to the
+// room's face. (Built while nothing else waits to be flushed.)
+function buildSills() {
+  const { x0, x1, y0, y1, g0, g1, rail, head, top, glass } = SW, F = M.frame;
+  for (const [k, { z0 }] of Object.entries(SILLS)) {
     add(F, box(x0, x1, y0, g0, z0, top, { faces: 'xXY' }));
     add(F, box(x0, x1, g1, y1, z0, top, { faces: 'xXy' }));
-    add(F, box(x0, x1, g0, g1, head, top, { faces: 'xXz' }));
     add(F, box(x0, x1, g0, g1, z0, z0 + rail, { faces: 'xXZ' }));
     add(M.windowGlass, box(glass - 0.012, glass + 0.012, g0, g1, z0 + rail, head, { faces: 'xX' }));
-    add(M.veneer, box(x1, X0 + 0.005, y0, y1, z0, z0 + 0.018, { faces: 'XZ' }));
+    if (z0 > 0) {
+      wall(XO, X0, y0, y1, 0, z0, 'XZ');
+      add(M.veneer, box(x1, X0 + 0.005, y0, y1, z0, z0 + 0.018, { faces: 'XZ' }));
+    }
+    const G = new THREE.Group();
+    groups.room.add(G);
+    flush(G);
+    SILL.parts[k].push(G);
   }
 }
 
@@ -1608,14 +1620,29 @@ function buildCeiling() {
   const roof = new THREE.Mesh(mergeGeometries([
     box(40.13, 58.0, 8.325, 17.1, WT, 3.2), box(40.13, 58.0, 8.325, YO, SO + 0.01, WT), box(40.13, XO, YO, 17.1, SO + 0.01, WT),
     box(XO, EW.x0, YO, yi, -0.3, WT), box(EW.x1, XN + 0.11, YO, yi, -0.3, WT), box(EW.x0, EW.x1, YO, yi, EW.top, WT), box(EW.x0, EW.x1, YO, yi, -0.3, 0),
-    box(XO, xi, YO, SW.y0, -0.3, WT), box(XO, xi, SW.y1, DOOR.y1, -0.3, WT), box(XO, xi, SW.y0, SW.y1, -0.3, SW.z0), box(XO, xi, SW.y0, SW.y1, SW.top, WT),
+    box(XO, xi, YO, SW.y0, -0.3, WT), box(XO, xi, SW.y1, DOOR.y1, -0.3, WT), box(XO, xi, SW.y0, SW.y1, SW.top, WT),
   ]), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
   roof.castShadow = true;
   roof.userData.noAO = roof.userData.occluder = true;
   R.add(roof);
-  put(M.ceiling, box(X0, X1, Y0, Y1, H, WT, { faces: 'z' }));
-  // the curtain's track, on the ceiling
-  for (const { a, b } of CURTAIN.runs) put(M.trim, box(a[0] - 0.03, b[0] + 0.03, a[1] - 0.008, a[1] + 0.008, H - 0.014, H, { faces: 'xXyYz' }));
+  // under the south window, up to its sill (SILLS)
+  for (const [k, { z0 }] of Object.entries(SILLS)) {
+    const m = new THREE.Mesh(box(XO, xi, SW.y0, SW.y1, -0.3, z0), roof.material);
+    m.castShadow = true;
+    m.userData.noAO = m.userData.occluder = true;
+    R.add(m);
+    SILL.parts[k].push(m);
+  }
+  // the lowered ceiling; along the east wall the curtain's recess up to the slab: its top, the board's edge facing into it,
+  // its end over the cabinet; the curtain's track in it
+  {
+    const yr = CURTAIN.recess;
+    put(M.ceiling, box(X0, X1, yr, Y1, H, H + 0.01, { faces: 'z' }));
+    put(M.ceiling, box(X0, X1, Y0, yr, HS, HS + 0.01, { faces: 'z' }));
+    put(M.ceiling, box(X0, X1, yr, yr + 0.01, H, HS, { faces: 'y' }));
+    put(M.ceiling, box(X1, X1 + 0.01, Y0, yr, H, HS, { faces: 'x' }));
+  }
+  for (const { a, b } of CURTAIN.runs) put(M.trim, box(a[0] - 0.03, b[0] + 0.03, a[1] - 0.008, a[1] + 0.008, HS - 0.014, HS, { faces: 'xXyYz' }));
   // the hallway's lowered ceiling and its downlights: round, recessed, a black trim round the lens
   put(M.ceiling, box(HALL.x0, HALL.x1, HALL.y0, HALL.wood, HALL.h, HALL.h + 0.01, { faces: 'z' }));
   for (const x of HALL.lamps) {
@@ -1788,8 +1815,8 @@ function buildCabinet() {
     } });
   }
   for (let k = 0; k < 2; k++) add(M.box, projectUV(rbox(0.38, 0.4, 0.22, 0.01, [xm + 0.03, a + 0.26 + k * 0.48, zs + 0.11])));
-  add(M.metal, cyl(0.0125, b - a - 0.004, 'y', [xm, (a + b) / 2, 2.2], 20));
-  clothes(a, b, xm, 2.2, 0.44, [0.6, 0.98], 9);
+  add(M.metal, cyl(0.0125, b - a - 0.004, 'y', [xm, (a + b) / 2, 1.95], 20));
+  clothes(a, b, xm, 1.95, 0.44, [0.6, 0.98], 9);
   // the narrow bay: shelves with folded clothes, a box
   const sh = [0.48, 0.82, 1.16, 1.5, 1.84];
   for (const z of sh) shelf(c, d, z);
@@ -1904,13 +1931,29 @@ function buildProps() {
     add(M.plush, sphere(0.07, [x + 0.08, y - 0.06, h - 0.01], 24));
   }
 }
-// the paper pendant over the rug, on a black cord from a small black rose
-function buildPendant() {
-  const { x, y, z, r } = GLOBE;
-  add(M.lamp, cyl(0.035, 0.012, 'z', [x, y, H - 0.006], 28), { shadow: false });
-  add(M.lamp, cyl(0.002, H - 0.012 - (z + r), 'z', [x, y, (H - 0.012 + z + r) / 2], 8), { shadow: false });
-  add(M.lamp, cyl(0.02, 0.03, 'z', [x, y, z + r + 0.008], 20), { shadow: false });
-  add(M.shade, lathe(Array.from({ length: 133 }, (_, i) => { const a = -Math.PI / 2 + i / 132 * Math.PI; return [Math.max(0.001, r * Math.cos(a) * (1 + 0.006 * Math.cos(a * 22))), r * Math.sin(a)]; }), [x, y, z], 56), { shadow: false });
+// the track (TRACK): its profile flush in the ceiling, the slot down its middle; each spot a black cylinder turned to its
+// target on a stem from the track, a dark face, the lens in it; the opal line's black housing, its diffuser underneath.
+// (None of it casts shadows: so close to the ceiling it would only blot the other spots' light.)
+// spotAim: where each spot's light leaves from and which way it shines
+const spotAim = (p) => {
+  const pivot = V3(p.x, TRACK.y, H - TRACK.drop), d = V3(...p.at).sub(pivot).normalize();
+  return { pivot, d, lens: pivot.clone().addScaledVector(d, TRACK.len) };
+};
+function buildTrack() {
+  const { x0, x1, y, w, r, len, drop, line: [l0, l1], h } = TRACK, ns = { shadow: false };
+  add(M.lamp, box(x0, x1, y - w / 2, y + w / 2, H - 0.001, H, { faces: 'z' }), ns);
+  add(M.dark, box(x0 + 0.004, x1 - 0.004, y - 0.006, y + 0.006, H - 0.0015, H - 0.001, { faces: 'z' }), ns);
+  const face = (rad, at, d) => new THREE.CircleGeometry(rad, 32).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 0, 1), d)).translate(at.x, at.y, at.z);
+  for (const p of TRACK.spots) {
+    const { pivot, d, lens } = spotAim(p);
+    add(M.lamp, box(p.x - 0.011, p.x + 0.011, y - 0.009, y + 0.009, H - 0.012, H - 0.0015, { faces: 'xXyYz' }), ns);
+    add(M.lamp, cyl(0.004, drop - 0.012, 'z', [p.x, y, H - 0.012 - (drop - 0.012) / 2], 12), ns);
+    add(M.lamp, rod(pivot.clone().addScaledVector(d, -0.012), lens, r, 32), ns);
+    add(M.dark, face(r - 0.003, lens.clone().addScaledVector(d, 0.0006), d), ns);
+    add(E.track, face(0.015, lens.clone().addScaledVector(d, 0.0012), d), ns);
+  }
+  add(M.lamp, box(l0, l1, y - 0.011, y + 0.011, H - h, H - 0.0015, { faces: 'xXyYz' }), ns);
+  add(E.line, box(l0 + 0.008, l1 - 0.008, y - 0.008, y + 0.008, H - h - 0.0008, H - h, { faces: 'z' }), ns);
 }
 // the walls round the bed (FEATURES): one strip of paint from the south window's jamb round the corner to the door, drawn on
 // a canvas (FEAT.cv) over the plaster; UVs along the strip in metres, so the plaster's relief runs on under it
@@ -2232,19 +2275,18 @@ const BLINDS = { down: 0, target: 0, tilt: 0.3, units: [] };
 function buildBlinds() {
   // a slat: a crowned strip along x, its width across the reveal (y), turned about its length to tilt
   for (const u of BLIND_UNITS) {
-    const { x0, x1, y, head, sill, rot } = u, gw = 0.024, len = x1 - x0 - gw, G = new THREE.Group();
+    const { x0, x1, y, head, rot } = u, gw = 0.024, len = x1 - x0 - gw, G = new THREE.Group();
     G.rotation.z = rot;
     R.add(G);
     const part = (geo, shadow = true) => { const m = new THREE.Mesh(geo, M.anthOut); m.castShadow = shadow; m.receiveShadow = true; G.add(m); return m; };
-    part(box(x0, x0 + gw, y - 0.03, y + 0.03, sill, head));                         // guide rails
-    part(box(x1 - gw, x1, y - 0.03, y + 0.03, sill, head));
+    const guides = [x0, x1 - gw].map((a) => part(box(a, a + gw, y - 0.03, y + 0.03, 0, 1)));      // guide rails (updateBlinds)
     const g = new THREE.BoxGeometry(len, SLAT.w, SLAT.t, 1, 8, 1), P = g.attributes.position;
     for (let i = 0; i < P.count; i++) { const v = P.getY(i) / (SLAT.w / 2); P.setZ(i, P.getZ(i) + 0.006 * (1 - v * v)); }
     g.computeVertexNormals();
-    const n = Math.ceil((head - sill) / SLAT.pitch), slats = new THREE.InstancedMesh(g, M.anthOut, n);
+    const n = Math.ceil(head / SLAT.pitch), slats = new THREE.InstancedMesh(g, M.anthOut, n);      // (enough for any sill)
     Object.assign(slats, { castShadow: true, receiveShadow: true, frustumCulled: false });
     G.add(slats);
-    const b = { u, n, slats, cx: (x0 + x1) / 2, rail: part(box(-len / 2, len / 2, -0.036, 0.036, -0.0125, 0.0125)), cords: [], cordX: [] };
+    const b = { u, n, slats, guides, cx: (x0 + x1) / 2, rail: part(box(-len / 2, len / 2, -0.036, 0.036, -0.0125, 0.0125)), cords: [], cordX: [] };
     for (const f of [0.12, 0.5, 0.88]) {
       b.cordX.push(x0 + gw / 2 + len * f);
       b.cords.push(part(cyl(0.0015, 1, 'z', [0, 0, 0.5], 6), false));
@@ -2258,6 +2300,7 @@ function updateBlinds() {
   const m = new THREE.Matrix4(), p = new THREE.Vector3(), sc = new THREE.Vector3();
   for (const b of BLINDS.units) {
     const { y, head, sill } = b.u, drop = BLINDS.down * (head - sill), bottom = head - drop, shown = drop > 0.02;
+    for (const g of b.guides) { g.position.z = sill; g.scale.z = head - sill; }
     for (let i = 0; i < b.n; i++) {
       const z = bottom + 0.035 + i * SLAT.pitch;
       sc.setScalar(shown && z < head - 0.012 ? 1 : 0);
@@ -2343,10 +2386,11 @@ function buildSurroundings(viewTex) {
   o(M.render, box(EW.x0 - 0.001, EW.x0, YO, EW.fy0, 0, SO, { faces: 'X' }));
   o(M.render, box(EW.x1, EW.x1 + 0.001, YO, EW.fy0, 0, SO, { faces: 'x' }));
   o(M.render, box(EW.x0, EW.x1, YO, EW.fy0, SO, SO + 0.001, { faces: 'z' }));
-  o(M.render, box(XO, SW.x0, SW.y0 - 0.001, SW.y0, SW.z0, SO, { faces: 'Y' }));
-  o(M.render, box(XO, SW.x0, SW.y1, SW.y1 + 0.001, SW.z0, SO, { faces: 'y' }));
   o(M.render, box(XO, SW.x0, SW.y0, SW.y1, SO, SO + 0.001, { faces: 'z' }));
-  o(M.anthOut, box(XO, SW.x0, SW.y0, SW.y1, SW.z0 - 0.01, SW.z0, { faces: 'Z' }), false);
+  for (const [k, { z0 }] of Object.entries(SILLS)) SILL.parts[k].push(
+    o(M.render, box(XO, SW.x0, SW.y0 - 0.001, SW.y0, z0, SO, { faces: 'Y' })),
+    o(M.render, box(XO, SW.x0, SW.y1, SW.y1 + 0.001, z0, SO, { faces: 'y' })),
+    o(M.anthOut, box(XO, SW.x0, SW.y0, SW.y1, z0 - 0.01, z0, { faces: 'Z' }), false));
   o(M.soffit, box(40.16, 57.385, 8.355, YO, SO, SO + 0.02, { faces: 'z' }), true, RF);
   o(M.soffit, box(40.16, XO, YO, 17.03, SO, SO + 0.02, { faces: 'z' }), true, RF);
   o(M.anthOut, box(40.13, 57.385, 8.325, 8.355, SO - 0.002, 3.2, { faces: 'yzX' }), true, RF);
@@ -2414,7 +2458,7 @@ async function loadView() {
 }
 
 // ---------------------------------------------------------------- lights
-// Five area lights in all: the sky's two, the LED lines' three
+// Six area lights in all: the sky's two, the LED lines' three, the track's opal line
 const L = { read: [], area: [], sky: [], cor: [] };
 function buildLights() {
   const spot = (p, t, angle, pen, shadow, list, side = SIDE.room) => {
@@ -2433,17 +2477,11 @@ function buildLights() {
     if (list) list.push(s);
     return s;
   };
-  // the paper pendant: a soft point of light with shadows, the room's main light
-  L.globe = new THREE.PointLight(0xffffff, 0, 0, 2);
-  L.globe.position.copy(SU(GLOBE.x, GLOBE.y, GLOBE.z));
-  L.globe.castShadow = true;
-  L.globe.shadow.mapSize.set(1024, 1024);
-  L.globe.shadow.bias = -0.002;
-  L.globe.shadow.normalBias = 0.02;
-  L.globe.shadow.camera.near = 0.1;
-  L.globe.shadow.camera.far = 8;
-  L.globe.shadow.radius = 6;
-  scene.add(L.globe);
+  // the track's spots, the room's main light, with shadows (the line: an area light, below)
+  for (const p of TRACK.spots) {
+    const { d, lens } = spotAim(p);
+    L.read.push([spot(lens.clone().addScaledVector(d, 0.004), V3(...p.at), p.a, 0.55, true), 'track']);
+  }
   // the reading light, the desk lamp
   {
     const { head, at } = READ_HEAD, dir = at.clone().sub(head).normalize();
@@ -2469,6 +2507,9 @@ function buildLights() {
     area('glow', 1, B.x1 - B.x0 - 0.12, B.y1 - B.y0 - 0.12, SU((B.x0 + B.x1) / 2, (B.y0 + B.y1) / 2, B.z0 - 0.015));
     area('glow', 1, N.x1 - N.x0 - 0.06, N.y1 - N.y0 - 0.06, SU((N.x0 + N.x1) / 2, (N.y0 + N.y1) / 2, N.z0 - 0.01));
     area('shelf', 1, S.x1 - S.x0 - 0.05, 0.02, SU((S.x0 + S.x1) / 2, S.y1 - 0.03, S.zs[0] - S.t - 0.03));
+    // the track's opal line, facing down
+    const { line: [l0, l1], y, h } = TRACK;
+    area('line', 1, l1 - l0 - 0.016, 0.016, SU((l0 + l1) / 2, y, H - h - 0.003));
   }
   // daylight: the sun, with shadows over the room; the sky's light coming in through each window as a soft area light facing
   // in (the east window's behind the curtain; setSun, applySky)
@@ -2485,10 +2526,31 @@ function buildLights() {
     const x = (EW.x0 + EW.x1) / 2, z = (EW.sill + EW.head) / 2;
     skyArea(1, true, EW.x1 - EW.x0 - 2 * EW.f, EW.head - EW.sill, SU(x, Y0 + 0.03, z), SU(x, 13, z));
   }
-  {
-    const y = (SW.g0 + SW.g1) / 2, z = (SW.z0 + SW.rail + SW.head) / 2;
-    skyArea(0.7, false, SW.g1 - SW.g0, SW.head - SW.z0 - SW.rail, SU(SW.x1 + 0.03, y, z), SU(46, y, z));
-  }
+  skyArea(0.7, false, SW.g1 - SW.g0, 1, SU(SW.x1 + 0.03, 11, 1));
+  L.south = L.sky.at(-1)[0];
+  placeSouthSky();
+}
+// the south window's sky light over its pane, from the sill shown (SILLS)
+function placeSouthSky() {
+  const a = L.south, y = (SW.g0 + SW.g1) / 2, z = (SW.z0 + SW.rail + SW.head) / 2;
+  a.height = SW.head - SW.z0 - SW.rail;
+  a.position.copy(SU(SW.x1 + 0.03, y, z));
+  a.lookAt(SU(46, y, z));
+}
+// the south window's height (SILLS): what only the other one has hidden, the blind let down to this sill, the sky light
+// fitted to the pane, the sun's shadows and the reflections again
+function setSill(k, refresh = true) {
+  SILL.key = k;
+  SW.z0 = SILLS[k].z0;
+  for (const [j, parts] of Object.entries(SILL.parts)) for (const o of parts) o.visible = j === k;
+  BLIND_UNITS[1].sill = Math.max(SW.z0, 0.01);
+  document.querySelectorAll('#sills button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  placeSouthSky();
+  updateBlinds();
+  if (!refresh) return;
+  envSoon();
+  renderLegend();
+  dirty = true;
 }
 
 // ---------------------------------------------------------------- the switches and the sockets
@@ -2504,7 +2566,7 @@ const WALLS = {
 };
 // what the rockers work: lamp channels (applyMood), or an action (the blinds)
 const CIRCUITS = {
-  globe: { label: 'Paper pendant', ch: ['globe'] },
+  track: { label: 'Track lights', ch: ['track', 'line'] },
   glow: { label: 'LED under the bed and the nightstand', ch: ['glow'] },
   read: { label: 'Reading light', ch: ['read'] },
   shelf: { label: 'LED under the shelf', ch: ['shelf'] },
@@ -2515,15 +2577,15 @@ const CIRCUIT_OF = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
 // kinds: sw (gangs: [circuit] a whole rocker, [left, right] split), sock (n in a row), data
 const DEVICES = [
-  { id: 'S1', w: 'D', X: 45.83, h: 1100, kind: 'sw', gangs: [['globe', 'glow'], ['blinds']] },
+  { id: 'S1', w: 'D', X: 45.83, h: 1100, kind: 'sw', gangs: [['track', 'glow'], ['blinds']] },
   { id: 'Z1', w: 'D', X: 45.83, h: 300, kind: 'sock', info: 'by the door' },
-  { id: 'S2', w: 'S', X: 11.75, h: 700, kind: 'sw', gangs: [['read', 'globe']] },
+  { id: 'S2', w: 'S', X: 11.75, h: 700, kind: 'sw', gangs: [['read', 'track']] },
   { id: 'Z2', w: 'S', X: 11.84, h: 700, kind: 'sock', info: 'by the bed' },
   { id: 'S3', w: 'S', X: 10.24, h: 880, kind: 'sw', gangs: [['desk', 'shelf']] },
   { id: 'Z3', w: 'S', X: 10.4, h: 880, kind: 'sock', n: 2, info: 'over the desk' },
   { id: 'D1', w: 'S', X: 10.56, h: 880, kind: 'data', info: 'over the desk' },
   { id: 'Z4', w: 'E', X: 46.65, h: 300, kind: 'sock', info: 'between the window and the cabinet' },
-  { id: 'Z5', w: 'P', X: 12.75, h: 300, kind: 'sock', info: 'on the partition, behind the door when it is open' },
+  { id: 'Z5', w: 'E', X: 43.965, h: 300, kind: 'sock', info: 'between the windows, under the end of the desk' },
 ];
 const KIND_NAME = { sock: 'socket 230 V', data: 'data, 2 x RJ45' };
 const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42 }, white: { label: 'White', color: 0xf0efeb, rough: 0.32 } };
@@ -2535,7 +2597,7 @@ M.devPin = physical({ color: 0xd2d2d2, metalness: 1, roughness: 0.22 });
 const DEV = { group: new THREE.Group(), list: [], meshes: [], rockers: [] };
 // the lamps' switched state (a circuit flipped since the mood was picked: on or off; applyMood)
 const SWITCHED = {};
-const ALIAS = {};          // a channel that takes another's mood level and base
+const ALIAS = { line: 'track' };      // a channel that takes another's mood level
 function level(ch, m = MOODS[moodKey]) {
   const k = ALIAS[ch] ?? ch, s = SWITCHED[CIRCUIT_OF[ch]];
   if (s === undefined) return m[k];
@@ -2749,18 +2811,18 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// Four moods. The lamps: globe: the paper pendant; read: the reading light; desk: the desk lamp; the LED lines: glow (under the
+// Four moods. The lamps: track: the track's spots and its opal line (line, which takes track's level); read: the reading light; desk: the desk lamp; the LED lines: glow (under the
 // bed and the nightstand), shelf (under the lowest shelf); cor: the hallway's downlights.
 // tint: the lamps' colour as the eye sees it; sky: the sun's place, under the horizon, for the dusk outside. Day: daylight
 // only, the sun coming in through the east window in the morning
 const MOODS = {
-  evening: { label: 'Evening', globe: 0.4, read: 1, desk: 0.7, glow: 0.8, shelf: 0.8, cor: 0.45, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
-  bright: { label: 'Bright', globe: 1, read: 0, desk: 1, glow: 0.5, shelf: 1, cor: 1, tint: '#fff4ea', exposure: 1.45, sky: [-10, 300], bloom: 1.6 },
-  night: { label: 'Night', globe: 0, read: 0.8, desk: 0, glow: 0.9, shelf: 0.45, cor: 0.06, tint: '#ffdcb8', exposure: 3.0, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, globe: 0, read: 0, desk: 0, glow: 0, shelf: 0, cor: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', track: 0.4, read: 1, desk: 0.7, glow: 0.8, shelf: 0.8, cor: 0.45, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
+  bright: { label: 'Bright', track: 1, read: 0, desk: 1, glow: 0.5, shelf: 1, cor: 1, tint: '#fff4ea', exposure: 1.45, sky: [-10, 300], bloom: 1.6 },
+  night: { label: 'Night', track: 0, read: 0.8, desk: 0, glow: 0.9, shelf: 0.45, cor: 0.06, tint: '#ffdcb8', exposure: 3.0, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, track: 0, read: 0, desk: 0, glow: 0, shelf: 0, cor: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, globe: 7, shade: 1.6, read: 6, desk: 4.5, glow: 4, shelf: 150, lens: 30, strip: 7, sky: 1.0, cor: 8 };
-const LENS = { read: 'read', desk: 'desk', cor: 'cor' };
+const BASE = { sun: 28, track: 20, line: 2400, read: 6, desk: 4.5, glow: 4, shelf: 150, lens: 30, strip: 7, sky: 1.0, cor: 8 };
+const LENS = { read: 'read', desk: 'desk', cor: 'cor', track: 'track' };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
   // (each channel at the mood's level or as its switch has it; after dark the lamps stay in the scene when off, so a
@@ -2768,13 +2830,9 @@ function applyMood(key) {
   const shown = (ch) => lv(ch) > 0 || !m.day;
   for (const s of L.cor) { s.color.copy(c); s.intensity = BASE.cor * lv('cor'); s.visible = shown('cor'); }
   for (const [s, ch] of L.read) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch); s.visible = shown(ch); }
-  L.globe.color.copy(c);
-  L.globe.intensity = BASE.globe * lv('globe');
-  L.globe.visible = shown('globe');
-  M.shade.emissive.copy(c).multiplyScalar(lv('globe') > 0 ? BASE.shade * (0.35 + 0.65 * lv('globe')) : 0);
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch); a.visible = shown(ch); }
   for (const [e, ch] of Object.entries(LENS)) E[e].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
-  for (const ch of ['glow', 'shelf']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
+  for (const ch of ['glow', 'shelf', 'line']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   renderer.toneMappingExposure = m.exposure * roomEv();
   bloom.threshold = m.bloom;
   // by day only the sun itself (and its reflection) clears the threshold, so it can flare
@@ -2966,18 +3024,20 @@ function renderLegend() {
     mountains: 'a range of mountains painted on the walls round the bed, from the south window to the door, in three tones of ' + ac.label.toLowerCase(),
   }[featureKey];
   const rows = [
-    ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + LOOK.plaster + '; the ceiling white, 2.75 m', paintColor],
+    ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + LOOK.plaster + '; a lowered plasterboard ceiling, white, at 2.55 m, the curtain\'s track in a recess along the east wall up to the slab at 2.75 m', paintColor],
     ['Bed wall', bedWall, featureKey === 'plain' ? paintColor : ac.color],
     ['Bed', 'where the model has it, along the hallway wall, its head on the south wall: a ' + wn + ' frame, 206 × 126 cm, floating on a dark grey plinth set back, an LED line under it; a 120 × 200 mattress in ' + bed.desc + ', a square pillow and one to sleep on, a cushion, ' + bed.throwLabel + ' across the foot', bed.duvet],
     ['Nightstand', 'a floating ' + wn + ' box in the 41 cm between the desk and the bed, its edges rounded, a drawer (a click opens it), an LED line under it; a black reading light on the wall over it', wood.swatch],
     ['Desk', 'IKEA BEKANT, 160 × 80 cm, where the model has it, across the south window: the top in ' + top.desc + ' on its ' + DESK_FRAMES[deskFrameKey].label.toLowerCase() + ' T legs; the model\'s task chair; a black desk lamp', top.swatch],
-    ['Cabinet', 'built into the niche, 153 cm wide and 60 cm deep, floor to ceiling: flush white lacquered doors, handleless, level with the wall, three tall ones and three over them; inside a rail in ' + metal.label + ' over a shelf and two drawers, and shelves (a click opens a door or a drawer)', '#f5f4f0'],
+    ['Cabinet', 'built into the niche, 153 cm wide and 60 cm deep, floor to ceiling: flush white lacquered doors, handleless, level with the wall, three tall ones, 2 m, and three over them; inside a rail in ' + metal.label + ' over a shelf and two drawers, and shelves (a click opens a door or a drawer)', '#f5f4f0'],
     ['Floor', floor, floorColor ?? WOODS[floorWood].swatch],
-    ['Curtain', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtain on a slim black track on the ceiling, along the east window', LOOK.curtain],
-    ['Windows', 'anthracite aluminium (RAL 7016), exterior venetian blinds in anthracite: east, floor to ceiling, a turn sash (a click opens it; a drawn curtain opens first) and a fixed pane; south, over the desk, a fixed window on a raised sill as in the model (the plan draws it to the floor)', '#383b3e'],
+    ['Curtain', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtain on a slim black track in a recess in the ceiling, along the east window', LOOK.curtain],
+    ['Windows', 'anthracite aluminium (RAL 7016), exterior venetian blinds in anthracite: east, floor to ceiling, a turn sash (a click opens it; a drawn curtain opens first) and a fixed pane; ' + (SILL.key === 'floor'
+      ? 'south, over the desk, a fixed window to the floor, as the plan draws it (the model raises its sill to 82 cm)'
+      : 'south, over the desk, a fixed window on the sill the model raises to 82 cm, a sill board of the ' + wn + ' (the plan draws it to the floor)'), '#383b3e'],
     ['Door', 'a flush leaf lacquered a shade lighter than the walls, black levers, hinged on the north as in the plan, opening against the partition; through it the lower hallway', M.lacquer.color.getStyle()],
     ['Things', 'a round wool rug with a blue band, ' + wn + ' shelves over the desk with an LED line, a cork board, a framed print of the planets, a basket with a ball, books, a globe, a teddy: for scale and for fun, none of them in the model', LOOK.rug],
-    ['Light', 'a paper pendant over the rug, the reading light, the desk lamp; LED lines under the bed, the nightstand and the shelf', '#ffe2c2'],
+    ['Light', 'a black magnetic track, 2 m, flush in the ceiling down the room: four spots turned to the desk, the bed, the rug and the cabinet, a 60 cm opal line between them; the reading light, the desk lamp; LED lines under the bed, the nightstand and the shelf', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
@@ -3247,6 +3307,7 @@ function buildUI() {
   seg($('deskframes'), DESK_FRAMES, (k) => setDeskFrame(k), deskFrameKey);
   seg($('floors'), FLOORS, (k) => withBusy(async () => { await setFloor(k); captureEnv(); }), floorKey);
   seg($('curtains'), CURTAINS, (k) => setCurtainKind(k), curtainKey);
+  seg($('sills'), SILLS, (k) => setSill(k), SILL.key);
   // the bed wall's colours: a swatch each
   $('accents').innerHTML = Object.entries(ACCENTS).map(([k, v]) => `<button data-key="${k}" class="${k === accentKey ? 'on' : ''}" style="background:${v.color}" title="${v.label}" aria-label="${v.label}"></button>`).join('');
   $('accent-name').textContent = ACCENTS[accentKey].label;
@@ -3321,6 +3382,7 @@ function buildUI() {
     if (k === 'u') { pickNext('beddings', Object.keys(BEDDINGS), beddingKey, applyBedding); return; }
     if (k === 'b') { pickNext('features', Object.keys(FEATURES), featureKey, setFeature); return; }
     if (k === 'y') { pickNext('deskframes', Object.keys(DESK_FRAMES), deskFrameKey, setDeskFrame); return; }
+    if (k === 's') { pickNext('sills', Object.keys(SILLS), SILL.key, setSill); return; }
     if (busy) return;
     if (k === 't') { pickNext('desktops', Object.keys(DESK_TOPS), deskTopKey, setDeskTop); return; }
     if (k === 'o') { const n = next(WOOD_PICK, woodKey); withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
@@ -3495,6 +3557,7 @@ try {
   flush(groups.room);
   buildHall();
   flush(groups.hall);
+  buildSills();
   buildGlazing();
   buildCeiling();
   buildBed();
@@ -3504,7 +3567,7 @@ try {
   buildProps();
   buildReadingLight();
   flush(groups.room);
-  buildPendant();
+  buildTrack();
   flush(groups.pendants);
   buildFeature();
   buildDrawers();
@@ -3514,6 +3577,7 @@ try {
   buildBlinds();
   buildSurroundings(await loadView());
   buildLights();
+  setSill(SILL.key, false);
   buildDevices();
   setStatus('Laying out the wood and the linen…');
   setCurtainKind(curtainKey, false);
@@ -3528,7 +3592,7 @@ try {
   goTo(VIEWS[0], true);
   renderFrame();
   window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, BEDDINGS, FEATURES, ACCENTS, DESK_TOPS, DESK_FRAMES, CURTAINS, FLOORS,
-    applyBedding, setFeature, setAccent, setDeskTop, setDeskFrame, setCurtainKind, setFloor, setWindow, setDoor, setCabinet, toggleCDoor, setCurtains, setBlinds, toggleDrawer, DRAWERS, CDOORS, DOORS, SASH, LEAF, CURT, OUT, BLINDS,
+    applyBedding, setFeature, setAccent, setDeskTop, setDeskFrame, setCurtainKind, setSill, SILL, SILLS, SW, setFloor, setWindow, setDoor, setCabinet, toggleCDoor, setCurtains, setBlinds, toggleDrawer, DRAWERS, CDOORS, DOORS, SASH, LEAF, CURT, OUT, BLINDS,
     DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, texCache, bakeSet, captureImage, saveImage,
     goTo, pickView, setMood, setSunHour, BASE, MOODS, applyFloor, R, SU, renderFrame, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT,
     reflectors, floorRefl, solar, setSun, groups,
