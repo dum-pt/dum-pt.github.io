@@ -231,6 +231,16 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, pe: 9
 const BED = { x0: 51.494, x1: 53.554, y0: 9.485, y1: 11.345, z0: 0.121, z1: 0.341, top: 0.441, side: 0.03, inset: 0.03 };
 const PANEL = { x0: 53.565, x1: X1, y0: Y0, y1: PART.open[0], z1: 1.0 };
 const NIGHT = { x0: 53.074, x1: 53.554, z0: 0.033, z1: 0.493, r: 0.02, ys: [[8.915, 9.415], [11.395, 11.895]] };
+// the chest of drawers in the north-west corner (where the pipe was, now in the wardrobe: PIPE), against the corridor wall
+// between the switches by the door and the bed wall: in the wood, x0..x1, its front at y0, up to z1, its vertical edges
+// rounded (r); on a plinth zb high set back sb all round (the bed's dark grey); a frame round its drawers (sides and
+// bottom frame, top), n drawers with fluted fronts (round reeds, reed across, on a pitch) and round knobs in the style's
+// metal, each opening travel
+const CHEST = { x0: 52.675, x1: 53.575, y0: Y1 - 0.42, z1: 0.76, r: 0.012, zb: 0.07, sb: 0.03, frame: 0.02, top: 0.03, n: 3, reed: 0.009, pitch: 0.019, travel: 0.32 };
+// the framed print on the chest, leaning on the corridor wall (tilt, rad, its top on the wall): w x h, its middle at x; a
+// slim black frame (bar wide, depth deep), the print set in (inset) behind it on a white mat (mat wide, more at the foot):
+// layered hills under a low sun (printTexture)
+const PRINT = { x: 52.97, w: 0.5, h: 0.7, bar: 0.016, depth: 0.025, inset: 0.008, tilt: 0.087, mat: 0.065, foot: 0.08 };
 // the upholstered headboard (BEDWALLS): channels (w each) over the bed's width, from its frame up to z1, t thick
 const UPH = { y0: 9.43, y1: 11.39, z0: BED.z1, z1: 1.25, t: 0.04, w: 0.14 };
 // the slats (BEDWALLS): w wide on a pitch, 2 cm deep, the panel's face; washed from a black slot in the ceiling (x0..x1)
@@ -247,8 +257,10 @@ const DRESS = { x0: X0, x1: 51.16, y0: 11.835, y1: 13.065, z0: 0.73, z1: 0.78, r
 // up the column's side, round at its free end, its top sweeping up to the ceiling
 const MIRROR = { x: 50.72, y1: DRESS.col[0], curve: [[11.997, 0], [11.962, 0.077], [11.867, 0.442], [11.835, 0.82], [11.867, 1.195], [11.962, 1.56],
   [11.997, 1.637], [12.117, 1.904], [12.329, 2.217], [12.59, 2.489], [12.735, 2.596]] };
-// the pipe in the corner by the corridor door (the model's, 9 cm across, floor to roof): boxed in, plastered
-const PIPE = { x0: 52.6, x1: 52.75, y0: 13.28 };
+// the pipe (9 cm across, floor to roof): in the model in the bedroom's corner by the corridor door, moved along the
+// corridor wall into the wardrobe, to its corner with the partition (the sliding door's pocket); boxed in (x0..x1, from y0
+// to the wall), clad in the wood inside the corridor run's first bay (buildRun: the run notched round it)
+const PIPE = { x0: WX0, x1: WX0 + 0.15, y0: 13.28 };
 // the door from the corridor (x0..x1 in the corridor wall, to head): in a reverse concealed frame, a leaf t thick flush with
 // the hallway's face of the wall (leaf: its face to the room, which sees it set back in the wall's reveal), a gap round it,
 // hinged at its south jamb on the room's face and opening into the room (open, rad: short of the pouf); the door from the
@@ -265,7 +277,7 @@ const WW = { x0: 57.235, x1: 57.385, y0: 11.73, y1: 12.604, glass: 57.31, g0: 11
 // the plinth set back; LED lines under the shelves' front edges. Their fronts (WFRONTS): none, glass doors in a slim metal
 // frame or flush lacquered doors, one to a bay (two to a wide one)
 const WRUN = {
-  W: { y0: 12.805, y1: Y1, front: -1, xs: [WX0, 54.395, 55.065, 55.735, 56.405, WX1], bays: ['hang', 'double', 'drawers', 'double', 'shoes'] },
+  W: { y0: 12.805, y1: Y1, front: -1, xs: [WX0, 54.395, 55.065, 55.735, 56.405, WX1], bays: ['hang', 'double', 'drawers', 'double', 'shoes'], pipe: PIPE },
   E1: { y0: WY0, y1: 11.695, front: 1, xs: [WX0, 54.585], bays: ['drawers'] },
   E2: { y0: WY0, y1: 11.695, front: 1, xs: [55.62, 56.355, WX1], bays: ['hang', 'double'] },
 };
@@ -1569,7 +1581,7 @@ function buildArchitecture() {
   wall(X1, WX0, o0, o1, PART.head, WT, 'Xz');
   // the wardrobe's east wall (to the en-suite) round its door; the corridor wall round the bedroom's door and on past the
   // wardrobe (the hallway's side too, to its window); the north facade round the wardrobe's window (its reveal
-  // plastered); the pipe by the door, boxed in
+  // plastered)
   wall(WX0, EDOOR.x0, EDOOR.y0, WY0, 0, WT, 'YX');
   wall(EDOOR.x1, WX1, EDOOR.y0, WY0, 0, WT, 'Yx');
   wall(EDOOR.x0, EDOOR.x1, EDOOR.y0, WY0, EDOOR.head, WT, 'Yz');
@@ -1585,7 +1597,6 @@ function buildArchitecture() {
   wall(WX1, 57.385, EDOOR.y0, WW.y0, 0, WT, 'xY');
   wall(WX1, 57.385, WW.y1, CDOOR.y1, 0, WT, 'xy');
   wall(WX1, 57.385, WW.y0, WW.y1, H, WT, 'z');
-  wall(PIPE.x0, PIPE.x1, PIPE.y0, Y1, 0, H, 'xXy');
   // the floor: one plane (the planar reflector) through the bedroom, the opening, the wardrobe, into the glazing's reveals
   // and the doorways; the hallway (into its window's reveal), the stairs' top, the hall's doorway
   const fl = mergeGeometries([
@@ -1924,6 +1935,36 @@ function buildNightstands() {
     } });
   }
 }
+// a round knob's profile (r, out from the front): a slim neck, a domed head
+const KNOB = [[0.001, 0], [0.0055, 0], [0.0055, 0.011], [0.011, 0.013], [0.0155, 0.017], [0.0165, 0.022], [0.0145, 0.027], [0.009, 0.0295], [0.001, 0.03]];
+// the chest of drawers (CHEST): its case a solid in the wood, the opening behind its drawers dark (the gaps between the
+// fronts read as joints); each drawer's front a board 1.5 mm proud with round reeds on it floor to top, a round knob at its
+// middle, its box behind (folded clothes in it), sliding out towards the room (a click: toggleDrawer)
+function buildChest() {
+  const C = CHEST, yb = Y1 - 0.005, za = C.zb + C.frame, zt = C.z1 - C.top, hd = (zt - za) / C.n;
+  add(M.plinth, box(C.x0 + C.sb, C.x1 - C.sb, C.y0 + C.sb, yb, 0, C.zb, { faces: 'xXy' }));
+  add(M.veneer, prism(C.x0, C.x1, C.y0, yb, C.zb, C.z1, C.r));
+  add(M.dark, box(C.x0 + C.frame, C.x1 - C.frame, C.y0 - 0.0004, C.y0, za, zt, { faces: 'y' }), { shadow: false });
+  const a = C.x0 + C.frame + 0.002, b = C.x1 - C.frame - 0.002, cx = (a + b) / 2, yf = C.y0 - 0.0015, yi = C.y0 + 0.018;
+  const n = Math.floor((b - a - 0.004) / C.pitch), off = (b - a - (n - 1) * C.pitch) / 2;
+  for (let k = 0; k < C.n; k++) {
+    const z0 = za + k * hd + 0.0015, z1 = za + (k + 1) * hd - 0.0015, zm = (z0 + z1) / 2, yd = yi + C.travel;
+    DRAWER_SPECS.push({ axis: 'y', dir: -1, travel: C.travel - 0.04, build: () => {
+      add(M.veneer, box(a, b, yf, yi, z0, z1));
+      const reeds = [];
+      for (let i = 0; i < n; i++) reeds.push(cyl(C.reed, z1 - z0, 'z', [a + off + i * C.pitch, yf, zm], 14));
+      add(M.veneer, projectUV(mergeGeometries(reeds)));
+      const crest = yf - C.reed;
+      add(M.metal, lathe(KNOB, [0, 0, 0], 32).rotateX(Math.PI / 2).translate(cx, crest + 0.003, zm));
+      add(M.veneer, box(a + 0.015, b - 0.015, yi, yd, z0 + 0.01, z0 + 0.022, { faces: 'Z' }));
+      add(M.veneer, box(a + 0.015, a + 0.027, yi, yd, z0 + 0.01, z1 - 0.03, { faces: 'xXZ' }));
+      add(M.veneer, box(b - 0.027, b - 0.015, yi, yd, z0 + 0.01, z1 - 0.03, { faces: 'xXZ' }));
+      add(M.veneer, box(a + 0.027, b - 0.027, yd - 0.012, yd, z0 + 0.01, z1 - 0.03, { faces: 'yZ' }));
+      const m = 3, ww = (b - a - 0.06) / m;
+      for (let q = 0; q < m; q++) stack(a + 0.03 + (q + 0.5) * ww, (yi + yd) / 2, z0 + 0.022, 2 + (k + q) % 2, ww - 0.04, C.travel - 0.08, 90 + k * 7 + q);
+    } });
+  }
+}
 
 // ---------------------------------------------------------------- the dressing corner, the TV
 function buildDressing() {
@@ -2024,40 +2065,50 @@ function standingBooks(x0, y0, z, n, seed) {
 // leaf's way from it), the run's front (f) and yd
 const WDOORS = [], WDOOR_SPECS = [];
 // a run (WRUN): its back panelled in the wood, the plinth set back, the bottom, the shelf at the top, the sides; in each
-// bay what it is for; the LED lines under the shelves' front edges; its doors' specs
+// bay what it is for; the LED lines under the shelves' front edges; its doors' specs. A pipe in its back corner at its
+// first side (pipe: x0..x1, its front at y0): its box clad in the wood floor to ceiling, the back panel, the plinth, the
+// bottom and the top shelf notched round it, the first side short of it, the first bay's clothes and boxes beside it
 function buildRun(R, seed) {
-  const { y0, y1, front: f, xs, bays } = R, B = WBAY, depth = y1 - y0, back = depth - 0.012, yf = f < 0 ? y0 : y1;
+  const { y0, y1, front: f, xs, bays, pipe: P } = R, B = WBAY, depth = y1 - y0, back = depth - 0.012, yf = f < 0 ? y0 : y1;
   const yd = (d) => yf - f * d, Y = (d0, d1) => { const a = yd(d0), b = yd(d1); return [Math.min(a, b), Math.max(a, b)]; };
   const ff = f < 0 ? 'y' : 'Y', x0 = xs[0], x1 = xs[xs.length - 1], rnd = mulberry(seed), N = xs.length - 1;
-  add(M.veneer, box(x0, x1, ...Y(back, depth), 0, H, { faces: ff }));
-  add(M.dark, box(x0, x1, ...Y(0.05, back), 0, B.plinth, { faces: ff }));
-  add(M.veneer, box(x0, x1, ...Y(0, back), B.plinth, B.bottom, { faces: ff + 'Z' }));
-  add(M.veneer, box(x0, x1, ...Y(0, back), B.shelf, B.shelf + 0.02, { faces: ff + 'zZ' }));
+  const dp = P ? Math.abs((f < 0 ? P.y0 : P.y1) - yf) : depth;          // the pipe box's front, from the run's
+  // a board across the run from d0 to d1 deep (z0..z1): past the pipe's box only in front of it
+  const notched = (mat, d0, d1, z0, z1, faces) => {
+    if (P) add(mat, box(x0, P.x1, ...Y(d0, Math.min(d1, dp)), z0, z1, { faces }));
+    add(mat, box(P ? P.x1 : x0, x1, ...Y(d0, d1), z0, z1, { faces }));
+  };
+  if (P) add(M.veneer, box(x0, P.x1, ...Y(dp, depth), 0, H, { faces: 'X' + ff }));
+  add(M.veneer, box(P ? P.x1 : x0, x1, ...Y(back, depth), 0, H, { faces: ff }));
+  notched(M.dark, 0.05, back, 0, B.plinth, ff);
+  notched(M.veneer, 0, back, B.plinth, B.bottom, ff + 'Z');
+  notched(M.veneer, 0, back, B.shelf, B.shelf + 0.02, ff + 'zZ');
   xs.forEach((x, i) => {
     const [a, b] = i === 0 ? [x, x + 0.02] : i === N ? [x - 0.02, x] : [x - 0.01, x + 0.01];
-    add(M.veneer, box(a, b, ...Y(0, back), 0, H, { faces: 'xX' + ff }));
+    add(M.veneer, box(a, b, ...Y(0, i === 0 ? Math.min(back, dp) : back), 0, H, { faces: 'xX' + ff }));
   });
   const led = (a, b, z) => add(E.wled, box(a + 0.015, b - 0.015, ...Y(0.025, 0.033), z - 0.0008, z, { faces: 'z' }), { shadow: false });
   const shelf = (a, b, z) => { add(M.veneer, box(a, b, ...Y(0, back), z, z + 0.02, { faces: ff + 'zZ' })); led(a, b, z); };
   bays.forEach((kind, j) => {
     const a = xs[j] + (j ? 0.01 : 0.02), b = xs[j + 1] - (j + 1 === N ? 0.02 : 0.01), w = b - a, cx = (a + b) / 2, ym = yd(back / 2);
+    const ap = j === 0 && P ? P.x1 + 0.005 : a, wp = b - ap;     // beside the pipe's box (the clothes, the linen boxes)
     led(a, b, B.shelf);
     // linen boxes on the top shelf
     {
-      const n = Math.max(1, Math.floor(w / 0.3)), bw = w / n - 0.03, bd = Math.min(0.34, back - 0.1);
-      for (let k = 0; k < n; k++) add(M.box, projectUV(rbox(bw, bd, 0.24, 0.01, [a + (k + 0.5) * (w / n), yd(back - 0.04 - bd / 2), B.shelf + 0.02 + 0.12])));
+      const n = Math.max(1, Math.floor(wp / 0.3)), bw = wp / n - 0.03, bd = Math.min(0.34, back - 0.1);
+      for (let k = 0; k < n; k++) add(M.box, projectUV(rbox(bw, bd, 0.24, 0.01, [ap + (k + 0.5) * (wp / n), yd(back - 0.04 - bd / 2), B.shelf + 0.02 + 0.12])));
     }
     const rail = (z) => add(M.metal, cyl(0.0125, w - 0.004, 'x', [cx, ym, z], 20));
     const across = Math.min(0.46, back - 0.06);
     if (kind === 'hang') {
       rail(B.rails[0]);
-      clothes(a, b, ym, B.rails[0], across, [0.95, 1.35], seed + j);
+      clothes(ap, b, ym, B.rails[0], across, [0.95, 1.35], seed + j);
       for (let k = 0; k < 2; k++) add(M.box, projectUV(rbox(0.3, Math.min(0.36, back - 0.08), 0.12, 0.006, [a + 0.17 + k * 0.32, ym, B.bottom + 0.06])));
     } else if (kind === 'double') {
       rail(B.rails[0]);
       rail(B.rails[1]);
-      clothes(a, b, ym, B.rails[0], across, [0.62, 0.84], seed + j);
-      clothes(a, b, ym, B.rails[1], across, [0.5, 0.72], seed + j + 50);
+      clothes(ap, b, ym, B.rails[0], across, [0.62, 0.84], seed + j);
+      clothes(ap, b, ym, B.rails[1], across, [0.5, 0.72], seed + j + 50);
     } else if (kind === 'drawers') {
       // the drawers up to the top, shelves over them with folded clothes
       const n = B.drawers, hgt = (B.top - B.bottom) / n, travel = Math.min(0.4, back - 0.1);
@@ -2120,6 +2171,66 @@ function buildWardrobe() {
 }
 
 // ---------------------------------------------------------------- things
+// the print's face (PRINT, inside its frame; 2 px a millimetre): a white mat, its window's bevelled edge, the paper; on it
+// four layers of hills (sand, taupe, sage grey, charcoal) under a low terracotta sun, a faint grain
+function printTexture() {
+  const P = PRINT, k = 2000, W = Math.round((P.w - 2 * P.bar) * k), H = Math.round((P.h - 2 * P.bar) * k);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'), rnd = mulberry(31), m = P.mat * k, x0 = m, x1 = W - m, y0 = m, y1 = H - P.foot * k, aw = x1 - x0, ah = y1 - y0;
+  g.fillStyle = '#f3f1ec';
+  g.fillRect(0, 0, W, H);
+  const sky = g.createLinearGradient(0, y0, 0, y1);
+  sky.addColorStop(0, '#f1ece3');
+  sky.addColorStop(0.55, '#ebe2d4');
+  sky.addColorStop(1, '#e4d9c8');
+  g.fillStyle = sky;
+  g.fillRect(x0, y0, aw, ah);
+  g.save();
+  g.beginPath(); g.rect(x0, y0, aw, ah); g.clip();
+  g.fillStyle = '#c47e57';
+  g.beginPath(); g.arc(x0 + aw * 0.64, y0 + ah * 0.36, aw * 0.13, 0, Math.PI * 2); g.fill();
+  const layers = [['#d3c5b0', 0.47, 0.05], ['#b09f89', 0.57, 0.06], ['#7f8576', 0.68, 0.07], ['#3e3c39', 0.8, 0.08]];
+  layers.forEach(([col, base, amp], i) => {
+    const ph = [rnd() * 6, rnd() * 6, rnd() * 6], f = [1.3 + rnd(), 3.1 + rnd() * 2, 7 + rnd() * 4];
+    g.fillStyle = col;
+    g.beginPath();
+    g.moveTo(x0, y1);
+    for (let u = 0; u <= 1.0001; u += 0.005) {
+      const v = base + amp * (0.6 * Math.sin(u * f[0] + ph[0]) + 0.3 * Math.sin(u * f[1] + ph[1]) + 0.1 * Math.sin(u * f[2] + ph[2])) * (i % 2 ? 1 : -1);
+      g.lineTo(x0 + u * aw, y0 + v * ah);
+    }
+    g.lineTo(x1, y1);
+    g.closePath();
+    g.fill();
+  });
+  for (let i = 0; i < 9000; i++) {
+    g.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(60,45,30,0.05)';
+    g.fillRect(x0 + rnd() * aw, y0 + rnd() * ah, 2, 2);
+  }
+  g.restore();
+  g.lineWidth = 3;
+  g.strokeStyle = '#d8d3ca'; g.strokeRect(x0 - 1.5, y0 - 1.5, aw + 3, ah + 3);
+  g.lineWidth = 2;
+  g.strokeStyle = '#ffffff'; g.strokeRect(x0 - 4, y0 - 4, aw + 8, ah + 8);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = maxAniso;
+  return tex;
+}
+// the framed print (PRINT): built standing on its back foot edge (local: x across, y out from its back, -depth at the
+// front, z up), tilted back on to the wall and set on the chest
+function buildPrint() {
+  const P = PRINT, w = P.w / 2, d = P.depth, b = P.bar, tilt = P.tilt;
+  const place = (geo) => geo.rotateX(-tilt).translate(P.x, Y1 - 0.002 - P.h * Math.sin(tilt), CHEST.z1);
+  // (a map and a faint coat, like the veneer and the marble: it shares their shader, as one more program variant to compile
+  // with the area lights loses the WebGL context on D3D)
+  M.print = physical({ map: printTexture(), roughness: 0.9, clearcoat: 0.04, clearcoatRoughness: 0.7 });
+  for (const [a0, a1, z0, z1] of [[-w, w, 0, b], [-w, w, P.h - b, P.h], [-w, -w + b, b, P.h - b], [w - b, w, b, P.h - b]]) add(M.trim, place(box(a0, a1, -d, 0, z0, z1)));
+  add(M.trim, place(box(-w + b, w - b, -d + P.inset + 0.003, -0.004, b, P.h - b, { faces: 'y' })), { shadow: false });
+  const face = new THREE.PlaneGeometry(P.w - 2 * b, P.h - 2 * b).rotateX(Math.PI / 2).translate(0, -d + P.inset, P.h / 2);
+  add(M.print, place(face), { shadow: false });
+}
 function buildProps() {
   // the east nightstand: a vase of twigs, books; the west one: a candle in a dark jar, a carafe, a book
   {
@@ -2149,6 +2260,16 @@ function buildProps() {
     add(M.potteryDark, lathe(VASE.map(([r, h]) => [r * 0.8, h * 0.85]), [x + 0.02, y, D.shelves[1]], 32));
     stack(x + 0.01, y, D.shelves[2], 4, 0.2, 0.26, 12);
     add(M.box, projectUV(rbox(0.22, 0.26, 0.2, 0.01, [x + 0.01, y, D.shelves[3] + 0.1])));
+  }
+  // on the chest: a dark vase of bare branches in the corner, two books with a small white bowl on them
+  {
+    const z = CHEST.z1;
+    add(M.potteryDark, lathe(VASE, [53.33, 13.17, z], 32));
+    twigs(53.33, 13.17, z + 0.22, 9, 0.48, 23);
+    book(52.95, 13.17, z, 0.24, 0.18, 0.032, 0.06, M.book2);
+    book(52.95, 13.17, z + 0.032, 0.21, 0.16, 0.024, -0.08, M.book3);
+    add(M.potteryWhite, lathe(BOWL.map(([r, h]) => [r * 0.5, h * 0.7]), [52.97, 13.16, z + 0.056], 32));
+    buildPrint();
   }
   // the rugs: under the bed, along the wardrobe's aisle
   for (const [a, b, c, d] of RUGS) add(M.rug, box(a, b, c, d, 0, 0.012, { faces: 'xXyYZ' }));
@@ -3254,8 +3375,9 @@ function renderLegend() {
     ['Bed', 'the model\'s: a ' + wn + ' frame, 206 × 186 cm, floating on a dark grey plinth set back, an LED line under it; the 180 × 200 mattress in ' + bed.desc + ', two square pillows and two to sleep on, a cushion, ' + bed.throwLabel + ' across the foot', bed.duvet],
     ['Nightstands', 'floating ' + wn + ' boxes either side, their edges rounded, a drawer in each (a click opens it), an LED line under; black reading lights on the wall over them', wood.swatch],
     ['Dressing', 'as in the model, by the corridor door: a floating ' + wn + ' top before a tall organic mirror; a ' + wn + ' column with a lit niche of Carrara shelves, a tall cabinet in the corner; the Firkant pouf (Icons of Denmark), a Gessi diffuser', '#e3e1dd'],
+    ['Chest', 'a chest of drawers in the corner by the wardrobe\'s opening, against the corridor wall: ' + wn + ', 90 × 42 cm, 76 cm high, its edges rounded, on a dark grey plinth set back; three drawers with fluted fronts (round reeds floor to top) and round knobs in ' + metal.label + ' (a click opens one); on it a framed print leaning on the wall (50 × 70 cm, layered hills under a low sun on a white mat, a slim black frame), a dark vase of bare branches, books', wood.swatch],
     ['TV', 'a 55-inch TV on the south wall, facing the bed', '#1b1b1c'],
-    ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall: ' + wn + ' runs ' + fronts + ' along the corridor wall (60 cm deep: hanging, double hanging, drawers, shoes) and the east wall either side of the bathroom door (50 cm: drawers, hanging); rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
+    ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall: ' + wn + ' runs ' + fronts + ' along the corridor wall (60 cm deep: hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + ') and the east wall either side of the bathroom door (50 cm: drawers, hanging); rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
     ['Floor', floor + ', on into the wardrobe; wool rugs under the bed and along the wardrobe', floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, lit by an LED line in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
@@ -3801,6 +3923,7 @@ try {
   buildHallway();
   buildBed();
   buildNightstands();
+  buildChest();
   buildDressing();
   buildTV();
   buildWardrobe();
