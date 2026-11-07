@@ -27,6 +27,14 @@
   h2 { margin: 0; font-size: 19px; font-weight: 600; }
   .body p { margin: 0; color: var(--muted); font-size: 14.5px; }
   .open { margin-top: auto; padding-top: 10px; color: var(--accent); font-weight: 600; font-size: 14.5px; }
+  .card .body p { display: none; }
+  .alts { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .alts h2.kicker { font-size: 12px; font-weight: 400; }
+  .alt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; align-content: start; }
+  a.alt { display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none; font-size: 13.5px; line-height: 1.35; outline: none; }
+  a.alt img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 8px; background: var(--line); transition: transform 0.15s, box-shadow 0.15s; }
+  a.alt:hover img, a.alt:focus-visible img { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(40, 30, 20, 0.12); }
+  a.alt:hover span, a.alt:focus-visible span { color: var(--accent); }
   footer { margin-top: 36px; color: var(--muted); font-size: 14px; max-width: 760px; }
 </style>
 </head>
@@ -46,42 +54,15 @@
         <span class="open">Open 3D view →</span>
       </div>
     </a>
-    <a class="card" href="lower-bathroom-bath.html">
-      <img src="thumbs/lower-bathroom-bath.jpg" alt="Lower bathroom with a built-in bath along the stone wall, its linen curtain gathered at the head end" width="960" height="600">
-      <div class="body">
-        <span class="kicker">Lower floor · kids &amp; guests · alternative</span>
-        <h2>Lower bathroom with a bath</h2>
-        <p>The original layout with a built-in bath and a linen shower curtain in place of the walk-in shower; the tall walnut cabinet shrinks to one towel door over one hamper. Stone and wood to choose. Goes with the master bathroom with only a shower.</p>
-        <span class="open">Open 3D view →</span>
+    <section class="alts" aria-labelledby="alts-h">
+      <h2 id="alts-h" class="kicker">Bathroom alternatives</h2>
+      <div class="alt-grid">
+        <a class="alt" href="lower-bathroom-bath.html"><img src="thumbs/lower-bathroom-bath.jpg" alt="Lower bathroom with a built-in bath along the stone wall, its linen curtain gathered at the head end" width="960" height="600" loading="lazy"><span>Lower bathroom with a bath</span></a>
+        <a class="alt" href="lower-bathroom-one-wall.html"><img src="thumbs/lower-bathroom-one-wall.jpg" alt="Lower bathroom with the fixtures on one wall, looking towards the window" width="960" height="600" loading="lazy"><span>Lower bathroom, fixtures on one wall</span></a>
+        <a class="alt" href="master-bathroom.html"><img src="thumbs/master-bathroom.jpg" alt="Master bathroom: freestanding bath in front of the window" width="960" height="600" loading="lazy"><span>Master bathroom</span></a>
+        <a class="alt" href="master-bathroom-shower.html"><img src="thumbs/master-bathroom-shower.jpg" alt="Master bathroom with the walk-in shower enclosed: a narrow opening between rounded stone jambs, stone inside" width="960" height="600" loading="lazy"><span>Master bathroom, shower only</span></a>
       </div>
-    </a>
-    <a class="card" href="lower-bathroom-one-wall.html">
-      <img src="thumbs/lower-bathroom-one-wall.jpg" alt="Lower bathroom with the fixtures on one wall, looking towards the window" width="960" height="600">
-      <div class="body">
-        <span class="kicker">Lower floor · kids &amp; guests</span>
-        <h2>Lower bathroom, fixtures on one wall</h2>
-        <p>Vanity with two wall taps, WC and shower on one wall, a backlit marble niche by the mirror and a lit niche in the shower; a stone counter or a ledge opposite, and the stone and the wood to choose.</p>
-        <span class="open">Open 3D view →</span>
-      </div>
-    </a>
-    <a class="card" href="master-bathroom.html">
-      <img src="thumbs/master-bathroom.jpg" alt="Master bathroom: freestanding bath in front of the window" width="960" height="600">
-      <div class="body">
-        <span class="kicker">Upper floor</span>
-        <h2>Master bathroom</h2>
-        <p>Bath and walk-in shower, in two layouts: a built-in bath along a fluted tiled wall or a freestanding bath by the window. Pick the wall tiles, the floor, the stone of the shower bench and the wood of the cabinets. With the built-in bath the shower floor falls to a linear drain, and in either layout you can run the splash test to see where the water goes.</p>
-        <span class="open">Open 3D view →</span>
-      </div>
-    </a>
-    <a class="card" href="master-bathroom-shower.html">
-      <img src="thumbs/master-bathroom-shower.jpg" alt="Master bathroom with the walk-in shower enclosed: a narrow opening between rounded stone jambs, stone inside" width="960" height="600">
-      <div class="body">
-        <span class="kicker">Upper floor · alternative</span>
-        <h2>Master bathroom, shower only</h2>
-        <p>No bath: a walk-in shower across the whole room, behind a glass panel or enclosed by a tiled wall with a narrow opening between rounded stone jambs, all stone inside. A wooden bench under the window. Goes with the lower bathroom with a bath.</p>
-        <span class="open">Open 3D view →</span>
-      </div>
-    </a>
+    </section>
     <a class="card" href="powder-room.html">
       <img src="thumbs/powder-room.jpg" alt="Powder room in the Japandi style: backlit green quartzite Street basin over a white oak drawer, candle-lit" width="960" height="600">
       <div class="body">
