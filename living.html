@@ -289,16 +289,19 @@ const TOP = { x0: 45.485, x1: 48.363, y0: 16.102, y1: 16.88, z0: 0.875, z1: 0.90
 const UPPER = { x0: TALLS[1][1], x1: TALLS[2][0], y0: 16.43, z0: 1.57, n: 6, open: Math.PI / 2 };      // (from the fridge's tower to the oven's)
 const SINK = { x0: 45.877, x1: 46.352, y0: 16.165, y1: 16.609, d: 0.18, grooves: [45.66, 45.84] };
 const HOB = { x0: 47.27, x1: 48.17, y0: 16.17, y1: 16.69 };
-// the cooker hood: a slim one under the wall units, 90 cm, centred over the hob (x0..x1); its body back to y1, hanging
-// to z0 under them; at its front a visor (flush with the doors when in) that slides out travel towards the room on a
-// click; its duct (r) up through the wall unit over it to the ceiling, its axis at dy
-const HOOD = { x0: (HOB.x0 + HOB.x1) / 2 - 0.45, x1: (HOB.x0 + HOB.x1) / 2 + 0.45, y0: 16.43, y1: 16.70, z0: 1.515, travel: 0.2, r: 0.075, dy: 16.62 };
+// the cooker hood: a module built into the wall units, 90 cm, centred over the hob (x0..x1), h tall from their underside
+// (flush with it: only its filters show, from below); its duct (r) up through the unit over it to the ceiling, its axis
+// at dy
+const HOOD = { x0: (HOB.x0 + HOB.x1) / 2 - 0.45, x1: (HOB.x0 + HOB.x1) / 2 + 0.45, h: 0.24, r: 0.075, dy: 16.62 };
 // the oven (z0..z1, 60 cm: its control strip panel tall at the top, under it the door, hinged at its foot and dropping
 // open to open rad, the cavity depth deep behind it); a compact microwave built in over it (MICRO, 38.5 cm: its control
 // strip panel tall at the top, its door under that hinged on the left and swinging open by open rad; the cavity: its
 // opening's sides in from the unit's left side (cav.x), its floor and head over the microwave's foot (cav.z), depth deep)
 const OVEN = { z0: 0.7, z1: 1.295, panel: 0.1, depth: 0.45, open: Math.PI / 2 };
 const MICRO = { z0: OVEN.z1, z1: OVEN.z1 + 0.385, panel: 0.07, open: 1.75, cav: { x: [0.05, 0.41], z: [0.05, 0.27], depth: 0.31 } };
+// over the microwave to the ceiling a cabinet for baking trays (its door hinged on its left, opening by open rad): n slots
+// between dividers (t thick) h tall from its floor, the trays standing on edge in them; a shelf over them
+const TRAYS = { n: 6, t: 0.012, h: 0.42, open: Math.PI / 2 };
 // the coffee machine (x0..x1, y0..y1, z0..z1) in the last tall unit, as in the house model: over its front (to niche[0])
 // the unit is open to the ceiling, lined in the wood; the machine on a pull-out board (tray), two shelves (their
 // undersides at shelves, t thick) over it; its door, hinged by the hall's wall, stands open at a right angle (open) till
@@ -2340,7 +2343,7 @@ function buildKitchen() {
   // the carcasses' faces behind the fronts (seen in the joints), the plinth set back under them
   add(M.joint, box(TALLS[0][0], TALLS[1][1], ft, ft + 0.01, plinth, HK, { faces: 'y' }), { shadow: false });
   add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, OVEN.z1 - OVEN.panel, MICRO.z0, { faces: 'y' }), { shadow: false });
-  add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, MICRO.z1 - MICRO.panel, HK, { faces: 'y' }), { shadow: false });
+  add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, MICRO.z1 - MICRO.panel, MICRO.z1, { faces: 'y' }), { shadow: false });
   add(M.joint, box(BASES.sink[0], BASES.b2[0], ft, ft + 0.01, plinth, TOP.z0, { faces: 'y' }), { shadow: false });
   // behind the drawers (built on their own: buildDrawers) the units' insides, under the oven and the hob
   drawerCarcass(...TALLS[2], plinth, OVEN.z0, ft, 1);
@@ -2348,13 +2351,13 @@ function buildKitchen() {
   for (const k of ['b2', 'b3']) drawerCarcass(...BASES[k], plinth, TOP.z0, ft, 1);
   for (const [a, b, z1] of [[...TALLS[2], OVEN.z0], [...TALLS[3], COFFEE.niche[0]], [BASES.b2[0], BASES.b3[1], TOP.z0]]) add(M.carcass, box(a, b, ft + DRAWER.back, ft + DRAWER.back + 0.01, plinth, z1, { faces: 'y' }));
   add(M.joint, box(TALLS[0][0], TALLS[3][1], fy + 0.06, Y1, 0, plinth, { faces: 'y' }), { shadow: false });
-  // the tall units: a larder; the fridge-freezer; the oven over two drawers, the microwave over it; the coffee machine's
-  // over a tall pull-out (buildDrawers), its door (and the oven's, the microwave's: buildSwings) on hinges
+  // the tall units: a larder; the fridge-freezer; the oven over a tall drawer, the microwave over it, the baking trays'
+  // cabinet over that; the coffee machine's over a tall pull-out (buildDrawers), its door (and the oven's, the
+  // microwave's, the trays': buildSwings) on hinges
   frontY(...TALLS[0], plinth, H1, fy, -1);
   frontY(...TALLS[1], plinth, 0.875, fy, -1);
   frontY(...TALLS[1], 0.875, 2.0, fy, -1);
   frontY(...TALLS[1], 2.0, H1, fy, -1);
-  frontY(...TALLS[2], MICRO.z1, H1, fy, -1);
   add(M.cabEnd, box(TALLS[1][1] - 0.02, TALLS[1][1], fy, Y1, TOP.z1, HK, { faces: 'X' }));
   add(M.cabEnd, box(TALLS[2][0], TALLS[2][0] + 0.02, fy, Y1, TOP.z1, HK, { faces: 'x' }));
   add(M.cabEnd, box(TALLS[0][0], TALLS[0][0] + 0.018, ft, Y1, 0, H1, { faces: 'x' }));     // the larder's end, by the pantry's door
@@ -2387,6 +2390,50 @@ function buildKitchen() {
     add(M.stainless, box(k1, k1 + 0.01, ft, yk, h0, h1, { faces: 'x' }));
     add(M.stainless, box(k0, k1, ft, yk, h1, h1 + 0.01, { faces: 'z' }));
     add(M.cabInside, box(k0, k1, ft, yk, h0 - 0.01, h0, { faces: 'Z' }));
+  }
+  // the baking trays' cabinet over the microwave: in anthracite (sides, floor, top, back), its dividers from the floor, a
+  // shelf over them; in the slots on edge two oven trays (the deep one and a flat one), another with the oven's wire rack, a
+  // steel baking sheet with a cooling rack, a round pizza tray, two chopping boards, a cake tin; on the shelf round cake
+  // tins, a loaf tin, a baking dish
+  {
+    const [a, b] = TALLS[2], { n, t: dt, h } = TRAYS, t = 0.018, m1 = MICRO.z1, zf = m1 + t, zc = HK - t, back = Y1 - 0.01;
+    const i0 = a + t, i1 = b - t, sw = (i1 - i0 - (n - 1) * dt) / n, zs = zf + h, y0 = ft + 0.04;
+    add(M.carcass, box(a, i0, ft, back, m1, HK, { faces: 'Xy' }));
+    add(M.carcass, box(i1, b, ft, back, m1, HK, { faces: 'xy' }));
+    add(M.carcass, box(i0, i1, ft, back, m1, zf, { faces: 'Zy' }));
+    add(M.carcass, box(i0, i1, ft, back, zc, HK, { faces: 'zy' }));
+    add(M.carcass, box(i0, i1, back, back + 0.01, zf, zc, { faces: 'y' }));
+    add(M.carcass, box(i0, i1, y0 - 0.01, back, zs, zs + t, { faces: 'yzZ' }));
+    const slot = (k) => i0 + k * (sw + dt);
+    for (let k = 1; k < n; k++) add(M.carcass, box(slot(k) - dt, slot(k), y0, back, zf, zs, { faces: 'xXyZ' }));
+    // a tray on edge at x (its sheet, its rim d deep towards +x), l long from y0 + v, hh tall
+    const tray = (x, d, hh, l, mat, v = 0.02) => {
+      const p = y0 + v, q = p + l, e = 0.0015;
+      add(mat, box(x, x + e, p, q, zf, zf + hh, { faces: 'xXyYZ' }));
+      for (const [u0, u1, w0, w1] of [[p, q, zf, zf + e], [p, q, zf + hh - e, zf + hh], [p, p + e, zf, zf + hh], [q - e, q, zf, zf + hh]]) add(mat, box(x, x + d, u0, u1, w0, w1, { faces: 'xXyYZ' }));
+    };
+    // a wire rack on edge at x: its frame and its wires
+    const rack = (x, hh, l, mat, v = 0.02) => {
+      const p = y0 + v, q = p + l, r = 0.003;
+      for (const [u0, u1, w0, w1] of [[p, q, zf, zf + r], [p, q, zf + hh - r, zf + hh], [p, p + r, zf, zf + hh], [q - r, q, zf, zf + hh]]) add(mat, box(x, x + r, u0, u1, w0, w1, { faces: 'xXyYZ' }));
+      for (let u = p + 0.025; u < q - 0.01; u += 0.025) add(mat, box(x + 0.0005, x + 0.0025, u, u + 0.002, zf + r, zf + hh - r, { faces: 'xXy' }), { shadow: false });
+    };
+    tray(slot(0) + 0.008, 0.04, 0.38, 0.455, M.enamel);
+    tray(slot(0) + 0.052, 0.02, 0.38, 0.455, M.enamel);
+    tray(slot(1) + 0.01, 0.02, 0.38, 0.455, M.enamel);
+    rack(slot(1) + 0.04, 0.37, 0.45, M.stainless);
+    tray(slot(2) + 0.012, 0.012, 0.33, 0.44, M.stainless, 0.03);
+    rack(slot(2) + 0.035, 0.3, 0.42, M.blackMetal, 0.04);
+    add(M.stainless, cyl(0.165, 0.004, 'x', [slot(3) + 0.02, y0 + 0.2, zf + 0.165], 48));
+    add(M.stainless, new THREE.TorusGeometry(0.163, 0.0035, 6, 48).rotateY(Math.PI / 2).translate(slot(3) + 0.022, y0 + 0.2, zf + 0.165));
+    for (const [dx, hh, l] of [[0.012, 0.3, 0.42], [0.043, 0.25, 0.36]]) add(M.veneer, box(slot(4) + dx, slot(4) + dx + 0.025, y0 + 0.03, y0 + 0.03 + l, zf, zf + hh, { faces: 'xXyYZ' }));
+    tray(slot(5) + 0.015, 0.05, 0.25, 0.36, M.blackMetal, 0.05);
+    const zt = zs + t;
+    for (const [x, y, r, k] of [[i0 + 0.14, 16.33, 0.13, 2], [i0 + 0.14, 16.6, 0.11, 1]]) for (let j = 0; j < k; j++) {
+      add(M.blackMetal, cyl(r - j * 0.006, 0.065, 'z', [x, y, zt + 0.0325 + j * 0.067], 40));
+    }
+    add(M.blackMetal, rbox(0.12, 0.26, 0.075, 0.006, [i1 - 0.08, 16.33, zt + 0.0375]));
+    add(M.potteryWhite, rbox(0.2, 0.24, 0.065, 0.02, [i1 - 0.12, 16.59, zt + 0.0325]));
   }
   // the coffee unit over its pull-out, lined in the wood to the ceiling behind its door: the machine on its pull-out
   // board, two shelves over it, an LED line under the first; a cup under the spout, cups and jars on the shelves
@@ -2445,11 +2492,12 @@ function buildKitchen() {
   // the wall units over the window strip, up to the ceiling: six, their doors (buildSwings) hinged in pairs on their
   // outer sides; inside (anthracite, as the drawers') their sides, back, top and floor, two shelves, and what they keep:
   // plates, bowls, mugs, jars (spices and mugs in the one over the hob: the hood's duct up its back, its shelves cut round
-  // it); the LED strip under them, and under the three over the hob the hood (its visor: buildSwings): its body in dark
-  // steel, two grease filters under it (bared as the visor slides out)
+  // it); the LED strip under them. In the three over the hob the hood, in steel: their partitions start on it, nothing
+  // on their floors; its underside flush with theirs (behind the LED strip): two grease filters, two lamps
   {
     const { x0, x1, y0, z0, n } = UPPER, w = (x1 - x0) / n, f = y0 + 0.02, t = 0.018, back = Y1 - 0.01, zf = z0 + t, zc = HK - t;
-    const sh = [1, 2].map((k) => zf + k * (zc - zf) / 3 - t / 2), hx = (HOOD.x0 + HOOD.x1) / 2, hr = HOOD.r + 0.008;
+    const sh = [1, 2].map((k) => zf + k * (zc - zf) / 3 - t / 2), hx = (HOOD.x0 + HOOD.x1) / 2, hr = HOOD.r + 0.008, ht = z0 + HOOD.h;
+    const inHood = (x) => x > HOOD.x0 && x < HOOD.x1, overHood = (a, b) => a < HOOD.x1 && b > HOOD.x0;
     const jar = (x, y, z, m) => add(m, lathe(JAR, [x, y, z], 28));
     const KEEP = {
       plates: (a, z) => { stack(PLATE, [a + 0.15, 16.585], z, 8, 0.012); stack(SMALL_BOWL, [a + 0.385, 16.585], z, 3, 0.022); },
@@ -2459,11 +2507,11 @@ function buildKitchen() {
       spices: (a, z) => { for (let x = a + 0.045; x < a + w - 0.04; x += 0.055) add(M.potteryDark, lathe(SPICE, [x, 16.49, z], 20)); },
       side: (a, z) => { for (const u of [0.068, 0.165]) for (const y of [16.585, 16.675]) stack(MUG, [a + u, y], z, 1, 0); },
     };
-    const PLAN = [['plates', 'bowls', 'jars'], ['mugs', 'plates', null], ['bowls', 'mugs', 'jars'], ['plates', 'bowls', 'mugs'], ['spices', 'side', 'side'], ['bowls', 'jars', 'mugs']];
+    const PLAN = [['plates', 'bowls', 'jars'], ['mugs', 'plates', null], ['bowls', 'mugs', 'jars'], ['plates', 'bowls', 'mugs'], [null, 'spices', 'side'], ['bowls', 'jars', 'mugs']];
     for (let i = 0; i < n; i++) {
       const a = x0 + i * w, b = a + w, duct = hx > a && hx < b;
-      add(M.carcass, box(a, a + t, f, back, zf, zc, { faces: 'Xy' }));
-      add(M.carcass, box(b - t, b, f, back, zf, zc, { faces: 'xy' }));
+      add(M.carcass, box(a, a + t, f, back, inHood(a) ? ht : zf, zc, { faces: inHood(a) ? 'Xyz' : 'Xy' }));
+      add(M.carcass, box(b - t, b, f, back, inHood(b) ? ht : zf, zc, { faces: inHood(b) ? 'xyz' : 'xy' }));
       add(M.carcass, box(a, b, back, back + 0.01, zf, zc, { faces: 'y' }));
       add(M.carcass, box(a, b, f, back, zc, HK, { faces: 'zy' }));
       add(M.carcass, box(a + t, b - t, f, back, z0, zf, { faces: 'Z' }));
@@ -2474,19 +2522,21 @@ function buildKitchen() {
         add(M.carcass, box(a + t, hx - hr, yn, back, z, z + t, { faces: 'XzZ' }));
         add(M.carcass, box(hx + hr, b - t, yn, back, z, z + t, { faces: 'xzZ' }));
       }
-      PLAN[i]?.forEach((k, j) => k && KEEP[k](a, j ? sh[j - 1] + t : zf));
+      PLAN[i]?.forEach((k, j) => k && !(j === 0 && overHood(a, b)) && KEEP[k](a, j ? sh[j - 1] + t : zf));
     }
     add(M.cabEnd, box(x0, x1, f, Y1, z0, z0 + 0.018, { faces: 'zxX' }));
     add(M.cabEnd, box(x0, x0 + 0.018, f, Y1, z0, HK, { faces: 'x' }));
     add(M.cabEnd, box(x1 - 0.018, x1, f, Y1, z0, HK, { faces: 'X' }));
     add(E.ucab, box(x0 + 0.04, x1 - 0.04, f + 0.02, f + 0.032, z0 - 0.002, z0, { faces: 'z' }), { shadow: false });
-    const H = HOOD, zt = z0 - 0.003, zb = H.z0 + 0.01, hm = (H.x0 + H.x1) / 2;
-    add(M.carcass, box(H.x0 + 0.004, H.x1 - 0.004, H.y0 + 0.02, H.y1, zb, zt, { faces: 'xXyYz' }));
-    for (const [p, q] of [[H.x0 + 0.03, hm - 0.005], [hm + 0.005, H.x1 - 0.03]]) {
-      add(M.stainless, box(p, q, H.y0 + 0.05, H.y1 - 0.02, zb - 0.0006, zb, { faces: 'z' }));
-      for (let x = p + 0.015; x < q - 0.012; x += 0.022) add(M.joint, box(x, x + 0.008, H.y0 + 0.06, H.y1 - 0.03, zb - 0.0009, zb - 0.0006, { faces: 'z' }), { shadow: false });
+    const H = HOOD, hy0 = f + 0.004, hy1 = back - 0.004, uy0 = f + 0.045, zu = z0 - 0.0008;
+    add(M.stainless, box(H.x0, H.x1, hy0, hy1, zf, ht, { faces: 'xXyZ' }));
+    add(M.blackMetal, box(H.x0, H.x1, uy0, hy1, zu, z0, { faces: 'z' }));
+    for (const [p, q] of [[H.x0 + 0.03, hx - 0.005], [hx + 0.005, H.x1 - 0.03]]) {
+      add(M.stainless, box(p, q, uy0 + 0.035, hy1 - 0.02, zu - 0.0005, zu, { faces: 'z' }));
+      for (let x = p + 0.015; x < q - 0.012; x += 0.022) add(M.joint, box(x, x + 0.008, uy0 + 0.045, hy1 - 0.03, zu - 0.0008, zu - 0.0005, { faces: 'z' }), { shadow: false });
     }
-    add(M.stainless, cyl(H.r, HK - z0 - 0.01, 'z', [hx, H.dy, (z0 + HK) / 2], 32));
+    for (const x of [H.x0 + 0.2, H.x1 - 0.2]) add(E.ucab, cyl(0.02, 0.002, 'z', [x, uy0 + 0.018, zu - 0.0009], 24), { shadow: false });
+    add(M.stainless, cyl(H.r, HK - ht - 0.01, 'z', [hx, H.dy, (ht + HK) / 2], 32));
   }
   // the clock on the hall's wall
   {
@@ -2601,12 +2651,13 @@ function buildIsland() {
 
 // ---------------------------------------------------------------- the drawers
 // The kitchen's drawers, each a group of its own sliding out on a click (toggleDrawer, animateOpenings): the front, a box
-// of anthracite steel, what is kept in it (FILL, in drawerSpecs' order: the two under the oven, the six under the hob, the
+// of anthracite steel (its sides 20 cm tall at most, or sides), what is kept in it (FILL, in drawerSpecs' order: the tall
+// one under the oven, the six under the hob, the
 // island's banks, each from the bottom); last the tall pull-out under the coffee machine (pullOut)
 const DRAWERS = { list: [], meshes: [] };
 function drawerSpecs() {
   const { fy, plinth } = RUN, I = ISLAND, out = [];
-  for (const [z0, z1] of [[plinth, (plinth + OVEN.z0) / 2], [(plinth + OVEN.z0) / 2, OVEN.z0]]) out.push({ x0: TALLS[2][0], x1: TALLS[2][1], z0, z1, yf: fy, dir: -1 });
+  out.push({ x0: TALLS[2][0], x1: TALLS[2][1], z0: plinth, z1: OVEN.z0, yf: fy, dir: -1, sides: 0.3 });
   for (const k of ['b2', 'b3']) for (const [z0, z1] of [[plinth, 0.355], [0.355, 0.635], [0.635, TOP.z0]]) out.push({ x0: BASES[k][0], x1: BASES[k][1], z0, z1, yf: fy, dir: -1 });
   for (const [x0, x1, n] of I.banks) {
     const h = (I.z0 - plinth) / n;
@@ -2615,7 +2666,7 @@ function drawerSpecs() {
   out.push({ x0: TALLS[3][0], x1: TALLS[3][1], z0: plinth, z1: COFFEE.niche[0], yf: fy, dir: -1, tall: true });
   return out;
 }
-const FILL = ['trays', 'containers', 'pots', 'linen', 'utensils', 'pots', 'containers', 'spices', 'dishes', 'bowls', 'cutlery',
+const FILL = ['stockpots', 'pots', 'linen', 'utensils', 'pots', 'containers', 'spices', 'dishes', 'bowls', 'cutlery',
   'linen', 'containers', 'linen', 'cutlery', 'pots', 'dishes', 'utensils'];
 const PLATE = [[0.001, 0], [0.085, 0], [0.087, 0.006], [0.125, 0.017], [0.13, 0.021], [0.126, 0.022], [0.084, 0.01], [0.001, 0.01]];
 const SMALL_BOWL = [[0.001, 0], [0.035, 0], [0.037, 0.005], [0.07, 0.05], [0.075, 0.055], [0.07, 0.056], [0.033, 0.012], [0.001, 0.012]];
@@ -2642,6 +2693,15 @@ const FILLERS = {
   cutlery: (f) => drawerInsert(f, Math.max(3, Math.round(f.W / 0.1)), M.stainless),
   utensils: (f) => drawerInsert(f, 3, M.blackMetal),
   trays: (f) => { for (let k = 0; k < 3; k++) add(M.blackMetal, box(f.x0 + 0.02 + k * 0.01, f.x1 - 0.02 - k * 0.01, ...f.span(0.02, f.L - 0.03), f.z + k * 0.024, f.z + k * 0.024 + 0.018, { faces: 'xXyYZ' })); },
+  stockpots: (f) => {
+    for (const [u, v, r, hp] of [[0.13, 0.14, 0.12, 0.24], [f.W - 0.115, 0.14, 0.1, 0.17], [f.W / 2, 0.36, 0.09, 0.12]]) {
+      const [x, y] = f.at(u, v);
+      add(M.stainless, cyl(r, hp, 'z', [x, y, f.z + hp / 2], 40));
+      add(M.stainless, cyl(r + 0.004, 0.005, 'z', [x, y, f.z + hp + 0.0025], 40));
+      add(M.blackMetal, cyl(0.014, 0.022, 'z', [x, y, f.z + hp + 0.016], 16));
+      for (const s of [-1, 1]) add(M.blackMetal, box(x + s * r - 0.012, x + s * r + 0.012, y - 0.015, y + 0.015, f.z + hp - 0.03, f.z + hp - 0.018));
+    }
+  },
   pots: (f) => {
     const hp = Math.min(0.14, f.hi - 0.03);
     for (const [u, v, r] of [[0.14, 0.13, 0.11], [f.W - 0.13, 0.14, 0.1], [f.W / 2, 0.36, 0.09]]) {
@@ -2710,7 +2770,7 @@ function buildDrawers() {
   const rnd = mulberry(41), D = DRAWER.depth, w = 0.013, g = RUN.gap / 2;
   drawerSpecs().forEach((d, i) => {
     const s = -d.dir, yi = d.yf + 0.02 * s, Y = (v) => yi + s * v, span = (v0, v1) => s > 0 ? [Y(v0), Y(v1)] : [Y(v1), Y(v0)];
-    const bx0 = d.x0 + 0.024, bx1 = d.x1 - 0.024, zb = d.z0 + 0.02, sh = Math.min(d.z1 - d.z0 - 0.06, 0.2);
+    const bx0 = d.x0 + 0.024, bx1 = d.x1 - 0.024, zb = d.z0 + 0.02, sh = d.sides ?? Math.min(d.z1 - d.z0 - 0.06, 0.2);
     // the front (its back too, seen in the open drawer); the box: steel sides, a back, its bottom
     add(M.cab, box(d.x0 + g, d.x1 - g, ...span(-0.02, 0), d.z0 + g, d.z1 - g));
     if (d.tall) pullOut(d, Y, rnd);
@@ -3401,8 +3461,8 @@ function setDoor(open) {
   markDoor();
 }
 // the kitchen's moving fronts (HINGED, by key; userData.door the key on each one's group): the oven's door, the
-// microwave's, the coffee unit's, the wall units' (upper0..), the hood's visor. Each a group in R, its pivot at its hinge
-// (the visor's: nowhere, it slides); set(o, e) puts it at e (0 shut, 1 open), eased over dur s on a click (toggleSwing,
+// microwave's, the trays' cabinet's, the coffee unit's, the wall units' (upper0..), the pantry freezer's. Each a group in R, its pivot at its
+// hinge; set(o, e) puts it at e (0 shut, 1 open), eased over dur s on a click (toggleSwing,
 // animateOpenings); fronts: its meshes in the fronts' finish (applyFronts swaps them)
 const HINGED = {};
 function swing(key, pivot, set, { open = false, dur = 0.7 } = {}) {
@@ -3442,6 +3502,14 @@ function buildSwings() {
     add(M.ovenGlass, box(k0, k1, ft, ft + 0.0005, h0, h1, { faces: 'Y' }), { shadow: false });
     hang(sw);
   }
+  // the baking trays' cabinet's: a front as the others, hinged on its left as the microwave's
+  {
+    const [a, b] = TALLS[2], z0 = MICRO.z1;
+    const sw = swing('trays', [a + g, fy, 0], (o, e) => { o.rotation.z = -TRAYS.open * e; });
+    add(M.cab, box(a + g, b - g, fy, ft, z0 + g, H1 - g, { faces: 'xXyzZ' }));
+    add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, H1 - g, { faces: 'Y' }));
+    hang(sw);
+  }
   // the coffee unit's: a front over its pull-out to the ceiling, hinged by the hall's wall, open as drawn
   {
     const [a, b] = TALLS[3], z0 = COFFEE.niche[0];
@@ -3470,15 +3538,6 @@ function buildSwings() {
     const p = a + 0.035, q = x1 - 0.035, u = RUN.plinth + 0.04, v = H1 - 0.04, r = 0.016;
     add(M.pantryWhite, box(p, q, ff, d1, u, v, { faces: 'xXzZY' }));
     for (const [bx0, bx1, bz0, bz1] of [[p, q, u, u + r], [p, q, v - r, v], [p, p + r, u + r, v - r], [q - r, q, u + r, v - r]]) add(M.joint, box(bx0, bx1, d1, d1 + 0.002, bz0, bz1, { faces: 'Y' }), { shadow: false });
-    hang(sw);
-  }
-  // the hood's visor: its front in black glass, its tray under the body, two lamps under it (on the LED strip's circuit)
-  {
-    const { x0, x1, y0: yh, z0, travel } = HOOD, zt = UPPER.z0 - 0.003;
-    const sw = swing('hood', [0, 0, 0], (o, e) => { o.position.y = -travel * e; });
-    add(M.blackGlass, box(x0, x1, yh, yh + 0.015, z0, zt));
-    add(M.carcass, box(x0, x1, yh + 0.015, yh + 0.235, z0, z0 + 0.01, { faces: 'xXzZY' }));
-    for (const x of [x0 + 0.2, x1 - 0.2]) add(E.ucab, cyl(0.022, 0.002, 'z', [x, yh + 0.08, z0 - 0.0008], 24), { shadow: false });
     hang(sw);
   }
 }
@@ -4951,7 +5010,7 @@ function renderLegend() {
   const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled' }[floorKey];
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
-    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven at 70 cm under a built-in microwave, the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a slim 90 cm hood under them over the hob, its duct up through the unit over it. A click opens or shuts any door or drawer, the oven, the microwave, the hood\'s visor (it slides out), the drawers in the island too', frontsC],
+    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven at 70 cm over a tall drawer of pots, under a built-in microwave and a cabinet for the baking trays (on edge between dividers), the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a 90 cm hood built into them over the hob (flush with their underside: only its filters show, from below), its duct up through the unit over it. A click opens or shuts any door or drawer, the oven, the microwave, the trays\' cabinet, the drawers in the island too', frontsC],
     ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves inside, 15 cm deep along the south wall and turning along the facade (40 cm) over the counter, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
