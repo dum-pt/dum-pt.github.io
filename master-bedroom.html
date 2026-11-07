@@ -139,7 +139,7 @@
   </div>
   <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches' and the sockets' plates, where the model has them: black or white. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
-    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or shut the door to the terrace, or click the door itself; drawn curtains open with it (D)">Open terrace door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-cdoor" aria-pressed="false" title="Open or shut the door to the corridor, or click it (G)">Open corridor door</button><button class="chip" id="t-edoor" aria-pressed="false" title="Open or shut the door from the wardrobe to the master bathroom, or click it (N)">Open bathroom door</button></div>
+    <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or shut the door to the terrace, or click the door itself; drawn curtains open with it (D)">Open terrace door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-cdoor" aria-pressed="false" title="Open or shut the door to the corridor, or click it (G)">Open corridor door</button><button class="chip" id="t-edoor" aria-pressed="false" title="Open or shut the door from the wardrobe to the master bathroom, or click it (N)">Open bathroom door</button><button class="chip on" id="t-pdoor" aria-pressed="true" title="Slide the wardrobe's pocket door shut or back into the wall, or click it (L)">Close wardrobe door</button></div>
   </div>
   <div class="group"><h2>Render</h2>
     <div class="chips">
@@ -198,16 +198,22 @@ const SU = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
 // the en-suite: its face a dark accent with an oak panel), facing the TV on the south wall; in the south-west corner, by
 // the door from the corridor (west, CDOOR), the dressing corner: a floating oak top before an organic mirror, an oak
 // niche with marble shelves and a tall cabinet. North of the bedroom the walk-in wardrobe (WX0..WX1, WY0..Y1), through an
-// opening in the partition: a fixed window floor to ceiling at its north end, the door to the en-suite (EDOOR) in its east
+// opening in the partition (a pocket door): a fixed window floor to ceiling at its north end, the door to the en-suite (EDOOR) in its east
 // wall; empty in the model, its runs are this page's (WRUN).
 const X0 = 50.71, X1 = 53.585;          // the south wall's face / the partition's (the bed wall)
 const Y0 = 8.855, Y1 = 13.405;          // the east wall's inner face / the corridor wall's
 const H = 2.6, WT = 2.85;               // the ceilings; the slab's top (section height)
 const YO = 8.555;                        // the east facade's outer face (behind its cladding)
 const BACK_X = X0;                       // (no backlit mirror here: the shared glow stays off)
-// the partition (X1..x1): the opening to the wardrobe (open, y; up to head), no leaf
+// the partition (X1..x1): the opening to the wardrobe (open, y; up to head), closed by a pocket door (POCKET)
 const PART = { x1: 53.725, open: [11.955, 12.655], head: 2.1 };
 const WX0 = PART.x1, WX1 = 57.085, WY0 = 11.195;                      // the wardrobe: its south, north and east walls' faces
+// the pocket door: a flush leaf (x0..x1, in the partition's middle) sliding west into a pocket in the wall between the
+// opening and the corridor wall; frameless (the reveals plastered, a slot in the jamb at the pocket's mouth, slot wider
+// than the leaf either side; a track slot in the head). Shut, it runs from gap short of the east jamb to lap inside the
+// pocket; open, it leaves proud of the mouth (a black edge pull in it; flush pulls on its faces by the leading edge)
+const POCKET = { x0: 53.635, x1: 53.675, gap: 0.003, lap: 0.03, proud: 0.02, slot: 0.003, top: 0.004 };
+POCKET.travel = PART.open[1] - PART.open[0] - POCKET.gap - POCKET.proud;
 // the east glazing: one fixed pane floor to ceiling, its anthracite frame 15 cm deep (x0..x1, fy0..fy1; the reveal on to
 // Y0 plastered), the glass in its middle (glass; g0..g1), sill and head
 const EG = { x0: 50.49, x1: 52.085, fy0: YO, fy1: 8.705, glass: 8.63, g0: 50.574, g1: 52.001, sill: 0.08, head: 2.52 };
@@ -1577,8 +1583,19 @@ function buildArchitecture() {
   const [o0, o1] = PART.open;
   for (const [a, b, z0] of [[Y0, o0, 0], [o1, Y1, 0], [o0, o1, PART.head]]) add(M.accent, box(X1, WX0, a, b, z0, WT, { faces: 'x' }));
   wall(X1, WX0, Y0, o0, 0, WT, 'XY');
-  wall(X1, WX0, o1, Y1, 0, WT, 'Xy');
+  wall(X1, WX0, o1, Y1, 0, WT, 'X');
   wall(X1, WX0, o0, o1, PART.head, WT, 'Xz');
+  // the jamb at the pocket's mouth: plastered either side of the leaf's slot, the slot dark (its sides, the pocket behind);
+  // the track's slot along the head
+  {
+    const { x0, x1, slot } = POCKET, s0 = x0 - slot, s1 = x1 + slot, hd = PART.head;
+    add(M.plaster, box(X1, s0, o1, Y1, 0, hd, { faces: 'y' }));
+    add(M.plaster, box(s1, WX0, o1, Y1, 0, hd, { faces: 'y' }));
+    add(M.joint, box(X1, s0, o1, o1 + 0.012, 0, hd, { faces: 'X' }), { shadow: false });
+    add(M.joint, box(s1, WX0, o1, o1 + 0.012, 0, hd, { faces: 'x' }), { shadow: false });
+    add(M.joint, box(s0, s1, o1 + 0.012, Y1, 0, hd, { faces: 'y' }), { shadow: false });
+    add(M.joint, box(s0, s1, o0, o1, hd - 0.0006, hd - 0.0002, { faces: 'z' }), { shadow: false });
+  }
   // the wardrobe's east wall (to the en-suite) round its door; the corridor wall round the bedroom's door and on past the
   // wardrobe (the hallway's side too, to its window); the north facade round the wardrobe's window (its reveal
   // plastered)
@@ -2309,10 +2326,12 @@ function buildMeshes({ meta, buf }) {
 // The terrace door's sash, hinged at its east stile, swinging into the room (TDOOR); the corridor's door and the
 // en-suite's, flush leaves with black levers (LEAF); the wardrobe's doors (WDOORS). Each turns in a group at its hinge (the
 // leaf built in place in an inner group set back by it). DOORS: their meshes, glass and all (a click on one opens or shuts
-// it: userData.door on its group: 'terrace', 'corridor', 'ensuite' or 'w' and the wardrobe door's index)
+// it: userData.door on its group: 'terrace', 'corridor', 'ensuite', 'pocket' or 'w' and the wardrobe door's index); the
+// pocket door (LEAF.pocket) slides instead, open to begin with
 const DOORS = [];
 const TDOOR = { open: false, t: 0, g: null };
-const LEAF = { corridor: { open: false, t: 0, g: null }, ensuite: { open: false, t: 0, g: null } };
+const LEAF = { corridor: { open: false, t: 0, g: null }, ensuite: { open: false, t: 0, g: null }, pocket: { open: true, t: 1, g: null } };
+const LEAF_CHIP = { corridor: ['t-cdoor', 'corridor door'], ensuite: ['t-edoor', 'bathroom door'], pocket: ['t-pdoor', 'wardrobe door'] };
 function hinged(key, px, py, build) {
   const outer = new THREE.Group(), inner = new THREE.Group();
   outer.position.set(px, py, 0);
@@ -2367,6 +2386,23 @@ function buildDoors() {
     });
     R.add(LEAF.ensuite.g);
   }
+  // the pocket door into the wardrobe: built shut, then slid open (its group moves along y); a flush pull on each face by
+  // the leading edge (a black cup, its recess darker), an edge pull in the leading edge to draw it out of the pocket
+  {
+    const P = POCKET, [o0, o1] = PART.open, y0 = o0 + P.gap, y1 = o1 + P.lap, z1 = PART.head - P.top, zc = 1.05, yp = y0 + 0.05;
+    LEAF.pocket.g = hinged('pocket', 0, 0, () => {
+      add(M.lacquer, box(P.x0, P.x1, y0, y1, 0.008, z1));
+      for (const [x, s, f] of [[P.x0, -1, 'x'], [P.x1, 1, 'X']]) {
+        add(M.blackMetal, box(Math.min(x, x + s * 0.0015), Math.max(x, x + s * 0.0015), yp - 0.016, yp + 0.016, zc - 0.09, zc + 0.09));
+        const r = x + s * 0.0017;
+        add(M.joint, box(Math.min(r, r - s * 0.0002), Math.max(r, r - s * 0.0002), yp - 0.01, yp + 0.01, zc - 0.08, zc + 0.08, { faces: f }), { shadow: false });
+      }
+      add(M.blackMetal, box(P.x0 + 0.008, P.x1 - 0.008, y0 - 0.0015, y0, zc - 0.06, zc + 0.06));
+      add(M.joint, box(P.x0 + 0.012, P.x1 - 0.012, y0 - 0.0017, y0 - 0.0015, zc - 0.05, zc + 0.05, { faces: 'y' }), { shadow: false });
+    });
+    LEAF.pocket.g.position.y = P.travel;
+    R.add(LEAF.pocket.g);
+  }
   // the wardrobe's doors, each built twice (WF): a pane of bronze glass in a slim frame in the style's metal, a long
   // pull by its free edge; or a flush leaf lacquered a shade lighter than the walls, opened by a touch. Floor to ceiling,
   // before the runs' fronts; each turns about its hinge on its outer face
@@ -2406,7 +2442,7 @@ function setDoor(open) {
 }
 function setLeaf(k, open = !LEAF[k].open) {
   LEAF[k].open = open;
-  chip(k === 'corridor' ? 't-cdoor' : 't-edoor', open, (open ? 'Close ' : 'Open ') + (k === 'corridor' ? 'corridor door' : 'bathroom door'));
+  chip(LEAF_CHIP[k][0], open, (open ? 'Close ' : 'Open ') + LEAF_CHIP[k][1]);
   dirty = true;
 }
 function toggleWDoor(i) {
@@ -2587,6 +2623,7 @@ function animateOpenings(dt) {
   run(TDOOR, 1.8, (k) => { TDOOR.g.rotation.z = -SD.open * k; });
   run(LEAF.corridor, 1.5, (k) => { LEAF.corridor.g.rotation.z = -CDOOR.open * k; });
   run(LEAF.ensuite, 1.5, (k) => { LEAF.ensuite.g.rotation.z = EDOOR.open * k; });
+  run(LEAF.pocket, 1.2, (k) => { LEAF.pocket.g.position.y = POCKET.travel * k; });
   for (const d of WDOORS) run(d, 1.0, (k) => { d.g.rotation.z = d.sign * 1.75 * k; });
   if (CURT.runs.length && CURT.t !== (CURT.closed ? 1 : 0)) {
     CURT.t = THREE.MathUtils.clamp(CURT.t + (CURT.closed ? dt : -dt) / 2.4, 0, 1);
@@ -3377,11 +3414,11 @@ function renderLegend() {
     ['Dressing', 'as in the model, by the corridor door: a floating ' + wn + ' top before a tall organic mirror; a ' + wn + ' column with a lit niche of Carrara shelves, a tall cabinet in the corner; the Firkant pouf (Icons of Denmark), a Gessi diffuser', '#e3e1dd'],
     ['Chest', 'a chest of drawers in the corner by the wardrobe\'s opening, against the corridor wall: ' + wn + ', 90 × 42 cm, 76 cm high, its edges rounded, on a dark grey plinth set back; three drawers with fluted fronts (round reeds floor to top) and round knobs in ' + metal.label + ' (a click opens one); on it a framed print leaning on the wall (50 × 70 cm, layered hills under a low sun on a white mat, a slim black frame), a dark vase of bare branches, books', wood.swatch],
     ['TV', 'a 55-inch TV on the south wall, facing the bed', '#1b1b1c'],
-    ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall: ' + wn + ' runs ' + fronts + ' along the corridor wall (60 cm deep: hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + ') and the east wall either side of the bathroom door (50 cm: drawers, hanging); rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
+    ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall with a pocket door: ' + wn + ' runs ' + fronts + ' along the corridor wall (60 cm deep: hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + ') and the east wall either side of the bathroom door (50 cm: drawers, hanging); rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
     ['Floor', floor + ', on into the wardrobe; wool rugs under the bed and along the wardrobe', floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, lit by an LED line in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
-    ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom', M.lacquer.color.getStyle()],
+    ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom; into the wardrobe a pocket door, sliding into the bed wall towards the corridor (frameless, the reveals plastered; flush pulls in black, an edge pull to draw it out; a click slides it)', M.lacquer.color.getStyle()],
     ['Hallway', 'outside the bedroom\'s door, as in the Kitchen & living page: from the lobby north to a fixed window floor to ceiling, three ' + wn + ' panels on the bedroom\'s wall, the powder room\'s flush door, three small downlights; off it the stairs down to the lower floor round the powder room in three arms, clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side, LED step lights, a glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
     ['Light', 'round downlights (three in the bedroom, two in the wardrobe), the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, under the bed and the nightstands, in the wardrobe', '#ffe2c2'],
   ];
@@ -3714,6 +3751,7 @@ function buildUI() {
   $('t-curt').addEventListener('click', () => setCurtains(!CURT.closed));
   $('t-cdoor').addEventListener('click', () => setLeaf('corridor'));
   $('t-edoor').addEventListener('click', () => setLeaf('ensuite'));
+  $('t-pdoor').addEventListener('click', () => setLeaf('pocket'));
   $('t-snap').addEventListener('click', () => saveImage());
   $('t-ao').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); postOn = e.currentTarget.classList.contains('on'); gtao.enabled = bloom.enabled = postOn; dirty = true; });
   // keys: the next choice in a picker
@@ -3730,6 +3768,7 @@ function buildUI() {
     if (k === 'd') { setDoor(!TDOOR.open); return; }
     if (k === 'g') { setLeaf('corridor'); return; }
     if (k === 'n') { setLeaf('ensuite'); return; }
+    if (k === 'l') { setLeaf('pocket'); return; }
     if (k === 'c') { setCurtains(!CURT.closed); return; }
     if (k === 'k') { pickNext('curtains', Object.keys(CURTAINS), curtainKey, setCurtainKind); return; }
     if (k === 'e') { setDeviceColor(devColor === 'black' ? 'white' : 'black'); return; }
@@ -3761,7 +3800,7 @@ function buildUI() {
       const { drawer: i, door: d } = o.userData;
       if (i !== undefined) return () => toggleDrawer(i);
       if (d === 'terrace') return () => setDoor(!TDOOR.open);
-      if (d === 'corridor' || d === 'ensuite') return () => setLeaf(d);
+      if (d === 'corridor' || d === 'ensuite' || d === 'pocket') return () => setLeaf(d);
       if (d !== undefined) return () => toggleWDoor(+d.slice(1));
     }
     return undefined;
