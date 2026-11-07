@@ -252,11 +252,17 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs:
   { a: [43.135, 10.11], b: [43.135, 14.45] },
 ] };
 // the pantry: its walls (14 cm: the kitchen's at x1..KX0, the living room's at YK..y0), the doorway from the kitchen (oak-
-// lined, up to the lowered ceiling), oak shelves 15 cm deep along its south wall (to sx1, at shelves), a tall unit at
-// the facade; a downlight in its ceiling over the shelves (lamp), its light kept to the pantry (gate: on its distance,
-// see outdoorLights)
-const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.365, tall: [43.89, 44.49, 16.1],
-  lamp: [43.75, 15.4], gate: 3000 };
+// lined, up to the lowered ceiling), oak shelves 15 cm deep along its south wall (to sx1, at shelves), a tall freezer at
+// the facade (tall: its sides, its front's face; 60 cm, as in the house model, but ending at the wall's line by the
+// sliding door's gap: its door hinged on that side, opening by open rad), a counter in the wood from it to the south
+// wall (its underside and top: counter); a downlight in its ceiling over the shelves (lamp), its light kept to the
+// pantry (gate: on its distance, see outdoorLights)
+const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.365, tall: [43.81, 44.41, 16.1],
+  open: Math.PI / 2, counter: [0.86, 0.89], lamp: [43.75, 15.4], gate: 3000 };
+// the pantry's rack against its east wall, across from the freezer: 100 x 40 x 200 cm (x0..x1 by its wall shelves, y0..y1,
+// to z1), black steel posts (post square), oak shelves (their tops at shelves) on steel rails; its light switch on the
+// doorway's wall inside, between the rack and the doorway (switch: along the wall)
+const RACK = { x0: PANTRY.sx1, x1: PANTRY.sx1 + 1.0, y0: PANTRY.y0, y1: PANTRY.y0 + 0.4, z1: 2.0, post: 0.025, shelves: [0.12, 0.5, 0.88, 1.26, 1.64, 2.0], switch: 15.22 };
 // the pantry's door: a plain panel in the wood or a white slab (t thick), or a pane of glass (g thick), w wide, z0..z1,
 // hung from a track on the ceiling (its middle at x, tw wide, th deep, from the doorway's far jamb to the facade) and
 // sliding into the gap between the kitchen's larder and the pantry's tall unit (no wall between them: their ends line
@@ -1226,6 +1232,7 @@ const M = {
   counter: physical({ clearcoat: 0.5, clearcoatRoughness: 0.12 }),     // the stone: worktop, island
   flute: physical({ color: 0xefebe4, roughness: 0.45, clearcoat: 0.2, clearcoatRoughness: 0.35 }),   // the island's fluted panel
   built: physical({ color: 0xf0ede7, roughness: 0.38, clearcoat: 0.3, clearcoatRoughness: 0.3 }),    // the dining wall's cabinets
+  frost: physical({ color: 0xdce2e5, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.2 }),      // the freezer's drawers and shelves
   pantryWhite: physical({ color: 0xf4f2ee, roughness: 0.42, clearcoat: 0.25, clearcoatRoughness: 0.35 }),    // the pantry's white door
   blackTop: physical({ color: 0x131211, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.2 }),
   shelf: physical({ color: 0x1a1918, metalness: 0.6, roughness: 0.42 }),       // black steel
@@ -1288,11 +1295,14 @@ const M = {
   amber: physical({ color: 0x7a4c1c, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05 }),
   clockFace: physical({ color: 0xf1eee8, roughness: 0.6 }),
   canister: physical({ color: 0xe9e5dc, roughness: 0.5, clearcoat: 0.2 }),
+  potato: physical({ color: 0xa8875c, roughness: 0.9 }),
+  onion: physical({ color: 0xb06a33, roughness: 0.55, clearcoat: 0.3 }),
 };
 // emissive surfaces, driven by the light mood
 const E = {
   spot: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the downlights' lenses
   kdown: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the kitchen's spots
+  pantry: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the pantry's downlight
   ring: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the ring's diffuser
   island: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the island pendant's diffuser
   curtain: new THREE.MeshBasicMaterial({ color: 0xffffff }),  // the LED lines: in the curtains' pocket, under the uppers,
@@ -2253,7 +2263,7 @@ function buildCeiling() {
   put(M.ceiling, box(X1, BUILT.x1, Y0, BUILT.y1, H, WT, { faces: 'z' }));      // (over the dining wall's cabinets: swapped, they are gone)
   put(M.ceiling, box(PANTRY.x0, PANTRY.x1, PANTRY.y0, Y1, HK, WT, { faces: 'z' }));
   put(M.trim, cyl(0.036, 0.002, 'z', [...PANTRY.lamp, HK - 0.001], 32));
-  put(E.kdown, cyl(0.029, 0.002, 'z', [...PANTRY.lamp, HK - 0.003], 32));
+  put(E.pantry, cyl(0.029, 0.002, 'z', [...PANTRY.lamp, HK - 0.003], 32));
   put(M.ceiling, box(PANTRY.x1, KX0, PANTRY.door[0], Y1, HK, WT, { faces: 'z' }));     // over the doorway and the door's gap
   const s0 = KSLOT.y - KSLOT.w / 2, s1 = KSLOT.y + KSLOT.w / 2, zt = HK + KSLOT.d;
   put(M.ceiling, box(KX0, KX1, YK, s0, HK, WT, { faces: 'z' }));
@@ -2489,12 +2499,43 @@ function buildKitchen() {
     }
     for (const [a, l, w] of [[-0.95, 0.09, 0.006], [1.1, 0.14, 0.004]]) add(M.trim, new THREE.BoxGeometry(0.002, w, l).translate(0, 0, l / 2 - 0.015).rotateX(-a).translate(x - 0.013, y, z));
   }
-  // the pantry: shelves in the wood along its south wall, a tall unit at the facade (its end along the door's gap)
+  // the pantry: shelves in the wood along its south wall; the tall unit at the facade (its ends along the counter and
+  // the door's gap, its plinth set back) and the freezer in it behind its door (buildSwings): the freezer's white face
+  // round its cavity, a display at the top, five drawers, a shelf over them and two more, boxes on them; the counter
+  // from it to the south wall, a bread bin and two canisters on it
   {
-    const { x0, x1, y0, shelves, sx1, tall } = PANTRY;
-    for (const z of shelves) add(M.veneer, box(x0, sx1, y0, tall[2], z - 0.02, z));
-    add(M.cabEnd, box(tall[0], x1, tall[2], tall[2] + 0.02, plinth, H1, { faces: 'yxX' }));
-    add(M.cabEnd, box(x1 - 0.018, x1, tall[2] + 0.02, Y1, 0, H1, { faces: 'X' }));
+    const { x0, x1, y0, shelves, sx1, tall, counter: [c0, c1] } = PANTRY, a = tall[0], fy = tall[2], ff = fy + 0.02, yf = ff + 0.052, yb = Y1 - 0.04;
+    for (const z of shelves) add(M.veneer, box(x0, sx1, y0, fy, z - 0.02, z));
+    add(M.cabEnd, box(a, a + 0.018, ff, Y1, 0, H1, { faces: 'xy' }));
+    add(M.cabEnd, box(x1 - 0.018, x1, ff, Y1, 0, H1, { faces: 'Xy' }));
+    add(M.cabEnd, box(a + 0.018, x1 - 0.018, ff, Y1, H1 - 0.018, H1, { faces: 'yz' }));
+    add(M.joint, box(a, x1, fy + 0.06, fy + 0.07, 0, plinth, { faces: 'y' }), { shadow: false });
+    const k0 = a + 0.07, k1 = x1 - 0.07, e0 = plinth + 0.08, e1 = H1 - 0.09;
+    for (const [p, q, u, v] of [[a + 0.018, k0, plinth, H1 - 0.018], [k1, x1 - 0.018, plinth, H1 - 0.018], [k0, k1, plinth, e0], [k0, k1, e1, H1 - 0.018]]) add(M.pantryWhite, box(p, q, yf, yf + 0.01, u, v, { faces: 'y' }));
+    add(M.hobMark, box(k0 + 0.03, k0 + 0.13, yf - 0.0005, yf, e1 + 0.035, e1 + 0.047, { faces: 'y' }), { shadow: false });
+    add(M.pantryWhite, box(k0, k1, yb, yb + 0.01, e0, e1, { faces: 'y' }));
+    add(M.pantryWhite, box(k0 - 0.01, k0, yf, yb, e0, e1, { faces: 'X' }));
+    add(M.pantryWhite, box(k1, k1 + 0.01, yf, yb, e0, e1, { faces: 'x' }));
+    add(M.pantryWhite, box(k0, k1, yf, yb, e0 - 0.01, e0, { faces: 'Z' }));
+    add(M.pantryWhite, box(k0, k1, yf, yb, e1, e1 + 0.01, { faces: 'z' }));
+    const top = 1.36, h = (top - e0) / 5;
+    for (let i = 0; i < 5; i++) {
+      const z = e0 + i * h;
+      add(M.frost, box(k0 + 0.004, k1 - 0.004, yf + 0.004, yb - 0.01, z + 0.004, z + h - 0.004, { faces: 'yxXz' }));
+      add(M.joint, box(k0 + 0.07, k1 - 0.07, yf + 0.0035, yf + 0.004, z + h - 0.03, z + h - 0.02, { faces: 'y' }), { shadow: false });
+    }
+    for (const z of [top, 1.63, 1.92]) {
+      add(M.frost, box(k0, k1, yf + 0.004, yb, z, z + 0.006, { faces: 'yzZ' }));
+      add(M.potteryWhite, rbox(0.17, 0.24, 0.07, 0.008, [k0 + 0.11, 16.42, z + 0.041]));
+      add(M.frost, rbox(0.13, 0.17, z === top ? 0.12 : 0.1, 0.012, [k1 - 0.1, 16.38, z + 0.006 + (z === top ? 0.06 : 0.05)]));
+      add(M.potteryWhite, rbox(0.15, 0.2, 0.05, 0.008, [k0 + 0.11, 16.42, z + 0.106]));
+    }
+    add(M.veneer, box(x0, a, ff, Y1, c0, c1, { faces: 'yzZ' }));
+    add(M.potteryWhite, rbox(0.34, 0.22, 0.17, 0.025, [43.56, 16.58, c1 + 0.085]));
+    for (const [x, y, k] of [[43.29, 16.36, 1], [43.29, 16.47, 0.8]]) {
+      add(M.canister, lathe(JAR.map(([r, hh]) => [r * 0.8, hh * k]), [x, y, c1], 28));
+      add(M.veneer, cyl(0.037, 0.012, 'z', [x, y, c1 + 0.152 * k + 0.006], 28));
+    }
   }
 }
 
@@ -3139,6 +3180,29 @@ function buildProps() {
     add(M.potteryWhite, lathe([[0.001, 0], [0.05, 0], [0.052, 0.15], [0.047, 0.15], [0.045, 0.01], [0.001, 0.01]], [47.16, 16.25, z], 28));
     for (let i = 0; i < 4; i++) add(M.veneer, cyl(0.007, 0.3, 'z', [47.16 + 0.02 * Math.cos(i * 1.6), 16.25 + 0.02 * Math.sin(i * 1.6), z + 0.2], 8));
   }
+  // the pantry's rack: its posts, the shelves on their rails; on them (from the floor) two crates of vegetables and water,
+  // tins and boxes, jars, packets, bottles, two storage boxes on top
+  {
+    const { x0, x1, y0, y1, z1, post: q, shelves } = RACK, rnd = mulberry(77);
+    for (const [px, py] of [[x0, y0], [x1 - q, y0], [x0, y1 - q], [x1 - q, y1 - q]]) add(M.blackMetal, box(px, px + q, py, py + q, 0, z1));
+    for (const z of shelves) {
+      add(M.veneer, box(x0 + 0.002, x1 - 0.002, y0 + 0.002, y1 - 0.002, z - 0.02, z));
+      for (const [a, b] of [[y1 - q, y1], [y0, y0 + q]]) add(M.blackMetal, box(x0 + q, x1 - q, a, b, z - 0.05, z - 0.02, { faces: 'yYz' }));
+    }
+    const [f0, f1, f2, f3, f4, f5] = shelves;
+    for (const [cx, m] of [[x0 + 0.24, M.veneer], [x0 + 0.7, M.veneer]]) {
+      add(m, box(cx - 0.19, cx + 0.19, y0 + 0.05, y0 + 0.35, f0, f0 + 0.012));
+      for (const [a, b, c, d] of [[cx - 0.19, cx + 0.19, y0 + 0.05, y0 + 0.062], [cx - 0.19, cx + 0.19, y0 + 0.338, y0 + 0.35], [cx - 0.19, cx - 0.178, y0 + 0.062, y0 + 0.338], [cx + 0.178, cx + 0.19, y0 + 0.062, y0 + 0.338]]) add(m, box(a, b, c, d, f0, f0 + 0.2));
+    }
+    for (let i = 0; i < 9; i++) add(i % 3 ? M.potato : M.onion, sphere(0.035 + rnd() * 0.01, [x0 + 0.1 + (i % 3) * 0.12 + rnd() * 0.02, y0 + 0.12 + Math.floor(i / 3) * 0.08, f0 + 0.05], 14));
+    for (let i = 0; i < 6; i++) add(M.slideGlass, lathe(BOTTLE.map(([r, h]) => [r * 1.15, h * 1.3]), [x0 + 0.58 + (i % 3) * 0.08, y0 + 0.13 + Math.floor(i / 3) * 0.1, f0 + 0.012], 20));
+    for (let k = 0; k < 8; k++) for (const y of [y0 + 0.09, y0 + 0.19, y0 + 0.29]) if (k < 5 || y > y0 + 0.15) add(M.stainless, cyl(0.037, 0.105, 'z', [x0 + 0.07 + k * 0.08, y, f1 + 0.0525], 24));
+    add(M.book2, rbox(0.24, 0.3, 0.16, 0.004, [x1 - 0.17, y0 + 0.2, f1 + 0.08]));
+    for (let k = 0; k < 8; k++) add(rnd() < 0.6 ? M.canister : M.amber, lathe(JAR.map(([r, h]) => [r, h * (0.75 + rnd() * 0.5)]), [x0 + 0.08 + k * 0.12, y0 + 0.2 + (k % 2 ? 0.06 : -0.06), f2], 24));
+    for (let k = 0; k < 9; k++) { const w = 0.065 + rnd() * 0.02, h = 0.22 + rnd() * 0.08, m = [M.book1, M.book2, M.book3][k % 3]; add(m, rbox(w, 0.19, h, 0.003, [x0 + 0.09 + k * 0.1, y0 + 0.2, f3 + h / 2])); }
+    for (let k = 0; k < 7; k++) add(k % 2 ? M.amber : M.slideGlass, lathe(BOTTLE.map(([r, h]) => [r * 0.95, h * (1.1 + (k % 3) * 0.12)]), [x0 + 0.1 + k * 0.13, y0 + 0.2, f4], 20));
+    for (const [cx, m] of [[x0 + 0.26, M.potteryWhite], [x0 + 0.72, M.book2]]) add(m, rbox(0.38, 0.32, 0.2, 0.015, [cx, y0 + 0.2, f5 + 0.1]));
+  }
   // the pantry's shelves: jars
   {
     const rnd = mulberry(21);
@@ -3385,6 +3449,17 @@ function buildSwings() {
       add(M.cabEnd, box(a + g, b - g, f - 0.001, f, z0 + g, HK - g, { faces: 'Y' }));
       hang(sw);
     }
+  }
+  // the pantry freezer's: its front in the wood (as the units' ends), the freezer's own door on its back (white, a seal
+  // round its edge), hinged by the doorway
+  {
+    const { x1, tall, open } = PANTRY, a = tall[0], fy = tall[2], ff = fy + 0.02, d1 = ff + 0.048;
+    const sw = swing('freezer', [x1 - g, fy, 0], (o, e) => { o.rotation.z = open * e; }, { dur: 0.8 });
+    add(M.cabEnd, box(a + g, x1 - g, fy, ff, RUN.plinth + g, H1 - g));
+    const p = a + 0.035, q = x1 - 0.035, u = RUN.plinth + 0.04, v = H1 - 0.04, r = 0.016;
+    add(M.pantryWhite, box(p, q, ff, d1, u, v, { faces: 'xXzZY' }));
+    for (const [bx0, bx1, bz0, bz1] of [[p, q, u, u + r], [p, q, v - r, v], [p, p + r, u + r, v - r], [q - r, q, u + r, v - r]]) add(M.joint, box(bx0, bx1, d1, d1 + 0.002, bz0, bz1, { faces: 'Y' }), { shadow: false });
+    hang(sw);
   }
   // the hood's visor: its front in black glass, its tray under the body, two lamps under it (on the LED strip's circuit)
   {
@@ -4018,7 +4093,7 @@ async function loadView() {
 }
 
 // ---------------------------------------------------------------- lights
-const L = { spot: [], kdown: [], skan: [], area: [], sky: [], layout: [], cor: [] };
+const L = { spot: [], kdown: [], pantry: [], skan: [], area: [], sky: [], layout: [], cor: [] };
 function buildLights() {
   const spot = (x, y, z, angle, pen, shadow, list) => {
     const s = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(angle), pen, 2);
@@ -4040,7 +4115,7 @@ function buildLights() {
   // table, the ring's over the coffee table
   for (const y of ROWS) for (const x of SPOTS) spot(x, y, H - 0.012, 22, 0.6, false, L.spot);
   for (const x of KSLOT.spots) spot(x, KSLOT.y, HK + 0.006, 34, 0.7, true, L.kdown);
-  spot(...PANTRY.lamp, HK - 0.012, 58, 0.8, false, L.kdown).distance = PANTRY.gate;      // the pantry's (no shadows: gated)
+  spot(...PANTRY.lamp, HK - 0.012, 58, 0.8, false, L.pantry).distance = PANTRY.gate;      // the pantry's (no shadows: gated)
   // the hallway's three downlights and the one over the stairwell (no shadows), on their own channel
   for (const x of COR.lamps) spot(x, COR.ly, H - 0.012, 36, 0.75, false, L.cor);
   spot(...STAIR.lamp, H - 0.012, 44, 0.8, false, L.cor);
@@ -4141,6 +4216,7 @@ const WALLS = {
   Cr: { x: EG_B.x1, n: [-1, 0], u: () => 10.03 },                   // the TV wall's end, in the south glazing's reveal
   D: { x: BUILT.x1, n: [-1, 0], u: (X) => BUILT.y1 - X / 1000 },    // the bedroom's wall (behind the dining wall as drawn)
   E: { y: YK, n: [0, -1], u: (X) => 43.21 + X / 1000 },             // the pantry's wall to the living room
+  P: { x: PANTRY.x1, n: [-1, 0], u: () => RACK.switch },            // the pantry's doorway wall, inside (not in the plan)
 };
 // what the rockers work: lamp channels (applyMood), an action, or (neither) something not in the model
 const CIRCUITS = {
@@ -4152,6 +4228,7 @@ const CIRCUITS = {
   skan: { label: 'Pendants over the table', ch: ['skan'] },
   curtain: { label: 'LED in the curtain pocket', ch: ['curtain'] },
   ucab: { label: 'LED under the wall units', ch: ['ucab'] },
+  pantry: { label: 'Pantry downlight', ch: ['pantry'] },
   blinds: { label: 'Kitchen window blinds', act: () => setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true), on: () => BLINDS.target > 0.5 },
   firepit: { label: 'Garden: fire pit lighting' },
   woodwall: { label: 'Garden: wooden wall lighting' },
@@ -4207,6 +4284,7 @@ const DEVICES = [
   { id: 'R2', w: 'E', X: 390, h: 950, kind: 'sw', gangs: [['terled', 'terspots']] },
   { id: 'R3', w: 'E', X: 490, h: 950, kind: 'sw', gangs: [['curtain']] },
   { id: 'R4', w: 'E', X: 590, h: 950, kind: 'sw', gangs: [['reserve']] },
+  { id: 'S-P1', w: 'P', h: 950, kind: 'sw', gangs: [['pantry']] },
   { id: 'E14', w: 'E', X: 290, h: 250, kind: 'sock' },
   { id: 'E15', w: 'E', X: 390, h: 250, kind: 'sock' },
 ];
@@ -4543,22 +4621,22 @@ function kelvinRaw(k) {
 // horizon, for the dusk outside. Day: daylight only, the sun coming in through the east glazing in the morning, the south
 // at noon (and under the soffit in the evening, through the kitchen's window)
 const MOODS = {
-  evening: { label: 'Evening', cor: 0.45, step: 1, spot: 0.3, kdown: 0.5, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
-  bright: { label: 'Bright', cor: 1, step: 1, spot: 1, kdown: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
-  night: { label: 'Night', cor: 0.06, step: 1, spot: 0, kdown: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, cor: 0, step: 0, spot: 0, kdown: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', cor: 0.45, step: 1, spot: 0.3, kdown: 0.5, pantry: 0.6, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
+  bright: { label: 'Bright', cor: 1, step: 1, spot: 1, kdown: 1, pantry: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
+  night: { label: 'Night', cor: 0.06, step: 1, spot: 0, kdown: 0, pantry: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, cor: 0, step: 0, spot: 0, kdown: 0, pantry: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { cor: 8, north: 2.5, fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
+const BASE = { cor: 8, north: 2.5, fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, pantry: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
   // (each channel at the mood's level or as its switch has it; after dark the lamps stay in the scene when off, so a
   // switch flipped doesn't recompile every shader)
   const shown = (ch) => lv(ch) > 0 || !m.day;
-  for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.skan, 'skan'], [[L.ring], 'ring'], [L.cor, 'cor']]) {
+  for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.pantry, 'pantry'], [L.skan, 'skan'], [[L.ring], 'ring'], [L.cor, 'cor']]) {
     for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch); s.visible = shown(ch); }
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = a.userData.drawnOnly && layoutSwapped ? 0 : BASE[ALIAS[ch] ?? ch] * k * lv(ch); a.visible = shown(ch); }
-  for (const ch of ['spot', 'kdown', 'cor']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
+  for (const ch of ['spot', 'kdown', 'pantry', 'cor']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash', 'tvwash', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   E.skan.emissive.copy(c);
   E.fire.color.setScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
@@ -4863,7 +4941,7 @@ function renderLegend() {
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven at 70 cm under a built-in microwave, the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a slim 90 cm hood under them over the hob, its duct up through the unit over it. A click opens or shuts any door or drawer, the oven, the microwave, the hood\'s visor (it slides out), the drawers in the island too', frontsC],
-    ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves 15 cm deep inside, a downlight over them (with the kitchen\'s spots)', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
+    ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves 15 cm deep inside, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
@@ -4947,7 +5025,7 @@ const VIEWS = [
   { key: 'dining', label: 'Dining', pos: [45.2, 13.2, 1.6], tgt: [50.3, 11.6, 1.05], fov: 64, swap: { pos: [44.9, 14.15, 1.6], tgt: [46.0, 9.9, 1.0] } },
   { key: 'sofa', label: 'Sofa & view', pos: [45.6, 13.95, 1.35], tgt: [46.6, 9.0, 1.1], fov: 72, swap: { pos: [46.2, 13.85, 1.35], tgt: [50.5, 10.7, 1.1] } },
   { key: 'worktop', label: 'Worktop', pos: [46.9, 15.0, 1.62], tgt: [46.9, 16.6, 0.95], fov: 70 },
-  { key: 'pantry', label: 'Pantry', pos: [44.25, 14.82, 1.6], tgt: [43.5, 16.4, 1.1], fov: 76 },
+  { key: 'pantry', label: 'Pantry', pos: [44.3, 15.17, 1.6], tgt: [43.55, 16.4, 1.05], fov: 80 },
   { key: 'hallway', label: 'Hallway', pos: [50.45, 14.25, 1.6], tgt: [57.2, 13.85, 1.15], fov: 62 },
   { key: 'stairs', label: 'Stairs', pos: [53.45, 13.72, 1.62], tgt: [53.0, 16.4, -1.0], fov: 72 },
   { key: 'plan', label: 'Plan', pos: [52.3, 13.2, 15], tgt: [52.3, 13.22, 0], fov: 48, plan: true },      // (with the hallway and the stairs)
@@ -4982,9 +5060,9 @@ function clampCamera() {
     y = Math.min(y, RUN.fy - 0.08);
     z = C(z, 0.25, HK - 0.08);
   } else if (y > YK - 0.05 && x <= KX0) {
-    // the pantry, under the lowered ceiling, short of its shelves and its tall unit
+    // the pantry, under the lowered ceiling, short of its shelves, its rack, its freezer and its counter
     x = C(x, PANTRY.sx1 + 0.12, PANTRY.x1 - 0.1);
-    y = C(y, PANTRY.y0 + 0.1, x > PANTRY.tall[0] - 0.08 ? PANTRY.tall[2] - 0.08 : Y1 - 0.1);
+    y = C(y, RACK.y1 + 0.08, PANTRY.tall[2] - 0.08);
     z = C(z, 0.25, HK - 0.08);
   } else {
     x = C(x, X0 + 0.1, y > BUILT.y1 + 0.08 ? COR.x1 - 0.1 : (layoutSwapped ? BUILT.x1 : X1) - 0.12);      // (the lobby and the hallway)
