@@ -306,9 +306,9 @@ const TRAYS = { n: 6, t: 0.012, h: 0.42, open: Math.PI / 2 };
 // on its left (opening by open rad); inside its glass shelves (shelves; the lowest over the crispers, the others set back
 // for the door's balconies, at balconies)
 const FRIDGE = { top: 2.0, open: Math.PI / 2, shelves: [0.37, 0.64, 0.92, 1.2, 1.48], balconies: [0.4, 0.75, 1.1, 1.45, 1.75] };
-// the larder for dry food (TALLS[0]): its door hinged on its right (opening by open rad), n inner drawers behind it (their
-// fronts front tall, pitch apart from z0), a shelf over them at shelf
-const LARDER = { open: Math.PI / 2, n: 7, z0: 0.105, pitch: 0.29, front: 0.15, shelf: 2.13 };
+// the larder for dry food (TALLS[0]): its door hinged on its left (opening by open rad), n inner drawers behind it up to
+// 140 cm (their fronts front tall, pitch apart from z0), shelves over them (their undersides at shelves)
+const LARDER = { open: Math.PI / 2, n: 4, z0: 0.105, pitch: 0.32, front: 0.16, shelves: [1.4, 1.71, 2.02] };
 // the coffee machine (x0..x1, y0..y1, z0..z1) in the last tall unit, as in the house model: over its front (to niche[0])
 // the unit is open to the ceiling, lined in the wood; the machine on a pull-out board (tray), two shelves (their
 // undersides at shelves, t thick) over it; its door, hinged by the hall's wall, stands open at a right angle (open) till
@@ -1307,6 +1307,11 @@ const M = {
   canister: physical({ color: 0xe9e5dc, roughness: 0.5, clearcoat: 0.2 }),
   potato: physical({ color: 0xa8875c, roughness: 0.9 }),
   tomato: physical({ color: 0xb33a2c, roughness: 0.35, clearcoat: 0.6 }),
+  bin: physical({ color: 0x4a4c4f, roughness: 0.55 }),             // the waste bins under the sink, their bags and grips
+  bag: physical({ color: 0xcfd0cc, roughness: 0.8 }),
+  binYellow: physical({ color: 0xd8b13c, roughness: 0.5 }),
+  binBlue: physical({ color: 0x3d6fb0, roughness: 0.5 }),
+  binBrown: physical({ color: 0x7b5b3d, roughness: 0.6 }),
   apple: physical({ color: 0x9cae46, roughness: 0.45, clearcoat: 0.4 }),
   fridgeLight: new THREE.MeshBasicMaterial({ color: 0xf2f4f6 }),
   onion: physical({ color: 0xb06a33, roughness: 0.55, clearcoat: 0.3 }),
@@ -2354,7 +2359,7 @@ function buildKitchen() {
   add(M.joint, box(TALLS[1][0], TALLS[1][1], ft, ft + 0.01, FRIDGE.top, HK, { faces: 'y' }), { shadow: false });
   add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, OVEN.z1 - OVEN.panel, MICRO.z0, { faces: 'y' }), { shadow: false });
   add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, MICRO.z1 - MICRO.panel, MICRO.z1, { faces: 'y' }), { shadow: false });
-  add(M.joint, box(BASES.sink[0], BASES.b2[0], ft, ft + 0.01, plinth, TOP.z0, { faces: 'y' }), { shadow: false });
+  add(M.joint, box(BASES.dw[0], BASES.b2[0], ft, ft + 0.01, plinth, TOP.z0, { faces: 'y' }), { shadow: false });
   // behind the drawers (built on their own: buildDrawers) the units' insides, under the oven and the hob
   drawerCarcass(...TALLS[2], plinth, OVEN.z0, ft, 1);
   drawerCarcass(...TALLS[3], plinth, COFFEE.niche[0], ft, 1);
@@ -2443,17 +2448,20 @@ function buildKitchen() {
     add(M.blackMetal, rbox(0.12, 0.26, 0.075, 0.006, [i1 - 0.08, 16.33, zt + 0.0375]));
     add(M.potteryWhite, rbox(0.2, 0.24, 0.065, 0.02, [i1 - 0.12, 16.59, zt + 0.0325]));
   }
-  // the larder: its carcass in anthracite (sides, bottom, top, back), a shelf over its inner drawers, two boxes on it
+  // the larder: its carcass in anthracite (sides, bottom, top, back), shelves over its inner drawers, dry food on them
+  // (as in the drawers: FILLERS.dry)
   {
-    const [a, b] = TALLS[0], t = 0.018, back = Y1 - 0.01, z = LARDER.shelf;
+    const [a, b] = TALLS[0], t = 0.018, back = Y1 - 0.01, rnd = mulberry(63);
     add(M.carcass, box(a, a + t, ft, Y1, plinth, HK, { faces: 'Xy' }));
     add(M.carcass, box(b - t, b, ft, Y1, plinth, HK, { faces: 'xy' }));
     add(M.carcass, box(a + t, b - t, ft, Y1, plinth, plinth + t, { faces: 'Zy' }));
     add(M.carcass, box(a + t, b - t, ft, Y1, HK - t, HK, { faces: 'zy' }));
     add(M.carcass, box(a + t, b - t, back, Y1, plinth + t, HK - t, { faces: 'y' }));
-    add(M.carcass, box(a + t, b - t, ft + 0.03, back, z, z + t, { faces: 'yzZ' }));
-    add(M.potteryWhite, rbox(0.25, 0.3, 0.16, 0.012, [(a + b) / 2, 16.36, z + t + 0.08]));
-    add(M.book2, rbox(0.24, 0.22, 0.14, 0.004, [(a + b) / 2, 16.6, z + t + 0.07]));
+    for (const z of LARDER.shelves) {
+      add(M.carcass, box(a + t, b - t, ft + 0.03, back, z, z + t, { faces: 'yzZ' }));
+      const x0 = a + t + 0.01, x1 = b - t - 0.01, y0 = ft + 0.04;
+      FILLERS.dry({ x0, x1, W: x1 - x0, L: back - y0 - 0.01, z: z + t, rnd, at: (u, v) => [x0 + u, y0 + v], span: (p, q) => [y0 + p, y0 + q] });
+    }
   }
   // the fridge: its carcass in anthracite to its top; the fridge's white face round its cavity (yf, set back behind its
   // door), the cavity white, an LED strip at its top; two crispers at the bottom (vegetables and fruit in them), glass
@@ -2518,9 +2526,22 @@ function buildKitchen() {
     add(M.blackMetal, box(cx - 0.03, cx + 0.03, ft + 0.004, y0, 1.07, 1.11));
     add(M.potteryWhite, lathe([[0.001, 0], [0.026, 0.002], [0.032, 0.075], [0.029, 0.075], [0.023, 0.009], [0.001, 0.009]], [cx, ft + 0.036, c0 + 0.022], 28));
   }
-  // the base units: the sink's, the dishwasher (the drawers under the hob: buildDrawers)
-  frontY(...BASES.sink, plinth, TOP.z0, fy, -1);
+  // the base units: the sink's (its drawer for the waste and the drawers under the hob: buildDrawers), the dishwasher;
+  // inside the sink's, in anthracite, its sides, bottom, back and a rail under the worktop; the sink's waste pipe down to
+  // a bottle trap over the drawer's bins, the pipe from it to the wall
   frontY(...BASES.dw, plinth, TOP.z0, fy, -1);
+  {
+    const [a, b] = BASES.sink, t = 0.018, back = ft + DRAWER.back, sx = (SINK.x0 + SINK.x1) / 2, sy = (SINK.y0 + SINK.y1) / 2 + 0.07;
+    const zs = TOP.z1 - SINK.d, zt = 0.56;
+    add(M.carcass, box(a, a + t, ft, back, plinth, TOP.z0, { faces: 'Xy' }));
+    add(M.carcass, box(b - t, b, ft, back, plinth, TOP.z0, { faces: 'xy' }));
+    add(M.carcass, box(a + t, b - t, ft, back, plinth, plinth + t, { faces: 'Zy' }));
+    add(M.carcass, box(a + t, b - t, back, back + 0.01, plinth + t, TOP.z0, { faces: 'y' }));
+    add(M.carcass, box(a + t, b - t, ft, ft + 0.03, TOP.z0 - t, TOP.z0, { faces: 'zyY' }));
+    add(M.canister, cyl(0.02, zs - zt - 0.06, 'z', [sx, sy, (zs + zt + 0.06) / 2], 20));
+    add(M.canister, cyl(0.036, 0.12, 'z', [sx, sy, zt], 28));
+    add(M.canister, cyl(0.02, back - sy, 'y', [sx, (sy + back) / 2, zt + 0.03], 20));
+  }
   // the worktop: 3 cm of the stone, into the window's reveal; the sink under it, the grooves of the drainboard cut in it,
   // the hob flush in it
   {
@@ -2726,6 +2747,7 @@ function drawerSpecs() {
     for (let i = 0; i < n; i++) out.push({ x0, x1, z0: plinth + i * h, z1: plinth + (i + 1) * h, yf: I.fy + 0.02, dir: 1 });
   }
   out.push({ x0: TALLS[3][0], x1: TALLS[3][1], z0: plinth, z1: COFFEE.niche[0], yf: fy, dir: -1, tall: true });
+  out.push({ x0: BASES.sink[0], x1: BASES.sink[1], z0: plinth, z1: TOP.z0, yf: fy, dir: -1, sides: 0.36, fill: 'trash' });
   const { n, z0, pitch, front } = LARDER, [a, b] = TALLS[0], t = 0.018;
   for (let i = 0; i < n; i++) out.push({ x0: a + t + 0.003, x1: b - t - 0.003, z0: z0 + i * pitch, z1: z0 + i * pitch + front, yf: fy + 0.024, dir: -1,
     sides: front - 0.02, front: M.drawer, fill: 'dry', in: 'larder' });
@@ -2779,6 +2801,22 @@ const FILLERS = {
     const wl = f.W * 0.58, off = wl + 0.02;
     drawerInsert({ ...f, x1: f.x0 + wl, W: wl }, 4, M.blackMetal);
     FILLERS.spices({ ...f, x0: f.x0 + off, W: f.W - off, at: (u, v) => f.at(off + u, v) });
+  },
+  // under the sink: four bins for sorting the waste, each lined with a bag folded over its rim, a coloured grip at its front
+  trash: (f) => {
+    const bin = (u0, u1, v0, v1, h, grip) => {
+      const x0 = f.x0 + u0, x1 = f.x0 + u1, [y0, y1] = f.span(v0, v1), z0 = f.z, z1 = f.z + h, e = 0.005;
+      add(M.bin, box(x0, x1, y0, y1, z0, z0 + e, { faces: 'Z' }));
+      for (const [p, q, c, d] of [[x0, x0 + e, y0, y1], [x1 - e, x1, y0, y1], [x0 + e, x1 - e, y0, y0 + e], [x0 + e, x1 - e, y1 - e, y1]]) add(M.bin, box(p, q, c, d, z0, z1, { faces: 'xXyYZ' }));
+      add(M.bag, box(x0 + e, x1 - e, y0 + e, y1 - e, z0 + e, z0 + e + 0.002, { faces: 'Z' }));
+      add(M.bag, box(x0 - 0.002, x1 + 0.002, y0 - 0.002, y1 + 0.002, z1 - 0.035, z1 + 0.002, { faces: 'xXyY' }));
+      add(grip, box(x0 + 0.04, x1 - 0.04, y0 - 0.014, y0 - 0.002, z1 - 0.03, z1 + 0.004, { faces: 'xXyYZ' }));
+    };
+    const W = f.W, u2 = W - 0.25;
+    bin(0.01, 0.3, 0.01, 0.46, 0.34, M.blackMetal);
+    bin(0.31, u2 - 0.01, 0.01, 0.46, 0.34, M.binYellow);
+    bin(u2, W - 0.01, 0.01, 0.22, 0.26, M.binBrown);
+    bin(u2, W - 0.01, 0.24, 0.46, 0.34, M.binBlue);
   },
   // the larder's inner drawers: rows of jars (two across), packets, tins (two across, two high), to the drawer's end
   dry: (f) => {
@@ -3623,10 +3661,10 @@ function buildSwings() {
     add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, H1 - g, { faces: 'Y' }));
     hang(sw);
   }
-  // the larder's: a front as the others to the ceiling, hinged on its right (by the fridge's hinges)
+  // the larder's: a front as the others to the ceiling, hinged on its left (by the pantry's doorway)
   {
     const [a, b] = TALLS[0], z0 = RUN.plinth;
-    const sw = swing('larder', [b - g, fy, 0], (o, e) => { o.rotation.z = LARDER.open * e; });
+    const sw = swing('larder', [a + g, fy, 0], (o, e) => { o.rotation.z = -LARDER.open * e; });
     add(M.cab, box(a + g, b - g, fy, ft, z0 + g, H1 - g, { faces: 'xXyzZ' }));
     add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, H1 - g, { faces: 'Y' }));
     hang(sw);
@@ -5159,7 +5197,7 @@ function renderLegend() {
   const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled' }[floorKey];
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
-    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder for dry food behind a door, seven inner drawers in it, the fridge behind its door with a cabinet over it (the freezer being the pantry\'s), the oven at 70 cm over a tall drawer of pots, under a built-in microwave and a cabinet for the baking trays (on edge between dividers), the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a 90 cm hood built into them over the hob (flush with their underside: only its filters show, from below), its duct up through the unit over it. A click opens or shuts any door or drawer, the larder and its inner drawers, the fridge, the oven, the microwave, the trays\' cabinet, the drawers in the island too', frontsC],
+    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder for dry food behind a door, inner drawers in it up to 140 cm and shelves over them, the fridge behind its door with a cabinet over it (the freezer being the pantry\'s), the oven at 70 cm over a tall drawer of pots, under a built-in microwave and a cabinet for the baking trays (on edge between dividers), the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, under the sink a drawer of bins for sorting the waste, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a 90 cm hood built into them over the hob (flush with their underside: only its filters show, from below), its duct up through the unit over it. A click opens or shuts any door or drawer, the larder and its inner drawers, the fridge, the oven, the microwave, the trays\' cabinet, the bins\' drawer, the drawers in the island too', frontsC],
     ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves inside, 15 cm deep along the south wall and turning along the facade (40 cm) over the counter, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
