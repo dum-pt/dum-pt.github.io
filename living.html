@@ -302,6 +302,13 @@ const MICRO = { z0: OVEN.z1, z1: OVEN.z1 + 0.385, panel: 0.07, open: 1.75, cav: 
 // over the microwave to the ceiling a cabinet for baking trays (its door hinged on its left, opening by open rad): n slots
 // between dividers (t thick) h tall from its floor, the trays standing on edge in them; a shelf over them
 const TRAYS = { n: 6, t: 0.012, h: 0.42, open: Math.PI / 2 };
+// the fridge in the tower by the wall units (TALLS[1]): its door from the plinth to top (the cabinet over it fixed), hinged
+// on its left (opening by open rad); inside its glass shelves (shelves; the lowest over the crispers, the others set back
+// for the door's balconies, at balconies)
+const FRIDGE = { top: 2.0, open: Math.PI / 2, shelves: [0.37, 0.64, 0.92, 1.2, 1.48], balconies: [0.4, 0.75, 1.1, 1.45, 1.75] };
+// the larder for dry food (TALLS[0]): its door hinged on its right (opening by open rad), n inner drawers behind it (their
+// fronts front tall, pitch apart from z0), a shelf over them at shelf
+const LARDER = { open: Math.PI / 2, n: 7, z0: 0.105, pitch: 0.29, front: 0.15, shelf: 2.13 };
 // the coffee machine (x0..x1, y0..y1, z0..z1) in the last tall unit, as in the house model: over its front (to niche[0])
 // the unit is open to the ceiling, lined in the wood; the machine on a pull-out board (tray), two shelves (their
 // undersides at shelves, t thick) over it; its door, hinged by the hall's wall, stands open at a right angle (open) till
@@ -1299,6 +1306,9 @@ const M = {
   clockFace: physical({ color: 0xf1eee8, roughness: 0.6 }),
   canister: physical({ color: 0xe9e5dc, roughness: 0.5, clearcoat: 0.2 }),
   potato: physical({ color: 0xa8875c, roughness: 0.9 }),
+  tomato: physical({ color: 0xb33a2c, roughness: 0.35, clearcoat: 0.6 }),
+  apple: physical({ color: 0x9cae46, roughness: 0.45, clearcoat: 0.4 }),
+  fridgeLight: new THREE.MeshBasicMaterial({ color: 0xf2f4f6 }),
   onion: physical({ color: 0xb06a33, roughness: 0.55, clearcoat: 0.3 }),
 };
 // emissive surfaces, driven by the light mood
@@ -2341,23 +2351,21 @@ const GROOVES = [16.24, 16.315, 16.39, 16.465, 16.54];      // the drainboard's 
 function buildKitchen() {
   const { fy, plinth } = RUN, ft = fy + 0.02, H1 = HK - 0.005;
   // the carcasses' faces behind the fronts (seen in the joints), the plinth set back under them
-  add(M.joint, box(TALLS[0][0], TALLS[1][1], ft, ft + 0.01, plinth, HK, { faces: 'y' }), { shadow: false });
+  add(M.joint, box(TALLS[1][0], TALLS[1][1], ft, ft + 0.01, FRIDGE.top, HK, { faces: 'y' }), { shadow: false });
   add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, OVEN.z1 - OVEN.panel, MICRO.z0, { faces: 'y' }), { shadow: false });
   add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, MICRO.z1 - MICRO.panel, MICRO.z1, { faces: 'y' }), { shadow: false });
   add(M.joint, box(BASES.sink[0], BASES.b2[0], ft, ft + 0.01, plinth, TOP.z0, { faces: 'y' }), { shadow: false });
   // behind the drawers (built on their own: buildDrawers) the units' insides, under the oven and the hob
   drawerCarcass(...TALLS[2], plinth, OVEN.z0, ft, 1);
   drawerCarcass(...TALLS[3], plinth, COFFEE.niche[0], ft, 1);
-  for (const k of ['b2', 'b3']) drawerCarcass(...BASES[k], plinth, TOP.z0, ft, 1);
+  drawerCarcass(BASES.b2[0], BASES.b3[1], plinth, TOP.z0, ft, 1);
   for (const [a, b, z1] of [[...TALLS[2], OVEN.z0], [...TALLS[3], COFFEE.niche[0]], [BASES.b2[0], BASES.b3[1], TOP.z0]]) add(M.carcass, box(a, b, ft + DRAWER.back, ft + DRAWER.back + 0.01, plinth, z1, { faces: 'y' }));
   add(M.joint, box(TALLS[0][0], TALLS[3][1], fy + 0.06, Y1, 0, plinth, { faces: 'y' }), { shadow: false });
-  // the tall units: a larder; the fridge-freezer; the oven over a tall drawer, the microwave over it, the baking trays'
+  // the tall units: a larder (its door: buildSwings; its inner drawers: buildDrawers); the fridge (its door: buildSwings),
+  // a cabinet over it; the oven over a tall drawer, the microwave over it, the baking trays'
   // cabinet over that; the coffee machine's over a tall pull-out (buildDrawers), its door (and the oven's, the
   // microwave's, the trays': buildSwings) on hinges
-  frontY(...TALLS[0], plinth, H1, fy, -1);
-  frontY(...TALLS[1], plinth, 0.875, fy, -1);
-  frontY(...TALLS[1], 0.875, 2.0, fy, -1);
-  frontY(...TALLS[1], 2.0, H1, fy, -1);
+  frontY(...TALLS[1], FRIDGE.top, H1, fy, -1);
   add(M.cabEnd, box(TALLS[1][1] - 0.02, TALLS[1][1], fy, Y1, TOP.z1, HK, { faces: 'X' }));
   add(M.cabEnd, box(TALLS[2][0], TALLS[2][0] + 0.02, fy, Y1, TOP.z1, HK, { faces: 'x' }));
   add(M.cabEnd, box(TALLS[0][0], TALLS[0][0] + 0.018, ft, Y1, 0, H1, { faces: 'x' }));     // the larder's end, by the pantry's door
@@ -2434,6 +2442,59 @@ function buildKitchen() {
     }
     add(M.blackMetal, rbox(0.12, 0.26, 0.075, 0.006, [i1 - 0.08, 16.33, zt + 0.0375]));
     add(M.potteryWhite, rbox(0.2, 0.24, 0.065, 0.02, [i1 - 0.12, 16.59, zt + 0.0325]));
+  }
+  // the larder: its carcass in anthracite (sides, bottom, top, back), a shelf over its inner drawers, two boxes on it
+  {
+    const [a, b] = TALLS[0], t = 0.018, back = Y1 - 0.01, z = LARDER.shelf;
+    add(M.carcass, box(a, a + t, ft, Y1, plinth, HK, { faces: 'Xy' }));
+    add(M.carcass, box(b - t, b, ft, Y1, plinth, HK, { faces: 'xy' }));
+    add(M.carcass, box(a + t, b - t, ft, Y1, plinth, plinth + t, { faces: 'Zy' }));
+    add(M.carcass, box(a + t, b - t, ft, Y1, HK - t, HK, { faces: 'zy' }));
+    add(M.carcass, box(a + t, b - t, back, Y1, plinth + t, HK - t, { faces: 'y' }));
+    add(M.carcass, box(a + t, b - t, ft + 0.03, back, z, z + t, { faces: 'yzZ' }));
+    add(M.potteryWhite, rbox(0.25, 0.3, 0.16, 0.012, [(a + b) / 2, 16.36, z + t + 0.08]));
+    add(M.book2, rbox(0.24, 0.22, 0.14, 0.004, [(a + b) / 2, 16.6, z + t + 0.07]));
+  }
+  // the fridge: its carcass in anthracite to its top; the fridge's white face round its cavity (yf, set back behind its
+  // door), the cavity white, an LED strip at its top; two crispers at the bottom (vegetables and fruit in them), glass
+  // shelves over them, food on them
+  {
+    const [a, b] = TALLS[1], t = 0.018, Z1 = FRIDGE.top, yf = ft + 0.052, yb = Y1 - 0.04, rnd = mulberry(58);
+    const k0 = a + t + 0.045, k1 = b - t - 0.045, e0 = plinth + t + 0.06, e1 = Z1 - t - 0.07, km = (k0 + k1) / 2;
+    add(M.carcass, box(a, a + t, ft, Y1, plinth, Z1, { faces: 'Xy' }));
+    add(M.carcass, box(b - t, b, ft, Y1, plinth, Z1, { faces: 'xy' }));
+    add(M.carcass, box(a + t, b - t, ft, Y1, plinth, plinth + t, { faces: 'Zy' }));
+    add(M.carcass, box(a + t, b - t, ft, Y1, Z1 - t, Z1, { faces: 'zy' }));
+    for (const [p, q, u, v] of [[a + t, k0, plinth + t, Z1 - t], [k1, b - t, plinth + t, Z1 - t], [k0, k1, plinth + t, e0], [k0, k1, e1, Z1 - t]]) add(M.pantryWhite, box(p, q, yf, yf + 0.01, u, v, { faces: 'y' }));
+    add(M.pantryWhite, box(k0, k1, yb, yb + 0.01, e0, e1, { faces: 'y' }));
+    add(M.pantryWhite, box(k0 - 0.01, k0, yf, yb, e0, e1, { faces: 'X' }));
+    add(M.pantryWhite, box(k1, k1 + 0.01, yf, yb, e0, e1, { faces: 'x' }));
+    add(M.pantryWhite, box(k0, k1, yf, yb, e0 - 0.01, e0, { faces: 'Z' }));
+    add(M.pantryWhite, box(k0, k1, yf, yb, e1, e1 + 0.01, { faces: 'z' }));
+    add(M.fridgeLight, box(k0 + 0.06, k1 - 0.06, yf + 0.03, yf + 0.05, e1 - 0.002, e1, { faces: 'z' }), { shadow: false });
+    const [s0, ...up] = FRIDGE.shelves, ys = yf + 0.11;
+    for (const [p, q] of [[k0 + 0.004, km - 0.003], [km + 0.003, k1 - 0.004]]) {
+      add(M.frost, box(p, q, yf + 0.004, yb - 0.01, e0 + 0.004, s0 - 0.012, { faces: 'yYxX' }));
+      add(M.joint, box(p + 0.05, q - 0.05, yf + 0.0035, yf + 0.004, s0 - 0.045, s0 - 0.035, { faces: 'y' }), { shadow: false });
+    }
+    const fruit = (x, y, z, r, m) => add(m, sphere(r, [x, y, z + r], 16));
+    for (let i = 0; i < 6; i++) fruit(k0 + 0.05 + (i % 3) * 0.06, 16.3 + Math.floor(i / 3) * 0.12 + rnd() * 0.02, e0 + 0.004, 0.03, i % 2 ? M.tomato : M.apple);
+    for (let i = 0; i < 5; i++) fruit(km + 0.05 + (i % 3) * 0.065, 16.35 + Math.floor(i / 3) * 0.13, e0 + 0.004, 0.034, i % 2 ? M.onion : M.potato);
+    for (const [z, y0] of [[s0, yf + 0.004], ...up.map((z) => [z, ys])]) {
+      add(M.slideGlass, box(k0, k1, y0, yb, z - 0.005, z, { faces: 'zZ' }));
+      add(M.frost, box(k0, k1, y0, y0 + 0.012, z - 0.008, z + 0.002, { faces: 'yzZ' }));
+    }
+    const [f1, f2, f3, f4] = up;
+    add(M.potteryWhite, rbox(0.2, 0.16, 0.09, 0.012, [k0 + 0.13, 16.5, s0 + 0.045]));
+    add(M.frost, rbox(0.15, 0.2, 0.07, 0.012, [k1 - 0.1, 16.45, s0 + 0.035]));
+    for (const [i, m] of [[0, M.canister], [1, M.amber], [2, M.canister]]) add(m, lathe(JAR, [k0 + 0.06 + i * 0.1, 16.56, f1], 24));
+    add(M.potteryWhite, lathe(BOTTLE.map(([r, h]) => [r * 1.25, h * 1.15]), [k1 - 0.07, 16.42, f1], 24));
+    stack(SMALL_BOWL, [k0 + 0.1, 16.48], f2, 3, 0.022);
+    add(M.canister, rbox(0.18, 0.13, 0.06, 0.01, [k1 - 0.13, 16.5, f2 + 0.03]));
+    for (let i = 0; i < 6; i++) add(M.potteryWhite, cyl(0.032, 0.07, 'z', [k0 + 0.05 + (i % 3) * 0.07, 16.4 + Math.floor(i / 3) * 0.08, f3 + 0.035], 20));
+    add(M.potteryWhite, rbox(0.17, 0.11, 0.07, 0.01, [k1 - 0.11, 16.5, f3 + 0.035]));
+    for (const [x, m] of [[k0 + 0.07, M.amber], [k0 + 0.17, M.canister]]) add(m, lathe(JAR.map(([r, h]) => [r, h * 0.8]), [x, 16.55, f4], 24));
+    add(M.frost, rbox(0.16, 0.24, 0.1, 0.012, [k1 - 0.1, 16.5, f4 + 0.05]));
   }
   // the coffee unit over its pull-out, lined in the wood to the ceiling behind its door: the machine on its pull-out
   // board, two shelves over it, an LED line under the first; a cup under the spout, cups and jars on the shelves
@@ -2651,22 +2712,26 @@ function buildIsland() {
 
 // ---------------------------------------------------------------- the drawers
 // The kitchen's drawers, each a group of its own sliding out on a click (toggleDrawer, animateOpenings): the front, a box
-// of anthracite steel (its sides 20 cm tall at most, or sides), what is kept in it (FILL, in drawerSpecs' order: the tall
-// one under the oven, the six under the hob, the
+// of anthracite steel (its sides 20 cm tall at most, or sides), what is kept in it (fill, or FILL in drawerSpecs' order:
+// the tall one under the oven, the two under the hob, the
 // island's banks, each from the bottom); last the tall pull-out under the coffee machine (pullOut)
 const DRAWERS = { list: [], meshes: [] };
 function drawerSpecs() {
   const { fy, plinth } = RUN, I = ISLAND, out = [];
   out.push({ x0: TALLS[2][0], x1: TALLS[2][1], z0: plinth, z1: OVEN.z0, yf: fy, dir: -1, sides: 0.3 });
-  for (const k of ['b2', 'b3']) for (const [z0, z1] of [[plinth, 0.355], [0.355, 0.635], [0.635, TOP.z0]]) out.push({ x0: BASES[k][0], x1: BASES[k][1], z0, z1, yf: fy, dir: -1 });
+  const zh = (plinth + TOP.z0) / 2;
+  for (const [z0, z1, sides] of [[plinth, zh, 0.25], [zh, TOP.z0]]) out.push({ x0: BASES.b2[0], x1: BASES.b3[1], z0, z1, yf: fy, dir: -1, sides });
   for (const [x0, x1, n] of I.banks) {
     const h = (I.z0 - plinth) / n;
     for (let i = 0; i < n; i++) out.push({ x0, x1, z0: plinth + i * h, z1: plinth + (i + 1) * h, yf: I.fy + 0.02, dir: 1 });
   }
   out.push({ x0: TALLS[3][0], x1: TALLS[3][1], z0: plinth, z1: COFFEE.niche[0], yf: fy, dir: -1, tall: true });
+  const { n, z0, pitch, front } = LARDER, [a, b] = TALLS[0], t = 0.018;
+  for (let i = 0; i < n; i++) out.push({ x0: a + t + 0.003, x1: b - t - 0.003, z0: z0 + i * pitch, z1: z0 + i * pitch + front, yf: fy + 0.024, dir: -1,
+    sides: front - 0.02, front: M.drawer, fill: 'dry', in: 'larder' });
   return out;
 }
-const FILL = ['stockpots', 'pots', 'linen', 'utensils', 'pots', 'containers', 'spices', 'dishes', 'bowls', 'cutlery',
+const FILL = ['stockpots', 'hobpots', 'hobtop', 'dishes', 'bowls', 'cutlery',
   'linen', 'containers', 'linen', 'cutlery', 'pots', 'dishes', 'utensils'];
 const PLATE = [[0.001, 0], [0.085, 0], [0.087, 0.006], [0.125, 0.017], [0.13, 0.021], [0.126, 0.022], [0.084, 0.01], [0.001, 0.01]];
 const SMALL_BOWL = [[0.001, 0], [0.035, 0], [0.037, 0.005], [0.07, 0.05], [0.075, 0.055], [0.07, 0.056], [0.033, 0.012], [0.001, 0.012]];
@@ -2693,6 +2758,54 @@ const FILLERS = {
   cutlery: (f) => drawerInsert(f, Math.max(3, Math.round(f.W / 0.1)), M.stainless),
   utensils: (f) => drawerInsert(f, 3, M.blackMetal),
   trays: (f) => { for (let k = 0; k < 3; k++) add(M.blackMetal, box(f.x0 + 0.02 + k * 0.01, f.x1 - 0.02 - k * 0.01, ...f.span(0.02, f.L - 0.03), f.z + k * 0.024, f.z + k * 0.024 + 0.018, { faces: 'xXyYZ' })); },
+  // under the hob: pots, frying pans in a stack, a roasting tin; utensils and spices
+  hobpots: (f) => {
+    const pot = (u, v, r, hp) => {
+      const [x, y] = f.at(u, v);
+      add(M.stainless, cyl(r, hp, 'z', [x, y, f.z + hp / 2], 40));
+      add(M.stainless, cyl(r + 0.004, 0.005, 'z', [x, y, f.z + hp + 0.0025], 40));
+      add(M.blackMetal, cyl(0.014, 0.022, 'z', [x, y, f.z + hp + 0.016], 16));
+      for (const s of [-1, 1]) add(M.blackMetal, box(x + s * r - 0.012, x + s * r + 0.012, y - 0.015, y + 0.015, f.z + hp - 0.03, f.z + hp - 0.018));
+    };
+    pot(0.14, 0.15, 0.12, 0.22); pot(0.4, 0.13, 0.1, 0.15); pot(0.39, 0.36, 0.085, 0.11); pot(f.W - 0.13, 0.37, 0.085, 0.1);
+    for (let k = 0; k < 3; k++) {
+      const r = 0.14 - k * 0.015, [x, y] = f.at(0.68, 0.17), [, ya] = f.at(0.68, 0.17 + r), [, yb] = f.at(0.68, 0.17 + r + 0.12), z = f.z + k * 0.048;
+      add(M.blackMetal, cyl(r, 0.045, 'z', [x, y, z + 0.0225], 40));
+      add(M.blackMetal, box(x - 0.012, x + 0.012, Math.min(ya, yb), Math.max(ya, yb), z + 0.03, z + 0.042));
+    }
+    add(M.enamel, rbox(0.28, 0.22, 0.08, 0.02, [...f.at(f.W - 0.16, 0.14), f.z + 0.04]));
+  },
+  hobtop: (f) => {
+    const wl = f.W * 0.58, off = wl + 0.02;
+    drawerInsert({ ...f, x1: f.x0 + wl, W: wl }, 4, M.blackMetal);
+    FILLERS.spices({ ...f, x0: f.x0 + off, W: f.W - off, at: (u, v) => f.at(off + u, v) });
+  },
+  // the larder's inner drawers: rows of jars (two across), packets, tins (two across, two high), to the drawer's end
+  dry: (f) => {
+    const W = f.W, rnd = f.rnd;
+    for (let v = 0.01; v < f.L - 0.06;) {
+      const k = rnd();
+      if (k < 0.35) {
+        const sc = 0.7 + rnd() * 0.45;
+        for (const u of [W * 0.25, W * 0.75]) {
+          const [x, y] = f.at(u, v + 0.047);
+          add(rnd() < 0.6 ? M.canister : M.amber, lathe(JAR.map(([a, h]) => [a, h * sc]), [x, y, f.z], 24));
+          add(M.veneer, cyl(0.046, 0.015, 'z', [x, y, f.z + 0.152 * sc + 0.0075], 24));
+        }
+        v += 0.1;
+      } else if (k < 0.72) {
+        const d = 0.05 + rnd() * 0.03, h = 0.15 + rnd() * 0.08, [x, y] = f.at(W / 2, v + d / 2);
+        add([M.book1, M.book2, M.book3][Math.floor(rnd() * 3)], rbox(W - 0.02, d, h, 0.004, [x, y, f.z + h / 2]));
+        v += d + 0.008;
+      } else {
+        for (const u of [W * 0.25, W * 0.75]) for (let j = 0; j < 2; j++) {
+          const [x, y] = f.at(u, v + 0.04);
+          add(M.stainless, cyl(0.037, 0.105, 'z', [x, y, f.z + 0.0525 + j * 0.106], 24));
+        }
+        v += 0.085;
+      }
+    }
+  },
   stockpots: (f) => {
     for (const [u, v, r, hp] of [[0.13, 0.14, 0.12, 0.24], [f.W - 0.115, 0.14, 0.1, 0.17], [f.W / 2, 0.36, 0.09, 0.12]]) {
       const [x, y] = f.at(u, v);
@@ -2772,7 +2885,7 @@ function buildDrawers() {
     const s = -d.dir, yi = d.yf + 0.02 * s, Y = (v) => yi + s * v, span = (v0, v1) => s > 0 ? [Y(v0), Y(v1)] : [Y(v1), Y(v0)];
     const bx0 = d.x0 + 0.024, bx1 = d.x1 - 0.024, zb = d.z0 + 0.02, sh = d.sides ?? Math.min(d.z1 - d.z0 - 0.06, 0.2);
     // the front (its back too, seen in the open drawer); the box: steel sides, a back, its bottom
-    add(M.cab, box(d.x0 + g, d.x1 - g, ...span(-0.02, 0), d.z0 + g, d.z1 - g));
+    add(d.front ?? M.cab, box(d.x0 + g, d.x1 - g, ...span(-0.02, 0), d.z0 + g, d.z1 - g));
     if (d.tall) pullOut(d, Y, rnd);
     else {
     add(M.drawer, box(bx0, bx0 + w, ...span(0, D), zb, zb + sh));
@@ -2780,14 +2893,14 @@ function buildDrawers() {
     add(M.drawer, box(bx0 + w, bx1 - w, ...span(D - 0.012, D), zb, zb + sh - 0.015));
     add(M.drawer, box(bx0 + w, bx1 - w, ...span(0, D - 0.012), zb, zb + 0.012, { faces: 'Z' }));
     const x0 = bx0 + w + 0.008, x1 = bx1 - w - 0.008, v0 = 0.008;
-    FILLERS[FILL[i]]({ x0, x1, W: x1 - x0, L: D - 0.012 - 2 * v0, z: zb + 0.012, hi: sh - 0.012, rnd,
+    FILLERS[d.fill ?? FILL[i]]({ x0, x1, W: x1 - x0, L: D - 0.012 - 2 * v0, z: zb + 0.012, hi: sh - 0.012, rnd,
       at: (u, v) => [x0 + u, Y(v0 + v)], span: (a, b) => span(v0 + a, v0 + b) });
     }
     const grp = new THREE.Group();
     grp.userData.drawer = i;
     groups.room.add(grp);
     DRAWERS.meshes.push(...flush(grp));
-    DRAWERS.list.push({ g: grp, dir: d.dir, open: false, t: 0 });
+    DRAWERS.list.push({ g: grp, dir: d.dir, open: false, t: 0, in: d.in });
   });
 }
 function toggleDrawer(i) {
@@ -3461,7 +3574,7 @@ function setDoor(open) {
   markDoor();
 }
 // the kitchen's moving fronts (HINGED, by key; userData.door the key on each one's group): the oven's door, the
-// microwave's, the trays' cabinet's, the coffee unit's, the wall units' (upper0..), the pantry freezer's. Each a group in R, its pivot at its
+// microwave's, the trays' cabinet's, the larder's, the fridge's, the coffee unit's, the wall units' (upper0..), the pantry freezer's. Each a group in R, its pivot at its
 // hinge; set(o, e) puts it at e (0 shut, 1 open), eased over dur s on a click (toggleSwing,
 // animateOpenings); fronts: its meshes in the fronts' finish (applyFronts swaps them)
 const HINGED = {};
@@ -3510,6 +3623,40 @@ function buildSwings() {
     add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, H1 - g, { faces: 'Y' }));
     hang(sw);
   }
+  // the larder's: a front as the others to the ceiling, hinged on its right (by the fridge's hinges)
+  {
+    const [a, b] = TALLS[0], z0 = RUN.plinth;
+    const sw = swing('larder', [b - g, fy, 0], (o, e) => { o.rotation.z = LARDER.open * e; });
+    add(M.cab, box(a + g, b - g, fy, ft, z0 + g, H1 - g, { faces: 'xXyzZ' }));
+    add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, H1 - g, { faces: 'Y' }));
+    hang(sw);
+  }
+  // the fridge's: a front as the others, hinged on its left; on its back the fridge's own door (white, a seal round its
+  // edge) and its balconies, what's kept on them: bottles, jars, a carton, sauces, an egg box, butter
+  {
+    const [a, b] = TALLS[1], z0 = RUN.plinth, Z1 = FRIDGE.top, t = 0.018, d1 = ft + 0.048, dz = d1 + 0.09, dm = d1 + 0.045;
+    const k0 = a + t + 0.045, k1 = b - t - 0.045, e0 = z0 + t + 0.06, e1 = Z1 - t - 0.07, c0 = k0 + 0.015, c1 = k1 - 0.015;
+    const sw = swing('fridge', [a + g, fy, 0], (o, e) => { o.rotation.z = -FRIDGE.open * e; }, { dur: 0.8 });
+    add(M.cab, box(a + g, b - g, fy, ft, z0 + g, Z1 - g, { faces: 'xXyzZ' }));
+    add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, Z1 - g, { faces: 'Y' }));
+    const p = k0 - 0.03, q = k1 + 0.03, u = e0 - 0.04, v = e1 + 0.04, r = 0.016;
+    add(M.pantryWhite, box(p, q, ft, d1, u, v, { faces: 'xXzZY' }));
+    for (const [bx0, bx1, bz0, bz1] of [[p, q, u, u + r], [p, q, v - r, v], [p, p + r, u + r, v - r], [q - r, q, u + r, v - r]]) add(M.joint, box(bx0, bx1, d1, d1 + 0.002, bz0, bz1, { faces: 'Y' }), { shadow: false });
+    for (const z of FRIDGE.balconies) {
+      add(M.frost, box(c0, c1, d1, dz, z, z + 0.004, { faces: 'zZ' }));
+      add(M.frost, box(c0, c1, dz - 0.004, dz, z, z + 0.06, { faces: 'yYZ' }));
+      for (const x of [c0, c1 - 0.004]) add(M.frost, box(x, x + 0.004, d1, dz, z, z + 0.06, { faces: 'xXZ' }));
+    }
+    const [b0, b1, b2, b3, b4] = FRIDGE.balconies.map((z) => z + 0.004);
+    for (let i = 0; i < 4; i++) add(i % 2 ? M.slideGlass : M.amber, lathe(BOTTLE, [c0 + 0.05 + i * 0.075, dm, b0], 20));
+    add(M.potteryWhite, rbox(0.07, 0.07, 0.2, 0.004, [c1 - 0.06, dm, b0 + 0.1]));
+    for (let i = 0; i < 4; i++) add(i % 2 ? M.amber : M.canister, lathe(JAR.map(([r, h]) => [r * 0.75, h * 0.75]), [c0 + 0.05 + i * 0.09, dm, b1], 20));
+    for (let i = 0; i < 5; i++) add([M.amber, M.potteryDark, M.slideGlass][i % 3], lathe(BOTTLE.map(([r, h]) => [r * 0.8, h * 0.7]), [c0 + 0.04 + i * 0.07, dm, b2], 20));
+    add(M.canister, rbox(0.25, 0.075, 0.07, 0.008, [c0 + 0.15, dm, b3 + 0.035]));
+    for (let i = 0; i < 2; i++) add(M.amber, lathe(JAR.map(([r, h]) => [r * 0.7, h * 0.6]), [c1 - 0.05 - i * 0.075, dm, b3], 20));
+    add(M.potteryWhite, rbox(0.16, 0.075, 0.06, 0.012, [c0 + 0.1, dm, b4 + 0.03]));
+    hang(sw);
+  }
   // the coffee unit's: a front over its pull-out to the ceiling, hinged by the hall's wall, open as drawn
   {
     const [a, b] = TALLS[3], z0 = COFFEE.niche[0];
@@ -3542,7 +3689,9 @@ function buildSwings() {
   }
 }
 function toggleSwing(key) {
-  HINGED[key].open = !HINGED[key].open;
+  const sw = HINGED[key];
+  sw.open = !sw.open;
+  if (!sw.open) for (const d of DRAWERS.list) if (d.in === key) d.open = false;
   dirty = true;
 }
 const toggleOven = () => toggleSwing('oven');
@@ -5010,7 +5159,7 @@ function renderLegend() {
   const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled' }[floorKey];
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
-    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven at 70 cm over a tall drawer of pots, under a built-in microwave and a cabinet for the baking trays (on edge between dividers), the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a 90 cm hood built into them over the hob (flush with their underside: only its filters show, from below), its duct up through the unit over it. A click opens or shuts any door or drawer, the oven, the microwave, the trays\' cabinet, the drawers in the island too', frontsC],
+    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder for dry food behind a door, seven inner drawers in it, the fridge behind its door with a cabinet over it (the freezer being the pantry\'s), the oven at 70 cm over a tall drawer of pots, under a built-in microwave and a cabinet for the baking trays (on edge between dividers), the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a 90 cm hood built into them over the hob (flush with their underside: only its filters show, from below), its duct up through the unit over it. A click opens or shuts any door or drawer, the larder and its inner drawers, the fridge, the oven, the microwave, the trays\' cabinet, the drawers in the island too', frontsC],
     ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves inside, 15 cm deep along the south wall and turning along the facade (40 cm) over the counter, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
