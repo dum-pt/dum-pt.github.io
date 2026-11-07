@@ -249,10 +249,11 @@ const MIRROR = { x: 50.72, y1: DRESS.col[0], curve: [[11.997, 0], [11.962, 0.077
   [11.997, 1.637], [12.117, 1.904], [12.329, 2.217], [12.59, 2.489], [12.735, 2.596]] };
 // the pipe in the corner by the corridor door (the model's, 9 cm across, floor to roof): boxed in, plastered
 const PIPE = { x0: 52.6, x1: 52.75, y0: 13.28 };
-// the door from the corridor (x0..x1 in the corridor wall, to head): a flush leaf t thick, hinged at its south jamb and
-// opening into the room (open, rad: short of the pouf); the door from the wardrobe to the en-suite (in its east wall),
-// hinged at its north jamb, opening into the bathroom
-const CDOOR = { x0: 51.435, x1: 52.335, y0: Y1, y1: 13.545, head: 2.15, t: 0.04, open: 1.4 };
+// the door from the corridor (x0..x1 in the corridor wall, to head): in a reverse concealed frame, a leaf t thick flush with
+// the hallway's face of the wall (leaf: its face to the room, which sees it set back in the wall's reveal), a gap round it,
+// hinged at its south jamb on the room's face and opening into the room (open, rad: short of the pouf); the door from the
+// wardrobe to the en-suite (in its east wall), hinged at its north jamb, opening into the bathroom
+const CDOOR = { x0: 51.435, x1: 52.335, y0: Y1, y1: 13.545, leaf: 13.504, gap: 0.004, head: 2.15, t: 0.04, open: 1.4 };
 const EDOOR = { x0: 54.635, x1: 55.335, y0: 11.055, y1: WY0, head: 2.15, t: 0.04, open: 1.5 };
 // the wardrobe's window in the north facade (x WX1..57.385): fixed, floor to ceiling, its frame (x0..x1, y0..y1; the reveal
 // on to WX1 plastered), the glass at glass (g0..g1), sill and head
@@ -305,10 +306,11 @@ const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
 // pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
 const SWW = { x0: 56.085, x1: 57.085, y0: 16.88, y1: 17.03, glass: 16.955, f: 0.076, sill: 0.07, head: 2.52, h: 2.6 };
-// the two sides of the wall between the bedroom and the hallway (y: its middle). The lamps that cast no shadows would
-// shine through it: each lights only its own side (patchShader; the side rides on SpotLight.distance, room or hall, far
-// beyond any lamp's reach; the area lights are all the room's)
-const SIDE = { y: 13.475, room: 1000, hall: 2000 };
+// the two sides of the wall between the bedroom and the hallway (y: inside the door's leaf, which stands at the hallway's
+// face of the wall, so that each of its faces has its own side's lamps). The lamps that cast no shadows would shine through
+// it: each lights only its own side (patchShader; the side rides on SpotLight.distance, room or hall, far beyond any lamp's
+// reach; the area lights are all the room's)
+const SIDE = { y: 13.524, room: 1000, hall: 2000 };
 const BATH = { x0: WX0, x1: WX1, y0: Y0, y1: EDOOR.y0 };
 
 // ---------------------------------------------------------------- renderer
@@ -1575,6 +1577,11 @@ function buildArchitecture() {
   wall(CDOOR.x1, COR.x1, Y1, CDOOR.y1, 0, WT, 'yxY');
   wall(COR.x1, 57.385, Y1, CDOOR.y1, 0, WT, '');
   wall(CDOOR.x0, CDOOR.x1, Y1, CDOOR.y1, CDOOR.head, WT, 'yzY');
+  // the gap round the bedroom door's leaf, black right up at the hallway's face so that it reads as a shadow
+  {
+    const { x0, x1, y1, gap: g, head } = CDOOR;
+    for (const [a, b, z0, z1] of [[x0, x0 + g, 0, head], [x1 - g, x1, 0, head], [x0 + g, x1 - g, head - g, head]]) add(M.joint, box(a, b, y1 - 0.0012, y1 - 0.0002, z0, z1, { faces: 'yY' }), { shadow: false });
+  }
   wall(WX1, 57.385, EDOOR.y0, WW.y0, 0, WT, 'xY');
   wall(WX1, 57.385, WW.y1, CDOOR.y1, 0, WT, 'xy');
   wall(WX1, 57.385, WW.y0, WW.y1, H, WT, 'z');
@@ -2218,12 +2225,13 @@ function buildDoors() {
     });
     R.add(TDOOR.g);
   }
-  // the corridor's door, hung flush with the room's side, hinged at its south jamb; the en-suite's, flush with the
-  // bathroom's side, hinged at its north jamb; levers either side by the free edge
+  // the corridor's door, flush with the hallway's side in its reverse concealed frame, hinged at its south jamb on the
+  // room's face; the en-suite's, flush with the bathroom's side, hinged at its north jamb; levers either side by the free
+  // edge
   {
-    const { x0, x1, y0, head, t } = CDOOR, a = x0 + 0.003, b = x1 - 0.003;
+    const { x0, x1, leaf: y0, gap, head, t } = CDOOR, a = x0 + gap, b = x1 - gap;
     LEAF.corridor.g = hinged('corridor', a, y0, () => {
-      add(M.lacquer, box(a, b, y0, y0 + t, 0.008, head - 0.003));
+      add(M.lacquer, box(a, b, y0, y0 + t, 0.008, head - gap));
       lever(b - 0.065, y0, -1, -1);
       lever(b - 0.065, y0 + t, 1, -1);
     });
@@ -3251,7 +3259,7 @@ function renderLegend() {
     ['Floor', floor + ', on into the wardrobe; wool rugs under the bed and along the wardrobe', floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, lit by an LED line in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
-    ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, and from the wardrobe into the master bathroom', M.lacquer.color.getStyle()],
+    ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom', M.lacquer.color.getStyle()],
     ['Hallway', 'outside the bedroom\'s door, as in the Kitchen & living page: from the lobby north to a fixed window floor to ceiling, three ' + wn + ' panels on the bedroom\'s wall, the powder room\'s flush door, three small downlights; off it the stairs down to the lower floor round the powder room in three arms, clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side, LED step lights, a glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
     ['Light', 'round downlights (three in the bedroom, two in the wardrobe), the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, under the bed and the nightstands, in the wardrobe', '#ffe2c2'],
   ];

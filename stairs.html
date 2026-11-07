@@ -1847,12 +1847,14 @@ function buildUpper() {
   floorUpMesh = new THREE.Mesh(fu, M.floorUp);
   floorUpMesh.receiveShadow = true;
   groups.upper.add(floorUpMesh);
-  // the bedroom's wall round its door (a flush leaf on the bedroom's side, a lever on the hallway's face), its panels
+  // the bedroom's wall round its door (shut: a leaf flush with the hallway's face in a reverse concealed frame, opening into
+  // the bedroom, a fine gap round it, black right up at the face; a lever), its panels
   wall(C.x0, b0, wy0, wy1, Z, H, 'YX');
   wall(b1, C.x1, wy0, wy1, Z, H, 'Yx');
   wall(b0, b1, wy0, wy1, Z + C.doorH, H, 'Yz');
-  add(M.lacquer, box(b0 + 0.003, b1 - 0.003, wy0, wy0 + 0.04, Z + 0.008, Z + C.doorH - 0.003, { faces: 'Y' }));
-  lever(b1 - 0.065, wy0 + 0.04, 1, -1, Z + 1.05);
+  add(M.lacquer, box(b0 + 0.004, b1 - 0.004, wy1 - 0.041, wy1 - 0.001, Z + 0.008, Z + C.doorH - 0.004, { faces: 'Y' }));
+  for (const [x0, x1, z0, z1] of [[b0, b0 + 0.004, Z, Z + C.doorH], [b1 - 0.004, b1, Z, Z + C.doorH], [b0 + 0.004, b1 - 0.004, Z + C.doorH - 0.004, Z + C.doorH], [b0 + 0.004, b1 - 0.004, Z, Z + 0.008]]) add(M.joint, box(x0, x1, wy1 - 0.0012, wy1 - 0.0002, z0, z1, { faces: 'Y' }), { shadow: false });
+  lever(b1 - 0.065, wy1 - 0.001, 1, -1, Z + 1.05);
   for (const [a, b] of C.panels) add(M.veneer, box(a, b, wy1, wy1 + 0.02, Z + C.pz[0], Z + C.pz[1], { faces: 'xXYzZ' }));
   // the lobby's end; the hall's wall round its door (shut: a flush leaf, a black lever by its free edge)
   wall(C.x0 - 0.15, C.x0, wy0, 14.795, Z, H, 'X');
