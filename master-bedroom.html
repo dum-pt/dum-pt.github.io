@@ -138,7 +138,7 @@
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="6.5" aria-label="Time of day"><span id="sunlabel">7:34</span></div>
   </div>
-  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches' and the sockets' plates, where the model has them: black or white. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
+  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches' and the sockets' plates, where the model and the electro drawing have them: black or white. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or shut the door to the terrace, or click the door itself; drawn curtains open with it (D)">Open terrace door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtains (C)">Close curtains</button><button class="chip" id="t-cdoor" aria-pressed="false" title="Open or shut the door to the corridor, or click it (G)">Open corridor door</button><button class="chip" id="t-edoor" aria-pressed="false" title="Open or shut the door from the wardrobe to the master bathroom, or click it (N)">Open bathroom door</button><button class="chip on" id="t-pdoor" aria-pressed="true" title="Slide the wardrobe's pocket door shut or back into the wall, or click it (L)">Close wardrobe door</button></div>
   </div>
@@ -2020,6 +2020,9 @@ function buildDressing() {
   add(M.veneer, box(D.x0, f, n0, n1, D.nz1, D.cz1, { faces: 'Xz' }));
   for (const z of D.shelves) add(M.marble, box(D.back, f, n0, n1, z - 0.02, z, { faces: 'XzZ' }));
   for (const z of [...D.shelves.map((s) => s - 0.02), D.nz1]) add(E.niche, box(f - 0.03, f - 0.022, n0 + 0.01, n1 - 0.01, z - 0.0008, z, { faces: 'z' }), { shadow: false });
+  // the LED line by the mirror (G-P1 in the electro drawing, its feed at h2150 behind the column): upright in the column's
+  // side at the wall, at the mirror's edge, floor to ceiling either side of the top; on with the niche
+  for (const [z0, z1] of [[0.005, D.z0], [D.z1, D.cz1 - 0.005]]) add(E.niche, box(MIRROR.x + 0.002, MIRROR.x + 0.014, c0 - 0.0008, c0, z0, z1, { faces: 'y' }), { shadow: false });
   // the tall cabinet in the corner: its side by the wall, its top, its back, a base and shelves, all in the wood (its
   // other side the column's); its door: buildDoors (DCAB)
   {
@@ -2292,10 +2295,11 @@ function buildProps() {
     standingBooks(D.back + 0.02, n0 + 0.03, D.shelves[0], 7, 11);
     add(M.potteryDark, lathe(VASE.map(([r, h]) => [r * 0.8, h * 0.85]), [x + 0.02, y, D.shelves[1]], 32));
     stack(x + 0.01, y, D.shelves[2], 4, 0.2, 0.26, 12);
-    add(M.box, projectUV(rbox(0.22, 0.26, 0.2, 0.01, [x + 0.01, y, D.shelves[3] + 0.1])));
-    // under the top: a linen box on the base, folded towels on the marble shelf
+    // (on the top shelf a narrow box to one side, clear of the socket behind it: G-Z4)
+    add(M.box, projectUV(rbox(0.22, 0.1, 0.17, 0.01, [x + 0.01, n0 + 0.06, D.shelves[3] + 0.085])));
+    // under the top: a linen box on the base, folded towels on the marble shelf (low, clear of the socket G-Z3)
     add(M.box, projectUV(rbox(0.22, 0.26, 0.2, 0.01, [x + 0.01, y, D.base + 0.1])));
-    stack(x + 0.01, y, D.low, 4, 0.2, 0.26, 31);
+    stack(x + 0.01, y, D.low, 3, 0.2, 0.26, 31);
     // in the tall cabinet: towels and boxes
     const xc = (D.back + D.front - 0.022) / 2, yc = (D.cab[0] + D.cab[1] - 0.02) / 2, [s0, s1, s2, s3, s4] = D.cabShelves;
     add(M.box, projectUV(rbox(0.2, 0.26, 0.2, 0.01, [xc, yc, D.base + 0.1])));
@@ -2912,8 +2916,10 @@ function buildLights() {
 }
 
 // ---------------------------------------------------------------- the switches and the sockets
-// Where the house model has them. Each fitting is on a wall face (at x or y, n its normal into the room, u: where X runs
-// along it, here in metres), at X and height h (mm, to its centre). Frames 80 x 80, gangs at 71 mm; Czech sockets (type
+// Where the house model has them; the sockets as in the user's electro drawing (stena_elektro_displej.dxf, the bedroom's
+// wall views G (the TV wall with the dressing corner), H (the corridor door's) and I (the bed wall), its device names on
+// the new ones). Each fitting is on a wall face (at x or y, n its normal into the room, u: where X runs along it, here
+// in metres; at: a face of its own in front of the wall), at X and height h (mm, to its centre). Frames 80 x 80, gangs at 71 mm; Czech sockets (type
 // E, the earth pin up). A rocker works its circuit (CIRCUITS: the lamps' channels); the rest, and circuits with nothing
 // in this model, say what they are (devCard).
 const WALLS = {
@@ -2921,34 +2927,49 @@ const WALLS = {
   B: { x: PANEL.x0, n: [-1, 0], u: (X) => X },    // the bed wall (on its panel), by the nightstands
   P: { x: PART.x1, n: [1, 0], u: (X) => X },      // the partition's wardrobe side, by the opening
   E: { y: WY0, n: [0, 1], u: (X) => X },          // the wardrobe's east wall, by the bathroom door
+  G: { x: X0, n: [1, 0], u: (X) => X },            // the TV wall (south), the dressing corner along it
 };
+// wall G in the drawing runs from the concrete pier by the terrace door (480 wide, nothing set into it) to the corridor
+// wall: its fittings by the pier 20 mm off it, those in the dressing column 500 mm off the corridor wall (on the column's
+// back, DRESS.back)
+const G_PIER = 10.105, G_COL = Y1 - 0.5;
 // what the rockers work: lamp channels (applyMood), or (none) something not in this model
 const CIRCUITS = {
   down: { label: 'Ceiling spots', ch: ['down'] },
-  pocket: { label: 'LED in the curtain pocket', ch: ['pocket'] },
-  glow: { label: 'LED under the bed and the nightstands', ch: ['glow'] },
-  cove: { label: 'LED on the bed wall and in the niche', ch: ['cove', 'niche'] },
+  leds: { label: 'LED lines: the curtain pocket, the bed wall, the niche and the mirror, under the bed', ch: ['pocket', 'glow', 'cove', 'niche'] },
   readE: { label: 'Reading light, east side', ch: ['readE'] },
   readW: { label: 'Reading light, west side', ch: ['readW'] },
   wdown: { label: 'Wardrobe spots', ch: ['wdown'] },
   wled: { label: 'LED in the wardrobe', ch: ['wled'] },
   bath: { label: 'Master bathroom light' },
+  blindsUp: { label: 'Exterior blinds, up' },
+  blindsDown: { label: 'Exterior blinds, down' },
 };
 const CIRCUIT_OF = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
 // kinds: sw (gangs: [circuit] a whole rocker, [left, right] split), sock (n in a row)
 const DEVICES = [
-  { id: 'S1', w: 'C', X: 52.515, h: 1130, kind: 'sw', gangs: [['down', 'pocket']] },
-  { id: 'S2', w: 'C', X: 52.515, h: 1030, kind: 'sw', gangs: [['glow', 'cove']] },
-  { id: 'Z1', w: 'C', X: 52.515, h: 300, kind: 'sock', info: 'by the door' },
-  { id: 'S3', w: 'B', X: 9.293, h: 776, kind: 'sw', gangs: [['readE', 'down']] },
-  { id: 'Z2', w: 'B', X: 9.193, h: 776, kind: 'sock', info: 'by the bed, east side' },
-  { id: 'S4', w: 'B', X: 11.593, h: 776, kind: 'sw', gangs: [['readW', 'down']] },
-  { id: 'Z3', w: 'B', X: 11.693, h: 776, kind: 'sock', info: 'by the bed, west side' },
-  { id: 'Z4', w: 'B', X: 11.693, h: 376, kind: 'sock', info: 'behind the nightstand' },
+  // by the door (view H): split switches on one axis 150 mm off the opening, lights under blinds, a vertical double below
+  { id: 'H-S1', w: 'C', X: 52.515, h: 950, kind: 'sw', gangs: [['down', 'leds']] },
+  { id: 'H-S2', w: 'C', X: 52.515, h: 1050, kind: 'sw', gangs: [['blindsUp', 'blindsDown']] },
+  { id: 'H-Z1', w: 'C', X: 52.515, h: 250, kind: 'sock', v: true, info: 'by the door, under the switches' },
+  // by the bed (view I): either side a set, a socket and a split switch (two frames 10 mm apart) centred over the
+  // nightstand at h780 (x1800 and x4200 from the corridor wall); a socket behind each nightstand
+  { id: 'I-Z1', w: 'B', X: Y1 - 1.755, h: 780, kind: 'sock', info: 'by the bed, west side' },
+  { id: 'I-S1', w: 'B', X: Y1 - 1.845, h: 780, kind: 'sw', gangs: [['readW', 'down']] },
+  { id: 'I-Z2', w: 'B', X: Y1 - 1.8, h: 250, kind: 'sock', info: 'behind the nightstand, west side' },
+  { id: 'I-Z3', w: 'B', X: Y1 - 4.155, h: 780, kind: 'sock', info: 'by the bed, east side' },
+  { id: 'I-S2', w: 'B', X: Y1 - 4.245, h: 780, kind: 'sw', gangs: [['readE', 'down']] },
+  { id: 'I-Z4', w: 'B', X: Y1 - 4.2, h: 250, kind: 'sock', info: 'behind the nightstand, east side' },
   { id: 'S5', w: 'P', X: 11.795, h: 1041, kind: 'sw', gangs: [['wdown', 'wled']] },
   { id: 'S6', w: 'E', X: 55.507, h: 1080, kind: 'sw', gangs: [['bath']] },
   { id: 'Z5', w: 'E', X: 55.507, h: 350, kind: 'sock', info: 'in the wardrobe' },
+  { id: 'G-Z1', w: 'G', X: G_PIER + 0.06, h: 250, kind: 'sock', v: true, info: 'under the TV' },
+  { id: 'G-Z2', w: 'G', X: G_PIER + 0.06, h: 1450, kind: 'sock', info: 'behind the TV' },
+  { id: 'G-TV1', w: 'G', X: G_PIER + 0.16, h: 1450, kind: 'coax', info: 'behind the TV' },
+  { id: 'G-LAN1', w: 'G', X: G_PIER + 0.26, h: 1450, kind: 'data', info: 'behind the TV' },
+  { id: 'G-Z3', w: 'G', X: G_COL, h: 680, kind: 'sock', at: DRESS.back, info: 'in the dressing corner, in the open shelf under the top' },
+  { id: 'G-Z4', w: 'G', X: G_COL, h: 2150, kind: 'sock', at: DRESS.back, info: 'in the dressing corner, high in the niche' },
 ];
 const KIND_NAME = { sock: 'socket 230 V', data: 'data, 2 x RJ45', coax: 'TV aerial socket', blank: 'blank plate', outlet: 'cable outlet', thermo: 'thermostat', display: 'display', popup: 'worktop sockets' };
 const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42 }, white: { label: 'White', color: 0xf0efeb, rough: 0.32 } };
@@ -3489,7 +3510,7 @@ function renderLegend() {
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
     ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom; into the wardrobe a pocket door, sliding into the bed wall towards the corridor (no casing, the reveals plastered): ' + PDOORS[pdoorKey].legend + ' (a click slides it)', M.lacquer.color.getStyle()],
     ['Hallway', 'outside the bedroom\'s door, as in the Kitchen & living page: from the lobby north to a fixed window floor to ceiling, three ' + wn + ' panels on the bedroom\'s wall, the powder room\'s flush door, three small downlights; off it the stairs down to the lower floor round the powder room in three arms, clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side, LED step lights, a glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
-    ['Light', 'round downlights (three in the bedroom, two in the wardrobe), the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, under the bed and the nightstands, in the wardrobe', '#ffe2c2'],
+    ['Light', 'round downlights (three in the bedroom, two in the wardrobe), the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, upright by the mirror, under the bed and the nightstands, in the wardrobe; by the door split switches for the lights (the spots, the LED lines) and the blinds, by the bed a socket and a split switch either side, as in the electro drawing', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
