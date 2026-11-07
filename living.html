@@ -270,7 +270,7 @@ const BATTENS = { y0: 17.29, y1: 17.31, w: 0.092, pitch: 0.102, x0: 44.413, x1: 
 // the slats' centre line at y, from the head down to the sill
 const BLIND = { x0: KW.x0, x1: KW.x1, y: 17.13, head: KW.z1, sill: KW.z0 };
 // the kitchen run along the facade: fronts 2 cm, their face at fy, the carcasses to the wall, a 7.5 cm plinth set back,
-// 3 mm gaps; tall units at both ends to the ceiling (the fridges; the oven at the worktop's height, the coffee machine in
+// 3 mm gaps; tall units at both ends to the ceiling (the fridges; the oven at 70 cm under a microwave, the coffee machine in
 // the last, open over the worktop's height: COFFEE), base units between (the sink's, the dishwasher, drawers under the hob), the worktop over them (3 cm,
 // running into the window's reveal), the uppers over the window (30 cm deep, from y0) to the ceiling
 const RUN = { fy: 16.11, plinth: 0.075, gap: 0.003 };
@@ -280,7 +280,10 @@ const TOP = { x0: 45.485, x1: 48.363, y0: 16.102, y1: 16.88, z0: 0.875, z1: 0.90
 const UPPER = { x0: TALLS[1][1], x1: TALLS[2][0], y0: 16.43, z0: 1.57, n: 6 };      // (from the fridge's tower to the oven's)
 const SINK = { x0: 45.877, x1: 46.352, y0: 16.165, y1: 16.609, d: 0.18, grooves: [45.66, 45.84] };
 const HOB = { x0: 47.27, x1: 48.17, y0: 16.17, y1: 16.69 };
-const OVEN = { z0: 0.875, z1: 1.453 };
+// the oven (z0..z1, 60 cm: its control strip panel tall at the top, under it the door, hinged at its foot and dropping
+// open to open rad, the cavity depth deep behind it); a compact microwave built in over it (MICRO, 45 cm)
+const OVEN = { z0: 0.7, z1: 1.295, panel: 0.1, depth: 0.45, open: Math.PI / 2 };
+const MICRO = { z0: OVEN.z1, z1: OVEN.z1 + 0.455 };
 // the coffee machine (x0..x1, y0..y1, z0..z1) in the last tall unit, as in the house model: over its front (to niche[0])
 // the unit is open to the ceiling, lined in the wood; the machine on a pull-out board (tray), two shelves (their
 // undersides at shelves, t thick) over it; its door stands open at a right angle by the hall's wall (door)
@@ -310,14 +313,14 @@ const SOFA = { x0: 43.797, x1: 46.697, y0: 12.428, y1: 13.358, cx1: 44.727, cy0:
 const COFFEE_TABLE = { x: 45.352, y: 11.53, r: 0.441, h: 0.297 };
 const TV_UNIT = { x0: 44.731, x1: 47.051, y1: 10.495, z0: 0.194, z1: 0.544 };
 const TV = { x0: 45.149, x1: 46.609, z0: 0.772, z1: 1.542 };
-// the lights in the ceiling: two black tracks flush in it along the room (at y = ROWS), square spots on them (at x =
-// SPOTS); the black ring over the sofa, its diffuser underneath (r0..r, h tall); in the kitchen's ceiling a black slot
+// the lights in the ceiling: two rows of square spots along the room (at y = ROWS, x = SPOTS; no track between them);
+// the black ring over the sofa, its diffuser underneath (r0..r, h tall); in the kitchen's ceiling a black slot
 // (2 m) with three spots over the worktop
 const ROWS = [10.637, 14.064];
 const SPOTS = [43.798, 45.176, 46.553, 47.955, 49.354];
 const RING = { x: 45.885, y: 11.61, r: 0.5, r0: 0.38, h: 0.12 };
 // two speakers flush in the ceiling in front of the TV, trimless: a round micro-perforated grille (r) painted like the
-// ceiling, a hairline (gap) round it; 90 cm out from the TV wall (at y, clear of the track and the ring), dx either side
+// ceiling, a hairline (gap) round it; 90 cm out from the TV wall (at y, clear of the spots' row and the ring), dx either side
 // of the TV's middle (a little wider than the TV, clear of the ring round the short one), their drivers angled at the
 // sofa: from its middle about 25 degrees either side and 30-35 up. They go with the TV (zones.speakers): swapped, before
 // the bedroom's wall; as drawn with the fireplace, round the 55-inch TV
@@ -1228,6 +1231,7 @@ const M = {
   sink: physical({ color: 0xb9b9b6, metalness: 1, roughness: 0.38 }),
   blackGlass: physical({ color: 0x0a0a0b, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.03 }),
   ovenGlass: physical({ color: 0x252527, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03 }),
+  enamel: physical({ color: 0x1c1d20, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.3 }),   // inside the oven
   hobMark: physical({ color: 0x5a5a5e, roughness: 0.5 }),
   fabric: physical({ color: 0xe4ded2, roughness: 1, sheen: 0.8, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.6 }),
   cushion: fabricMat(0xa88d6c),
@@ -2258,9 +2262,8 @@ function buildCeiling() {
     put(M.dark, box(x0 + f, x1 - f, YK - 0.001, YK, z0 + f, z1 - f, { faces: 'y' }));
     for (const z of [z0 + 0.0115, z1 - 0.0135]) put(M.trim, box(x0 + f, x1 - f, YK - 0.002, YK - 0.001, z, z + 0.002, { faces: 'yzZ' }));
   }
-  // two tracks flush in the ceiling along the room, square spots on them
+  // two rows of square spots along the room
   for (const y of ROWS) {
-    put(M.trim, box(43.7, 49.42, y - 0.0125, y + 0.0125, H - 0.001, H, { faces: 'z' }));
     for (const x of SPOTS) {
       put(M.trim, box(x - 0.035, x + 0.035, y - 0.035, y + 0.035, H - 0.01, H, { faces: 'xXyYz' }));
       put(M.dark, cyl(0.024, 0.002, 'z', [x, y, H - 0.0105]));
@@ -2311,7 +2314,7 @@ function buildKitchen() {
   const { fy, plinth } = RUN, ft = fy + 0.02, H1 = HK - 0.005;
   // the carcasses' faces behind the fronts (seen in the joints), the plinth set back under them
   add(M.joint, box(TALLS[0][0], TALLS[1][1], ft, ft + 0.01, plinth, HK, { faces: 'y' }), { shadow: false });
-  add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, OVEN.z0, HK, { faces: 'y' }), { shadow: false });
+  add(M.joint, box(TALLS[2][0], TALLS[2][1], ft, ft + 0.01, OVEN.z1 - OVEN.panel, HK, { faces: 'y' }), { shadow: false });
   add(M.joint, box(BASES.sink[0], BASES.b2[0], ft, ft + 0.01, plinth, TOP.z0, { faces: 'y' }), { shadow: false });
   // behind the drawers (built on their own: buildDrawers) the units' insides, under the oven and the hob
   drawerCarcass(...TALLS[2], plinth, OVEN.z0, ft, 1);
@@ -2319,23 +2322,40 @@ function buildKitchen() {
   for (const k of ['b2', 'b3']) drawerCarcass(...BASES[k], plinth, TOP.z0, ft, 1);
   for (const [a, b, z1] of [[...TALLS[2], OVEN.z0], [...TALLS[3], COFFEE.niche[0]], [BASES.b2[0], BASES.b3[1], TOP.z0]]) add(M.carcass, box(a, b, ft + DRAWER.back, ft + DRAWER.back + 0.01, plinth, z1, { faces: 'y' }));
   add(M.joint, box(TALLS[0][0], TALLS[3][1], fy + 0.06, Y1, 0, plinth, { faces: 'y' }), { shadow: false });
-  // the tall units: a larder; the fridge-freezer; the oven over two drawers; the coffee machine's, open over a tall
+  // the tall units: a larder; the fridge-freezer; the oven over two drawers, the microwave over it; the coffee machine's, open over a tall
   // pull-out (buildDrawers)
   frontY(...TALLS[0], plinth, H1, fy, -1);
   frontY(...TALLS[1], plinth, 0.875, fy, -1);
   frontY(...TALLS[1], 0.875, 2.0, fy, -1);
   frontY(...TALLS[1], 2.0, H1, fy, -1);
-  frontY(...TALLS[2], OVEN.z1, H1, fy, -1);
+  frontY(...TALLS[2], MICRO.z1, H1, fy, -1);
   add(M.cabEnd, box(TALLS[1][1] - 0.02, TALLS[1][1], fy, Y1, TOP.z1, HK, { faces: 'X' }));
   add(M.cabEnd, box(TALLS[2][0], TALLS[2][0] + 0.02, fy, Y1, TOP.z1, HK, { faces: 'x' }));
   { const { x0, x1, y0, y1, z0, z1 } = COFFEE.door; add(M.cabEnd, box(x0, x1, y0, y1, z0, z1)); }      // the coffee unit's door, open
   add(M.cabEnd, box(TALLS[0][0], TALLS[0][0] + 0.018, ft, Y1, 0, H1, { faces: 'x' }));     // the larder's end, by the pantry's door
-  // the oven: black glass, its window, a display
+  // the oven: its control strip in black glass at the top (a display); behind its door (buildOven) a black face round the
+  // cavity, the cavity in dark enamel, runners on its sides at three levels, a wire rack on the middle one, a tray on the
+  // lowest. The microwave over it: black glass, its window, a display
   {
-    const [a, b] = TALLS[2], g = RUN.gap / 2;
-    add(M.blackGlass, box(a + g, b - g, 16.102, ft, OVEN.z0 + g, OVEN.z1 - g, { faces: 'xXyzZ' }));
-    add(M.ovenGlass, box(48.463, 48.855, 16.1015, 16.102, 0.975, 1.353, { faces: 'y' }), { shadow: false });
-    add(M.hobMark, box(a + 0.25, a + 0.35, 16.1015, 16.102, 1.405, 1.42, { faces: 'y' }), { shadow: false });
+    const [a, b] = TALLS[2], g = RUN.gap / 2, { z0, z1, panel, depth } = OVEN, zp = z1 - panel;
+    add(M.blackGlass, box(a + g, b - g, 16.102, ft, zp + g, z1 - g, { faces: 'xXyzZ' }));
+    add(M.hobMark, box(a + 0.25, a + 0.35, 16.1015, 16.102, zp + 0.045, zp + 0.06, { faces: 'y' }), { shadow: false });
+    const c0 = a + 0.06, c1 = b - 0.06, e0 = z0 + 0.05, e1 = zp - 0.03, yb = ft + depth, r = 0.006;
+    for (const [p, q, u, v] of [[a, c0, z0, zp], [c1, b, z0, zp], [c0, c1, z0, e0], [c0, c1, e1, zp]]) add(M.enamel, box(p, q, ft, ft + 0.01, u, v, { faces: 'y' }));
+    add(M.enamel, box(c0, c1, yb, yb + 0.01, e0, e1, { faces: 'y' }));
+    add(M.enamel, box(c0 - 0.01, c0, ft, yb, e0, e1, { faces: 'X' }));
+    add(M.enamel, box(c1, c1 + 0.01, ft, yb, e0, e1, { faces: 'x' }));
+    add(M.enamel, box(c0, c1, ft, yb, e0 - 0.01, e0, { faces: 'Z' }));
+    add(M.enamel, box(c0, c1, ft, yb, e1, e1 + 0.01, { faces: 'z' }));
+    const lv = [e0 + 0.09, e0 + 0.19, e0 + 0.29];
+    for (const z of lv) for (const [p, q] of [[c0, c0 + 0.008], [c1 - 0.008, c1]]) add(M.stainless, box(p, q, ft + 0.03, yb - 0.02, z - 0.004, z, { faces: 'xXzZ' }));
+    for (const [p, q] of [[c0 + 0.008, c0 + 0.008 + r], [c1 - 0.008 - r, c1 - 0.008]]) add(M.stainless, box(p, q, ft + 0.03, yb - 0.03, lv[1], lv[1] + r));
+    for (let y = ft + 0.03; y < yb - 0.03; y += 0.032) add(M.stainless, box(c0 + 0.008, c1 - 0.008, y, y + 0.004, lv[1] + 0.001, lv[1] + 0.005));
+    add(M.enamel, box(c0 + 0.008, c1 - 0.008, ft + 0.03, yb - 0.03, lv[0], lv[0] + 0.022, { faces: 'xXyYZ' }));
+    const { z0: m0, z1: m1 } = MICRO;
+    add(M.blackGlass, box(a + g, b - g, 16.102, ft, m0 + g, m1 - g, { faces: 'xXyzZ' }));
+    add(M.ovenGlass, box(a + 0.103, b - 0.105, 16.1015, 16.102, m0 + 0.06, m1 - 0.1, { faces: 'y' }), { shadow: false });
+    add(M.hobMark, box(a + 0.25, a + 0.35, 16.1015, 16.102, m1 - 0.06, m1 - 0.045, { faces: 'y' }), { shadow: false });
   }
   // the coffee unit open over its front, lined in the wood to the ceiling: the machine on its pull-out board, two shelves
   // over it, an LED line under the first; a cup under the spout, cups and jars on the shelves
@@ -2486,7 +2506,7 @@ function buildIsland() {
 const DRAWERS = { list: [], meshes: [] };
 function drawerSpecs() {
   const { fy, plinth } = RUN, I = ISLAND, out = [];
-  for (const [z0, z1] of [[plinth, 0.475], [0.475, OVEN.z0]]) out.push({ x0: TALLS[2][0], x1: TALLS[2][1], z0, z1, yf: fy, dir: -1 });
+  for (const [z0, z1] of [[plinth, (plinth + OVEN.z0) / 2], [(plinth + OVEN.z0) / 2, OVEN.z0]]) out.push({ x0: TALLS[2][0], x1: TALLS[2][1], z0, z1, yf: fy, dir: -1 });
   for (const k of ['b2', 'b3']) for (const [z0, z1] of [[plinth, 0.355], [0.355, 0.635], [0.635, TOP.z0]]) out.push({ x0: BASES[k][0], x1: BASES[k][1], z0, z1, yf: fy, dir: -1 });
   for (const [x0, x1, n] of I.banks) {
     const h = (I.z0 - plinth) / n;
@@ -3248,6 +3268,27 @@ function setDoor(open) {
   for (const s of TDOOR.sashes) s.open = open;
   markDoor();
 }
+// the oven's door: black glass, its window (inside too), hinged at its foot on the front and dropping open towards the
+// room (OVEN.open) on a click (toggleOven, animateOpenings); userData.door 'oven' on its group
+const OVENDOOR = { g: null, open: false, t: 0 };
+function buildOven() {
+  const [a, b] = TALLS[2], g = RUN.gap / 2, { z0, z1, panel } = OVEN, zd = z1 - panel - g, y0 = 16.102, y1 = RUN.fy + 0.02;
+  const outer = new THREE.Group(), inner = new THREE.Group();
+  outer.position.set(0, y0, z0 + g);
+  inner.position.set(0, -y0, -(z0 + g));
+  outer.add(inner);
+  outer.userData.door = 'oven';
+  R.add(outer);
+  add(M.blackGlass, box(a + g, b - g, y0, y1, z0 + g, zd));
+  add(M.ovenGlass, box(a + 0.103, b - 0.105, y0 - 0.0005, y0, z0 + 0.07, zd - 0.06, { faces: 'y' }), { shadow: false });
+  add(M.ovenGlass, box(a + 0.06, b - 0.06, y1, y1 + 0.0005, z0 + 0.05, zd - 0.03, { faces: 'Y' }), { shadow: false });
+  DOORS.push(...flush(inner));
+  OVENDOOR.g = outer;
+}
+function toggleOven() {
+  OVENDOOR.open = !OVENDOOR.open;
+  dirty = true;
+}
 function toggleSash(i) {
   TDOOR.sashes[i].open = !TDOOR.sashes[i].open;
   markDoor();
@@ -3559,6 +3600,12 @@ function animateOpenings(dt) {
     updateBlinds();
     applySky();
     if (BLINDS.down === BLINDS.target) envSoon();
+    moved = true;
+  }
+  if (OVENDOOR.g && OVENDOOR.t !== (OVENDOOR.open ? 1 : 0)) {
+    OVENDOOR.t = THREE.MathUtils.clamp(OVENDOOR.t + (OVENDOOR.open ? dt : -dt) / 0.9, 0, 1);
+    OVENDOOR.g.rotation.x = OVEN.open * ease(OVENDOOR.t);
+    if (OVENDOOR.t === 0 || OVENDOOR.t === 1) envSoon();
     moved = true;
   }
   for (const d of DRAWERS.list) if (d.t !== (d.open ? 1 : 0)) {
@@ -3877,7 +3924,7 @@ function buildLights() {
     if (list) list.push(s);
     return s;
   };
-  // the spots on the tracks (no shadows: there are ten), the kitchen's three over the worktop, the pendants' over the
+  // the living room's square spots (no shadows: there are ten), the kitchen's three over the worktop, the pendants' over the
   // table, the ring's over the coffee table
   for (const y of ROWS) for (const x of SPOTS) spot(x, y, H - 0.012, 22, 0.6, false, L.spot);
   for (const x of KSLOT.spots) spot(x, KSLOT.y, HK + 0.006, 34, 0.7, true, L.kdown);
@@ -3984,7 +4031,7 @@ const WALLS = {
 };
 // what the rockers work: lamp channels (applyMood), an action, or (neither) something not in the model
 const CIRCUITS = {
-  spots: { label: 'Ceiling spots (tracks and kitchen)', ch: ['spot', 'kdown'] },
+  spots: { label: 'Ceiling spots (living room and kitchen)', ch: ['spot', 'kdown'] },
   island: { label: 'Island pendant', ch: ['island'] },
   tvwash: { label: 'Living ambient, under the TV unit', ch: ['tvwash'] },
   dining: { label: 'Dining ambient, niche and sideboard', ch: ['niche', 'wash'] },
@@ -4375,7 +4422,7 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// Four moods. The lamps: spot: the spots on the tracks; kdown: the kitchen's spots over the worktop; skan: the pendants
+// Four moods. The lamps: spot: the living room's square spots; kdown: the kitchen's spots over the worktop; skan: the pendants
 // over the table; ring: the ring over the sofa; island: the linear pendant over the island; the LED lines: curtain (in
 // the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); fire: the fireplace (swapped); hall: the hall's and
 // the corridor's lamps, seen beyond the lobby; cor: the hallway's downlights and the stairwell's, step: the stairs' step
@@ -4702,7 +4749,7 @@ function renderLegend() {
   const floor = { planks: fw + ' planks, 20 cm wide, oiled, running along the room', herring: fw + ' in herringbone, 12 × 72 cm blocks, oiled' }[floorKey];
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
-    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven, the coffee machine in the last, open over the worktop with its door left open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob (a click opens any drawer or the pull-out, in the island too), wall units over the window strip from the fridge\'s tower to the oven\'s', frontsC],
+    ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven at 70 cm (a click drops its door open) under a built-in microwave, the coffee machine in the last, open over the worktop with its door left open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob (a click opens any drawer or the pull-out, in the island too), wall units over the window strip from the fridge\'s tower to the oven\'s', frontsC],
     ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves 15 cm deep inside', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
@@ -4717,7 +4764,7 @@ function renderLegend() {
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
     ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers, both flush with the wall (the bedroom\'s in a reverse concealed frame, opening into the bedroom; the powder room\'s opening out), three small round downlights and a fourth angled at the plant' + (gapsOn ? ', shadow gaps in black profiles: 20 mm between the walls and the ceiling, the stairwell\'s too, 15 mm at the walls\' foot' : '') + '; before the window a large white bird of paradise (Strelitzia nicolai) in a dark clay pot; off it the stairs down to the lower floor, round the powder room in three arms: clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side round the powder room, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
-    ['Light', 'two tracks of square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
+    ['Light', 'two rows of five square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
@@ -4970,6 +5017,7 @@ function buildUI() {
       if (i !== undefined) return () => toggleDrawer(i);
       if (d === 'hall') return () => setGlass(!GLASS.open);
       if (d === 'pantry') return () => setPantryDoor(!PDOOR.open);
+      if (d === 'oven') return () => toggleOven();
       if (d !== undefined) return () => toggleSash(d);
     }
     return undefined;
@@ -5141,6 +5189,7 @@ try {
   buildIslandLight();
   buildMeshes(skp);
   buildDoors();
+  buildOven();
   buildCurtains();
   buildSurroundings(await loadView());
   buildGarden();
@@ -5159,7 +5208,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setPantryDoor, setPantryKind, PDOOR, PDOORS, setCurtains, setLayout, setFire, setGaps, GAP, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, OVENDOOR, toggleOven, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setPantryDoor, setPantryKind, PDOOR, PDOORS, setCurtains, setLayout, setFire, setGaps, GAP, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
