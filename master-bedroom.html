@@ -105,7 +105,8 @@
     #side { max-height: calc(100vh - 126px); max-height: calc(100dvh - 126px); }   /* the drawer: above the view bar, on the visible screen */
     #views { bottom: 12px; }
   }
-  #bedwalls, #wfronts, #pdoors { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #bedwalls, #wfronts { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #pdoors { display: grid; grid-template-columns: repeat(2, 1fr); }
   #beddings { display: grid; grid-template-columns: repeat(4, 1fr); }
   #curtains { display: grid; grid-template-columns: repeat(2, 1fr); }
 </style>
@@ -130,7 +131,7 @@
   <div class="group"><h2>Bed wall</h2><div class="seg" id="bedwalls" title="The wall behind the bed: as drawn, a dark accent wall with a 1 m panel in the wood, an LED line on its top washing up the wall; slats in the wood floor to ceiling on the dark wall, washed from a slot in the ceiling; or as drawn with an upholstered channel headboard over the bed (B)"></div></div>
   <div class="group"><h2>Bedding</h2><div class="seg" id="beddings" title="Stonewashed linen on the bed, a throw across its foot and cushions to go with it; each style starts with its own (U)"></div></div>
   <div class="group"><h2>Wardrobe</h2><div class="seg" id="wfronts" title="The walk-in wardrobe's runs: open shelving in the wood with rails, drawers and LED lines; the same behind glass doors in a slim metal frame; or behind flush handleless doors a shade lighter than the walls. A click opens a door or a drawer (R)"></div></div>
-  <div class="group"><h2>Wardrobe door</h2><div class="seg" id="pdoors" title="The pocket door into the wardrobe, sliding into the bed wall: lacquered like the other doors, smoked glass in a slim black frame, or black. A click on it, or L, slides it (J)"></div></div>
+  <div class="group"><h2>Wardrobe door</h2><div class="seg" id="pdoors" title="The pocket door into the wardrobe, sliding into the bed wall: lacquered like the other doors, smoked glass or a mirror in a slim black frame, or black. A click on it, or L, slides it (J)"></div></div>
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls (the bed wall keeps the style's dark accent), and a shade lighter of the doors and the flush wardrobe fronts; each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks (as drawn) or herringbone (F)"></div>
     <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain); each style starts with its own"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
@@ -589,7 +590,14 @@ class Planar {
 }
 const mirrorRefl = new Planar(new THREE.Vector3(1, 0, 0), SU(MIRROR.x, 12.3, 1.3), { scale: 0.6, lod: 0 });   // the dressing mirror: faces north
 const floorRefl = new Planar(new THREE.Vector3(0, 1, 0), new THREE.Vector3(52.5, 0, -11.0), { scale: 0.5, lod: 7, distort: 0.03 });
-const reflectors = [mirrorRefl, floorRefl];
+// the pocket door's mirror (PDOORS): a reflector for each face, at its pane (POCKET_PANE either side of the leaf's middle;
+// the panes slide in their planes); rendered only when that face can be seen with the leaf out of its pocket (renderFrame)
+const POCKET_MID = (POCKET.x0 + POCKET.x1) / 2, POCKET_PANE = 0.004;
+const pdoorRefl = [
+  new Planar(new THREE.Vector3(-1, 0, 0), SU(POCKET_MID - POCKET_PANE, 12.3, 1.05), { scale: 0.6, lod: 0 }),   // its bedroom face
+  new Planar(new THREE.Vector3(1, 0, 0), SU(POCKET_MID + POCKET_PANE, 12.3, 1.05), { scale: 0.6, lod: 0 }),    // its wardrobe face
+];
+const reflectors = [mirrorRefl, floorRefl, ...pdoorRefl];
 
 // ---------------------------------------------------------------- procedural textures (baked on the GPU)
 const NOISE = /* glsl */`
@@ -972,10 +980,12 @@ const BEDDINGS = {
 const BEDWALLS = { drawn: { label: 'As drawn' }, slats: { label: 'Slats' }, uph: { label: 'Upholstered' } };
 // the wardrobe's fronts: none (open shelving), glass doors, flush doors; how much of their LED lines' light gets out
 const WFRONTS = { open: { label: 'Open', k: 1 }, glass: { label: 'Glass', k: 0.55 }, flush: { label: 'Flush', k: 0 } };
-// the pocket door's leaf (POCKET): lacquered like the other doors, smoked glass in a slim black frame, or lacquered black
+// the pocket door's leaf (POCKET): lacquered like the other doors, smoked glass or mirror glass in a slim black frame, or
+// lacquered black
 const PDOORS = {
   light: { label: 'Light', legend: 'a flush leaf lacquered like the others, flush pulls in black, an edge pull to draw it out' },
   glass: { label: 'Smoked glass', legend: 'smoked grey glass in a slim black aluminium frame, a grip groove in its leading stile, an edge pull' },
+  mirror: { label: 'Mirror', legend: 'mirror glass on both faces in a slim black aluminium frame, a grip groove in its leading stile, an edge pull' },
   black: { label: 'Black', legend: 'a flush leaf lacquered black, flush pulls in black, an edge pull to draw it out' },
 };
 // the curtains: sheer linen or dim-out; how much of the daylight they keep out, drawn
@@ -1129,6 +1139,8 @@ const M = {
   marble: physical({ clearcoat: 0.5, clearcoatRoughness: 0.12 }),      // the niche's shelves: Carrara
   lacquer: physical({ color: 0xf0ede7, roughness: 0.38, clearcoat: 0.3, clearcoatRoughness: 0.3 }),   // the doors, the flush wardrobe fronts
   mirror: physical({ color: 0xf0f2f1, metalness: 1, roughness: 0 }, mirrorRefl),
+  pMirrorA: physical({ color: 0xf0f2f1, metalness: 1, roughness: 0 }, pdoorRefl[0]),   // the pocket door's mirror, its faces
+  pMirrorB: physical({ color: 0xf0f2f1, metalness: 1, roughness: 0 }, pdoorRefl[1]),
   mirrorEdge: physical({ color: 0x9fb5ad, roughness: 0.1, transmission: 0.6, thickness: 0.006 }),
   // the windows' glass only adds its reflection to what is behind it
   windowGlass: physical({ color: 0x000000, roughness: 0.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
@@ -1188,7 +1200,7 @@ const E = {
   cor: new THREE.MeshBasicMaterial({ color: 0xffffff }),      // the hallway's downlights' lenses
   step: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the stairs' LED step lights
 };
-M.mirror.defines.NO_DIRECT_SPEC = '';
+for (const m of [M.mirror, M.pMirrorA, M.pMirrorB]) m.defines.NO_DIRECT_SPEC = '';
 // outside (lit as OUTDOOR: the sun and the sky's glow, setSun): the decking and the soffit's boards, white render,
 // anthracite metal, the glass balustrade, the living room's glazing seen from outside
 M.deck = physical({ color: 0xffffff, roughness: 0.8 });
@@ -2436,13 +2448,18 @@ function buildDoors() {
     const outer = new THREE.Group();
     outer.userData.door = 'pocket';
     for (const k of Object.keys(PDOORS)) {
-      if (k === 'glass') {
-        const s = 0.022, sl = 0.036, gx = (P.x0 + P.x1) / 2;
+      if (k === 'glass' || k === 'mirror') {
+        const s = 0.022, sl = 0.036, gx = POCKET_MID, pz = [z0 + s, z1 - s];
         add(M.blackMetal, box(P.x0, P.x1, y0, y0 + sl, z0, z1));
         add(M.blackMetal, box(P.x0, P.x1, y1 - s, y1, z0, z1));
         add(M.blackMetal, box(P.x0, P.x1, y0 + sl, y1 - s, z0, z0 + s, { faces: 'xXZ' }));
         add(M.blackMetal, box(P.x0, P.x1, y0 + sl, y1 - s, z1 - s, z1, { faces: 'xXz' }));
-        add(M.pGlass, box(gx - 0.004, gx + 0.004, y0 + sl, y1 - s, z0 + s, z1 - s, { faces: 'xX' }));
+        if (k === 'glass') add(M.pGlass, box(gx - 0.004, gx + 0.004, y0 + sl, y1 - s, ...pz, { faces: 'xX' }));
+        else {
+          add(M.pMirrorA, box(gx - POCKET_PANE, gx + POCKET_PANE, y0 + sl, y1 - s, ...pz, { faces: 'x' }));
+          add(M.pMirrorB, box(gx - POCKET_PANE, gx + POCKET_PANE, y0 + sl, y1 - s, ...pz, { faces: 'X' }));
+          add(M.dark, box(gx - POCKET_PANE, gx + POCKET_PANE, y0 + sl, y1 - s, ...pz, { faces: 'yYzZ' }), { shadow: false });
+        }
         add(M.joint, box(P.x0 - 0.0003, P.x0, y0 + 0.01, y0 + 0.024, zc - 0.2, zc + 0.2, { faces: 'x' }), { shadow: false });
         add(M.joint, box(P.x1, P.x1 + 0.0003, y0 + 0.01, y0 + 0.024, zc - 0.2, zc + 0.2, { faces: 'X' }), { shadow: false });
       } else {
@@ -2455,8 +2472,9 @@ function buildDoors() {
       }
       add(M.blackMetal, box(P.x0 + 0.008, P.x1 - 0.008, y0 - 0.0015, y0, zc - 0.06, zc + 0.06));
       add(M.joint, box(P.x0 + 0.012, P.x1 - 0.012, y0 - 0.0017, y0 - 0.0015, zc - 0.05, zc + 0.05, { faces: 'y' }), { shadow: false });
-      const g = new THREE.Group();
-      DOORS.push(...flush(g));
+      const g = new THREE.Group(), meshes = flush(g);
+      DOORS.push(...meshes);
+      for (const m of meshes) pdoorRefl.forEach((r, i) => { if (m.material === [M.pMirrorA, M.pMirrorB][i]) r.meshes.push(m); });
       outer.add(g);
       PD[k] = g;
     }
@@ -3948,6 +3966,7 @@ async function captureImage() {
     renderer.setSize(w, h);
     composer.setSize(w, h);
     mirrorRefl.setSize(w * s, h * s);
+    for (const r of pdoorRefl) r.setSize(w * s, h * s);
     floorRefl.setSize(w * s, h * s);
   };
   try {
@@ -3996,6 +4015,7 @@ function resize() {
   renderer.setSize(w, h);
   composer.setSize(w, h);
   mirrorRefl.setSize(w * DPR, h * DPR);
+  for (const r of pdoorRefl) r.setSize(w * DPR, h * DPR);
   floorRefl.setSize(w * DPR, h * DPR);
   dirty = true;
 }
@@ -4006,17 +4026,24 @@ const clock = new THREE.Clock();
 // the dressing mirror is only rendered when it can be seen
 const frustum = new THREE.Frustum(), projView = new THREE.Matrix4();
 const MIRROR_BOX = new THREE.Box3().setFromPoints([SU(MIRROR.x - 0.01, DRESS.y0, 0), SU(MIRROR.x + 0.01, MIRROR.y1, H)]);
+const POCKET_BOX = new THREE.Box3().setFromPoints([SU(POCKET.x0 - 0.01, PART.open[0], 0), SU(POCKET.x1 + 0.01, PART.open[1] + POCKET.lap, PART.head)]);
 function renderFrame() {
   const above = camera.position.y > H - 0.02;
   groups.ceiling.visible = groups.pendants.visible = !above;
   OUT.outside.visible = OUT.roof.visible = sky.visible = !above;
   if (reflectionsOn) {
-    floorRefl.update(renderer, scene, camera, [mirrorRefl]);
+    floorRefl.update(renderer, scene, camera, [mirrorRefl, ...pdoorRefl]);
     camera.updateMatrixWorld();
     frustum.setFromProjectionMatrix(projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     const seen = !above && camera.position.clone().sub(mirrorRefl.p).dot(mirrorRefl.n) > 0 && frustum.intersectsBox(MIRROR_BOX);
-    if (seen) mirrorRefl.update(renderer, scene, camera, [floorRefl]);
+    if (seen) mirrorRefl.update(renderer, scene, camera, [floorRefl, ...pdoorRefl]);
     mirrorRefl.uniforms.planarOn.value = seen ? 1 : 0;
+    // the pocket door's mirror: the face the camera is in front of, the leaf (some of it) out of its pocket
+    pdoorRefl.forEach((r, i) => {
+      const on = pdoorKey === 'mirror' && !above && LEAF.pocket.t < 0.97 && camera.position.clone().sub(r.p).dot(r.n) > 0 && frustum.intersectsBox(POCKET_BOX);
+      if (on) r.update(renderer, scene, camera, [floorRefl, mirrorRefl, pdoorRefl[1 - i]]);
+      r.uniforms.planarOn.value = on ? 1 : 0;
+    });
   }
   if (postOn) composer.render();
   else { gtao.enabled = bloom.enabled = false; composer.render(); }
@@ -4089,7 +4116,7 @@ try {
     applyBedding, setBedWall, setWFront, setCurtainKind, setFloor, setDoor, setLeaf, setCurtains, toggleDrawer, DRAWERS, toggleWDoor, WDOORS, DOORS, TDOOR, LEAF, DCAB, setPDoor, CURT, OUT,
     DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, texCache, bakeSet, captureImage, saveImage,
     goTo, pickView, setMood, setSunHour, BASE, MOODS, applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT,
-    reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
+    reflectors, mirrorRefl, floorRefl, pdoorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
