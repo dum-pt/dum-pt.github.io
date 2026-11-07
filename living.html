@@ -255,10 +255,10 @@ const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, runs:
 // lined, up to the lowered ceiling), oak shelves 15 cm deep along its south wall (to sx1, at shelves), a tall freezer at
 // the facade (tall: its sides, its front's face; 60 cm, as in the house model, but ending at the wall's line by the
 // sliding door's gap: its door hinged on that side, opening by open rad), a counter in the wood from it to the south
-// wall (its underside and top: counter); a downlight in its ceiling over the shelves (lamp), its light kept to the
+// wall (its underside and top: counter), the shelves over it turning along the facade (an L: that leg deep); a downlight in its ceiling over the shelves (lamp), its light kept to the
 // pantry (gate: on its distance, see outdoorLights)
 const PANTRY = { x0: 43.215, x1: 44.41, y0: 14.685, door: [15.36, 16.157], shelves: [0.86, 1.34, 1.69, 2.04], sx1: 43.365, tall: [43.81, 44.41, 16.1],
-  open: Math.PI / 2, counter: [0.86, 0.89], lamp: [43.75, 15.4], gate: 3000 };
+  open: Math.PI / 2, counter: [0.86, 0.89], deep: 0.4, lamp: [43.75, 15.4], gate: 3000 };
 // the pantry's rack against its east wall, across from the freezer: 100 x 40 x 200 cm (x0..x1 by its wall shelves, y0..y1,
 // to z1), black steel posts (post square), oak shelves (their tops at shelves) on steel rails; its light switch on the
 // doorway's wall inside, between the rack and the doorway (switch: along the wall)
@@ -2505,7 +2505,9 @@ function buildKitchen() {
   // from it to the south wall, a bread bin and two canisters on it
   {
     const { x0, x1, y0, shelves, sx1, tall, counter: [c0, c1] } = PANTRY, a = tall[0], fy = tall[2], ff = fy + 0.02, yf = ff + 0.052, yb = Y1 - 0.04;
-    for (const z of shelves) add(M.veneer, box(x0, sx1, y0, fy, z - 0.02, z));
+    const yl = Y1 - PANTRY.deep;
+    for (const z of shelves) add(M.veneer, box(x0, sx1, y0, z > c1 ? yl : fy, z - 0.02, z));
+    for (const z of shelves) if (z > c1) add(M.veneer, box(x0, a, yl, Y1, z - 0.02, z, { faces: 'yXzZ' }));
     add(M.cabEnd, box(a, a + 0.018, ff, Y1, 0, H1, { faces: 'xy' }));
     add(M.cabEnd, box(x1 - 0.018, x1, ff, Y1, 0, H1, { faces: 'Xy' }));
     add(M.cabEnd, box(a + 0.018, x1 - 0.018, ff, Y1, H1 - 0.018, H1, { faces: 'yz' }));
@@ -3202,6 +3204,15 @@ function buildProps() {
     for (let k = 0; k < 9; k++) { const w = 0.065 + rnd() * 0.02, h = 0.22 + rnd() * 0.08, m = [M.book1, M.book2, M.book3][k % 3]; add(m, rbox(w, 0.19, h, 0.003, [x0 + 0.09 + k * 0.1, y0 + 0.2, f3 + h / 2])); }
     for (let k = 0; k < 7; k++) add(k % 2 ? M.amber : M.slideGlass, lathe(BOTTLE.map(([r, h]) => [r * 0.95, h * (1.1 + (k % 3) * 0.12)]), [x0 + 0.1 + k * 0.13, y0 + 0.2, f4], 20));
     for (const [cx, m] of [[x0 + 0.26, M.potteryWhite], [x0 + 0.72, M.book2]]) add(m, rbox(0.38, 0.32, 0.2, 0.015, [cx, y0 + 0.2, f5 + 0.1]));
+  }
+  // the pantry's shelves along the facade, over the counter: jars on the lowest, bottles and a box on the next, storage
+  // boxes on the top one
+  {
+    const rnd = mulberry(91), [, s1, s2, s3] = PANTRY.shelves, xa = PANTRY.x0 + 0.17, xb = PANTRY.tall[0] - 0.06;
+    for (let x = xa, k = 0; x < xb; x += 0.11, k++) for (const y of [16.44, 16.6]) add(rnd() < 0.6 ? M.canister : M.amber, lathe(JAR.map(([r, h]) => [r, h * (0.7 + rnd() * 0.5)]), [x + (y > 16.5 ? 0.03 : 0), y, s1], 22));
+    for (let x = xa, k = 0; x < xb - 0.15; x += 0.085, k++) add(k % 2 ? M.amber : M.slideGlass, lathe(BOTTLE.map(([r, h]) => [r * 0.9, h * (1.05 + (k % 3) * 0.1)]), [x, 16.6, s2], 20));
+    add(M.book2, rbox(0.2, 0.3, 0.14, 0.004, [xb - 0.06, 16.55, s2 + 0.07]));
+    for (const [x, m] of [[xa + 0.08, M.potteryWhite], [xa + 0.36, M.book2]]) add(m, rbox(0.26, 0.34, 0.18, 0.015, [x, 16.55, s3 + 0.09]));
   }
   // the pantry's shelves: jars
   {
@@ -4941,7 +4952,7 @@ function renderLegend() {
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white, the kitchen\'s lowered', paintColor],
     ['Kitchen', 'handleless fronts in ' + fronts + ': tall units at both ends (a larder, the fridge-freezer, the oven at 70 cm under a built-in microwave, the coffee machine in the last behind a door that stands open, two shelves over the machine lit from under the first, a tall pull-out under it), drawers under the oven and the hob, wall units over the window strip from the fridge\'s tower to the oven\'s with plates, bowls and mugs inside, a slim 90 cm hood under them over the hob, its duct up through the unit over it. A click opens or shuts any door or drawer, the oven, the microwave, the hood\'s visor (it slides out), the drawers in the island too', frontsC],
-    ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves 15 cm deep inside, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
+    ['Pantry', 'behind a sliding door, 75 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it); ' + wn + ' shelves inside, 15 cm deep along the south wall and turning along the facade (40 cm) over the counter, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
     ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
