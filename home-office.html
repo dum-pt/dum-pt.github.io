@@ -2417,6 +2417,8 @@ const CIRCUITS = {
   track: { label: 'Track lights', ch: ['track', 'line'] },
   shelf: { label: 'LED in the wall unit', ch: ['shelf'] },
   desk: { label: 'Desk lamp, on a switched socket', ch: ['desk'] },
+  gblindsUp: { label: 'Garden door exterior blinds, up' },        // (user, 2026-11-08: blinds at every window)
+  gblindsDown: { label: 'Garden door exterior blinds, down' },
 };
 const CIRCUIT_OF = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
@@ -2426,7 +2428,7 @@ const DEVICES = [
   { id: 'S1', w: 'N', X: 14.66, h: 1100, kind: 'sw', gangs: [['track'], ['shelf', 'desk']] },
   { id: 'Z1', w: 'N', X: 14.95, h: 880, kind: 'sock', n: 2, info: 'over the desk' },
   { id: 'D1', w: 'N', X: 15.11, h: 880, kind: 'data', info: 'over the desk' },
-  { id: 'S2', w: 'E', X: 43.45, h: 1100, kind: 'sw', gangs: [['track']] },
+  { id: 'S2', w: 'E', X: 43.45, h: 1100, kind: 'sw', gangs: [['track'], ['gblindsUp', 'gblindsDown']] },
   { id: 'Z2', w: 'S', X: 15.25, h: 300, kind: 'sock', info: 'by the garden door' },
   { id: 'Z3', w: 'E', X: 44.6, h: 300, kind: 'sock', info: 'on the east wall' },
   { id: 'Z4', w: 'B', X: 44.62, h: 1000, kind: 'sock', n: 2, info: 'in the wall unit, over its counter' },

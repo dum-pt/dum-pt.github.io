@@ -1609,7 +1609,7 @@ function applyLayout(key) {
   const m = moodNow();
   applyDownlights(m);
   L.cove.visible = inScene(m, 'cove') && key === 'house';
-  for (const a of L.nicheStrips) a.visible = MOODS[moodKey].niche > 0 && (!a.userData.only || a.userData.only === key);
+  for (const a of L.nicheStrips) a.visible = inScene(m, 'niche') && (!a.userData.only || a.userData.only === key);
   document.querySelectorAll('#layouts button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   renderer.shadowMap.needsUpdate = true;
   renderLegend();
@@ -2552,7 +2552,7 @@ async function loadView() {
 // S4-5 (top: the exterior blinds, up | down; bottom: the PDLC film), both at h950. Each fitting is on a wall face (at x or y, n its normal into the room, u: where along it, from the
 // view's X, mm from the window wall's face) at the view's height h (mm, to its centre). Frames 80 x 80 (70 in the
 // cabinet, as drawn), gangs at 71 mm; Czech sockets (type E, the earth pin up). A rocker works its lamps (CIRCUITS: the
-// moods' channels; or act, a circuit that does something else: the blinds, the film); the rest say what they are (devCard). (P-L3, the supply of the LED under the vanity, is inside it.)
+// moods' channels; or act, a circuit that does something else: the blinds, the film); the rest say what they are (devCard). (P-L3, the 24 V outlet of the LED under the vanity, is inside it: one driver in the mirror cabinet feeds both.)
 const WALLS = {
   W1: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.1 },               // the door wall, 10 cm from the door on its latch side
   W1b: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.19 },             // (the next frame beyond it)
@@ -2562,7 +2562,7 @@ const WALLS = {
 const CIRCUITS = {
   down: { label: 'Ceiling downlights', ch: ['down'] },
   led: { label: 'LED under the mirror cabinet and the vanity', ch: ['led'] },
-  cove: { label: 'Ambient: LED in the ceiling recess over the bath (built-in bath)', ch: ['cove'] },
+  cove: { label: 'Ambient: LED in the ceiling recess over the bath and in the shower niche (built-in bath)', ch: ['cove', 'niche'] },
   blindsUp: { label: 'Exterior blinds, up', act: () => setBlinds(0, BLINDS.tilt, true), on: () => BLINDS.target < 0.5 },
   blindsDown: { label: 'Exterior blinds, down', act: () => setBlinds(1, BLINDS.tilt, true), on: () => BLINDS.target >= 0.5 },
   film: { label: 'PDLC privacy film (on: clear, off: milky)', act: () => setFilm(!PDLC.frosted), on: () => !PDLC.frosted },
@@ -2577,7 +2577,7 @@ const DEVICES = [
   { id: 'K-Z1', w: 'Kr', X: -108, h: 500, kind: 'sock', info: 'in the window reveal' },
   { id: 'K-P1', w: 'Kr', X: -108, h: 50, s: 0.05, kind: 'outlet', info: 'PDLC film supply, 230 V, in the window reveal' },
   { id: 'K-Z2', w: 'K', X: 300, h: 1400, s: 0.07, n: 2, kind: 'sock', info: 'double, in the mirror cabinet, behind its door by the window' },
-  { id: 'P-L2', w: 'K', X: 600, h: 1320, s: 0.05, kind: 'outlet', info: 'supply of the LED under the mirror cabinet' },
+  { id: 'P-L2', w: 'K', X: 600, h: 1320, s: 0.05, kind: 'outlet', info: 'supply of the LED driver in the mirror cabinet: the LED under it and the one under the vanity' },
 ];
 const KIND_NAME = { sock: 'socket 230 V', outlet: 'cable outlet' };
 const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42, swatch: '#1e1e20' }, white: { label: 'White', color: 0xf0efeb, rough: 0.32, swatch: '#f0efeb' } };
@@ -2934,7 +2934,7 @@ function applyMood(key) {
   applyDownlights(m);
   for (const p of L.pend) { p.color.copy(c); p.intensity = BASE.pend * m.pend; p.visible = m.pend > 0; }
   for (const p of L.niche) { p.color.copy(c); p.intensity = BASE.niche * m.niche; }
-  for (const a of L.nicheStrips) { a.color.copy(c); a.intensity = BASE.nicheStrip * m.niche; a.visible = m.niche > 0 && (!a.userData.only || a.userData.only === layoutKey); }
+  for (const a of L.nicheStrips) { a.color.copy(c); a.intensity = BASE.nicheStrip * m.niche; a.visible = inScene(m, 'niche') && (!a.userData.only || a.userData.only === layoutKey); }
   E.nicheLed.emissive.copy(c); E.nicheLed.emissiveIntensity = BASE.nicheLed * m.niche;
   L.cove.color.copy(c); L.cove.intensity = BASE.cove * m.cove;
   E.down.color.copy(c).multiplyScalar(m.down > 0 ? BASE.downLens * (0.4 + 0.6 * m.down) : 0.02);
