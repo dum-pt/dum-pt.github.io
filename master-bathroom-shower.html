@@ -61,6 +61,10 @@
   #status { color: var(--muted); font-size: 12.5px; }
   #busy { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); padding: 7px 12px; font-size: 12px; color: var(--muted); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   #busy.show { opacity: 1; }
+  #devcard { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); padding: 8px 14px; font-size: 12.5px; max-width: min(520px, calc(100vw - 32px)); opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+  #devcard.show { opacity: 1; }
+  #devcard b { font-weight: 600; }
+  #devcard span { color: var(--muted); }
   #tiles { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
   #tiles button, #tile-pick { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
   #tiles button.on, #tile-pick.on { box-shadow: 0 0 0 2px rgba(24, 20, 17, 0.9), 0 0 0 3.5px var(--accent); }
@@ -110,6 +114,7 @@
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
   </div>
+  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches by the door (lights; blinds and the PDLC film) and the sockets from the electro plan: black or white plates. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the door (D)">Open door</button></div>
     <div class="winrow"><span>Window</span><div class="seg" id="win" title="Window: closed, tilted or open (W)"></div></div>
@@ -130,7 +135,8 @@
 
 <button id="opts" class="panel" aria-expanded="false" aria-controls="side">Options</button>
 <div id="views" class="panel"></div>
-<div id="hint">Drag to look around · scroll to move closer · double-click to focus</div>
+<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a door to open it, a switch to work it</div>
+<div id="devcard" class="panel"></div>
 <div id="busy" class="panel">Updating…</div>
 
 <div id="loading"><div class="box"><div class="ring"></div><div id="status">Loading…</div></div></div>
@@ -968,6 +974,7 @@ const E = {
   down: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   globe: physical({ color: 0xffffff, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 1 }),
   led: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+  cove: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the strip in the recess over the built-in bath
   nicheLed: physical({ color: 0xe8e4dc, roughness: 0.35, emissive: 0xffffff, emissiveIntensity: 0 }),   // opal diffuser
   // glow of the LED strip behind the mirror on the wall around it (additive, falls off with distance from the edge)
   halo: new THREE.ShaderMaterial({
@@ -1917,16 +1924,7 @@ function buildFittings(skp) {
     drapeTowel(M.towel2, { x: xc, z: zc, y0: 3.345, w: 0.2, back: 0.2, front: 0.27, phase: 0.4 });
   }
   // (the toilet brush is in a hidden box in the door wall: buildBrushBox)
-  // light switches on the door wall, latch side: a vertical three-gang plate in the fittings finish
-  // (ceiling lights, mirror cabinet and vanity, ambient)
-  {
-    const sx = DOOR_S[1] + 0.1, w = 0.08, gz = [1.025, 1.1, 1.175];
-    add(M.metal, box(sx - w / 2, sx + w / 2, Y0, Y0 + 0.006, gz[0] - 0.0375, gz[2] + 0.0375));
-    for (const z of gz) {
-      add(M.dark, box(sx - 0.0265, sx + 0.0265, Y0 + 0.006, Y0 + 0.0065, z - 0.0265, z + 0.0265, { faces: 'Y' }), { shadow: false });
-      add(M.metal, box(sx - 0.025, sx + 0.025, Y0 + 0.006, Y0 + 0.0095, z - 0.025, z + 0.025, { faces: 'xXYzZ' }));
-    }
-  }
+  // (the light switches on the door wall, latch side: DEVICES, S1-3)
 }
 
 function buildRadiators() {}     // (the towel warmers come with the fittings)
@@ -2175,7 +2173,7 @@ function applyVanity(key = vanityKey) {
     v.flipGroup.visible = on && vanityFlip;
   }
   groups.radiators.position.z = (vanityFlip ? VANITIES[key].flip : VANITIES[key]).radiatorDz;
-  applyVanityLights(MOODS[moodKey]);
+  applyVanityLights(moodNow());
   renderer.shadowMap.needsUpdate = true;
   renderLegend();
   dirty = true;
@@ -2186,7 +2184,7 @@ function applyVanityLights(m, c = kelvin(m.k)) {
   const leds = VANITIES[vanityKey].leds;
   L.vanityLights.forEach((a, i) => {
     const l = leds[i];
-    a.visible = !!l && m.led > 0;
+    a.visible = !!l && inScene(m, 'led');
     if (!l) return;
     a.position.copy(SU(l.x + 0.018, (l.y0 + l.y1) / 2, l.z - 0.004));
     a.height = l.v1 - l.v0 - 0.04;
@@ -2284,6 +2282,201 @@ async function loadView() {
   tex.anisotropy = maxAniso;
   tex.needsUpdate = true;
   return tex;
+}
+
+// ---------------------------------------------------------------- the switches and the sockets
+// From the electro plan (stena_elektro_displej.dxf, view KOUPELNA - CELNI, the vanity's wall): the sockets in the window
+// reveal and in the mirror cabinet; by the door, on its latch side (view W1, 2026-11-07), S1-3 (the lights) and beyond it
+// S4-5 (top: the exterior blinds, up | down; bottom: the PDLC film), both at h950. Each fitting is on a wall face (at x or y, n its normal into the room, u: where along it, from the
+// view's X, mm from the window wall's face) at the view's height h (mm, to its centre). Frames 80 x 80 (70 in the
+// cabinet, as drawn), gangs at 71 mm; Czech sockets (type E, the earth pin up). A rocker works its lamps (CIRCUITS: the
+// moods' channels; or act, a circuit that does something else: the blinds, the film); the rest say what they are (devCard). (P-L3, the supply of the LED under the vanity, is inside it.)
+const WALLS = {
+  W1: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.1 },               // the door wall, 10 cm from the door on its latch side
+  W1b: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.19 },             // (the next frame beyond it)
+  K: { x: X1 - 0.01, n: [-1, 0], u: (X) => Y1 - X / 1000 },          // the back of the mirror cabinet over the vanity
+  Kr: { x: DOOR_N[1], n: [-1, 0], u: (X) => Y1 - X / 1000 },         // the window's reveal on the vanity's side
+};
+const CIRCUITS = {
+  down: { label: 'Ceiling downlights', ch: ['down'] },
+  led: { label: 'LED under the mirror cabinet and the vanity', ch: ['led'] },
+  cove: { label: 'Ambient: LED in the ceiling recess over the bath (built-in bath)', ch: ['cove'] },
+  blindsUp: { label: 'Exterior blinds, up', act: () => setBlinds(0, BLINDS.tilt, true), on: () => BLINDS.target < 0.5 },
+  blindsDown: { label: 'Exterior blinds, down', act: () => setBlinds(1, BLINDS.tilt, true), on: () => BLINDS.target >= 0.5 },
+  film: { label: 'PDLC privacy film (on: clear, off: milky)', act: () => setFilm(!PDLC.frosted), on: () => !PDLC.frosted },
+};
+const CIRCUIT_OF = {};
+for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
+// kinds: sw (gangs: [circuit] a whole rocker, [left, right] split; vert: stacked, the first on top), sock, outlet (a
+// cable's way out)
+const DEVICES = [
+  { id: 'S1-3', w: 'W1', h: 950, kind: 'sw', vert: true, gangs: [['down'], ['led'], ['cove']], names: ['top', 'middle', 'bottom'] },
+  { id: 'S4-5', w: 'W1b', h: 950, kind: 'sw', vert: true, gangs: [['blindsUp', 'blindsDown'], ['film']], names: ['top', 'bottom'] },
+  { id: 'K-Z1', w: 'Kr', X: -108, h: 500, kind: 'sock', info: 'in the window reveal' },
+  { id: 'K-P1', w: 'Kr', X: -108, h: 50, s: 0.05, kind: 'outlet', info: 'PDLC film supply, 230 V, in the window reveal' },
+  { id: 'K-Z2', w: 'K', X: 260, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its door by the window' },
+  { id: 'K-Z3', w: 'K', X: 340, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its door by the window' },
+  { id: 'K-Z4', w: 'K', X: 860, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its second door' },
+  { id: 'K-Z5', w: 'K', X: 940, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its second door' },
+  { id: 'P-L2', w: 'K', X: 600, h: 1320, s: 0.05, kind: 'outlet', info: 'supply of the LED under the mirror cabinet' },
+];
+const KIND_NAME = { sock: 'socket 230 V', outlet: 'cable outlet' };
+const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42, swatch: '#1e1e20' }, white: { label: 'White', color: 0xf0efeb, rough: 0.32, swatch: '#f0efeb' } };
+let devColor = 'black';
+M.dev = physical({ color: DEVCOLORS.black.color, roughness: DEVCOLORS.black.rough, clearcoat: 0.25, clearcoatRoughness: 0.4 });
+M.devCup = physical({ color: DEVCOLORS.black.color, roughness: 0.6, side: THREE.DoubleSide });   // the sockets' recesses
+M.devDark = physical({ color: 0x050505, roughness: 0.75 });
+M.devPin = physical({ color: 0xd2d2d2, metalness: 1, roughness: 0.22 });
+const DEV = { group: new THREE.Group(), list: [], meshes: [], rockers: [] };
+// the lamps' switched state (a circuit flipped since the scene was picked: on or off)
+const SWITCHED = {};
+function level(ch, m = MOODS[moodKey]) {
+  const s = SWITCHED[CIRCUIT_OF[ch]];
+  if (s === undefined) return m[ch];
+  return s ? (m[ch] > 0 ? m[ch] : MOODS[m.day ? 'bright' : 'evening'][ch]) : 0;
+}
+// the mood with each channel as its switch has it (applyMood and the rest take this)
+function moodNow(key = moodKey) {
+  const m = MOODS[key];
+  return { ...m, ...Object.fromEntries(Object.keys(CIRCUIT_OF).map((ch) => [ch, level(ch, m)])) };
+}
+// after dark a channel's lamps stay in the scene when off (at 0), so a switch flipped doesn't recompile every shader
+const inScene = (m, ch) => m[ch] > 0 || !m.day;
+const circuitOn = (c) => { const C = CIRCUITS[c]; return C.on ? C.on() : C.ch.some((k) => level(k) > 0); };
+// a plate in the device's frame (x along the wall to the right as seen from the room, y into the wall, z up), with holes
+// (round: [x, z, r], square: [x, z, half width, half height])
+function plateGeo(hx, hz, r, holes = []) {
+  const s = new THREE.Shape();
+  s.moveTo(-hx + r, -hz); s.lineTo(hx - r, -hz); s.quadraticCurveTo(hx, -hz, hx, -hz + r);
+  s.lineTo(hx, hz - r); s.quadraticCurveTo(hx, hz, hx - r, hz);
+  s.lineTo(-hx + r, hz); s.quadraticCurveTo(-hx, hz, -hx, hz - r);
+  s.lineTo(-hx, -hz + r); s.quadraticCurveTo(-hx, -hz, -hx + r, -hz);
+  for (const [x, z, a, b] of holes) {
+    const p = new THREE.Path();
+    if (b === undefined) p.absarc(x, z, a, 0, Math.PI * 2, true);
+    else { p.moveTo(x - a, z - b); p.lineTo(x - a, z + b); p.lineTo(x + a, z + b); p.lineTo(x + a, z - b); p.closePath(); }
+    s.holes.push(p);
+  }
+  return new THREE.ShapeGeometry(s, 10).rotateX(Math.PI / 2);      // facing -y, out of the wall
+}
+// a Czech socket's face (front at y = f): its insert with the round recess, the two holes, the earth pin
+function socketParts(put, x, z, f, hx = 0.025, hz = 0.025) {
+  const R0 = 0.0185, d = 0.0085;
+  put(M.dev, plateGeo(hx, hz, 0.004, [[0, 0, R0]]).translate(x, f, z));
+  put(M.dev, box(x - hx, x + hx, f, f + 0.0025, z - hz, z + hz, { faces: 'xXzZ' }));
+  put(M.devCup, new THREE.LatheGeometry([new THREE.Vector2(R0, f), new THREE.Vector2(R0, f + d), new THREE.Vector2(0.0001, f + d)], 32).translate(x, 0, z));
+  for (const s of [-1, 1]) put(M.devDark, cyl(0.0024, 0.0004, 'y', [x + s * 0.0095, f + d - 0.0003, z], 16));
+  put(M.devPin, cyl(0.0024, 0.0075, 'y', [x, f + d - 0.00375, z + 0.011], 16));
+}
+function buildDevices() {
+  R.add(DEV.group);
+  const FD = 0.0095, FF = -0.012;          // the frame's depth off the wall; the inserts' faces
+  DEVICES.forEach((d, i) => {
+    const W = WALLS[d.w], [nx, ny] = W.n, u = W.u(d.X), z = d.h / 1000;
+    const c = W.x !== undefined ? new THREE.Vector3(W.x, u, z) : new THREE.Vector3(u, W.y, z);
+    const F = new THREE.Matrix4().makeBasis(new THREE.Vector3(-ny, nx, 0), new THREE.Vector3(-nx, -ny, 0), new THREE.Vector3(0, 0, 1)).setPosition(c);
+    const put = (mat, geo) => add(mat, geo.applyMatrix4(F), { shadow: false });
+    const n = d.kind === 'sw' ? d.gangs.length : 1, s = d.s ?? 0.08, long = s + (n - 1) * 0.071;
+    const [w, fh] = d.vert ? [s, long] : [long, s];
+    // a gang's centre in the frame: in a row, or stacked with the first on top
+    const at = (g) => { const o = (g - (n - 1) / 2) * 0.071; return d.vert ? [0, -o] : [o, 0]; };
+    // a socket's frame open behind its insert (the recess runs back into the wall box), the others solid
+    if (d.kind === 'sock') {
+      put(M.dev, plateGeo(w / 2, fh / 2, 0.003, [[0, 0, 0.025, 0.025]]).translate(0, -FD, 0));
+      put(M.dev, box(-w / 2, w / 2, -FD, 0, -fh / 2, fh / 2, { faces: 'xXzZ' }));
+      socketParts(put, 0, 0, FF);
+    } else put(M.dev, rbox(w, FD, fh, 0.003, [0, -FD / 2, 0]));
+    if (d.kind === 'outlet') put(M.devDark, cyl(0.006, 0.0012, 'y', [0, -FD - 0.0006, 0], 20));
+    const dev = { ...d, i, c, F, inv: F.clone().invert() };
+    DEV.list.push(dev);
+    if (d.kind !== 'sw') return;
+    // the rockers turn on a hinge across their middle (top pressed in: on)
+    const holder = new THREE.Group();
+    holder.matrixAutoUpdate = false;
+    holder.matrix.copy(F);
+    DEV.group.add(holder);
+    d.gangs.forEach((gang, g) => gang.forEach((circ, k) => {
+      // a split gang: two narrow rockers side by side
+      const pivot = new THREE.Group(), [x, zg] = at(g), rw = gang.length === 2 ? 0.0262 : 0.054;
+      pivot.position.set(x + (gang.length === 2 ? (k ? 0.0139 : -0.0139) : 0), -FD, zg);
+      pivot.rotation.x = 0.05;
+      const m = new THREE.Mesh(rbox(rw, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
+      m.receiveShadow = true;
+      m.userData.rocker = { dev, circ };
+      pivot.add(m);
+      holder.add(pivot);
+      DEV.meshes.push(m);
+      DEV.rockers.push({ pivot, circ, a: 0.05, target: 0.05 });
+    }));
+  });
+  for (const m of flush(DEV.group)) { m.userData.dev = true; DEV.meshes.push(m); }
+  setDeviceColor(devColor);
+  showSwitches();
+}
+function setDeviceColor(k) {
+  devColor = k;
+  const c = DEVCOLORS[k];
+  M.dev.color.set(c.color); M.dev.roughness = c.rough;
+  M.devCup.color.set(c.color).multiplyScalar(k === 'white' ? 0.92 : 1);
+  document.querySelectorAll('#devcolors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderLegend();
+  envSoon();
+  dirty = true;
+}
+// the rockers follow their circuits; applyMood
+function showSwitches() {
+  for (const r of DEV.rockers) r.target = circuitOn(r.circ) ? -0.05 : 0.05;
+  dirty = true;
+}
+function animateDevices(dt) {
+  let moved = false;
+  // (the blinds' and the film's rockers follow them, whatever moved them: a rocker, the panel, a key)
+  for (const r of DEV.rockers) if (CIRCUITS[r.circ].on) r.target = CIRCUITS[r.circ].on() ? -0.05 : 0.05;
+  for (const r of DEV.rockers) if (r.a !== r.target) {
+    r.a = r.target > r.a ? Math.min(r.target, r.a + dt * 1.2) : Math.max(r.target, r.a - dt * 1.2);
+    r.pivot.rotation.x = r.a;
+    moved = true;
+  }
+  return moved;
+}
+// flip a circuit's rocker: its lamps on or off (until the next scene)
+function flip(c) {
+  if (CIRCUITS[c].act) { CIRCUITS[c].act(); showSwitches(); return CIRCUITS[c]; }
+  SWITCHED[c] = !circuitOn(c);
+  applyMood(moodKey);
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  return CIRCUITS[c];
+}
+let cardTimer = 0;
+function devCard(html) {
+  const el = $('devcard');
+  el.innerHTML = html;
+  el.classList.add('show');
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(() => el.classList.remove('show'), 3800);
+}
+// what a click on a fitting does (hit: the raycast's hit on one of DEV.meshes): a rocker flips its circuit (on the frame:
+// the rocker nearest the click); everything says what it is
+function devAction(hit) {
+  const ud = hit.object.userData;
+  if (!ud.rocker && !ud.dev) return undefined;
+  const p = R.worldToLocal(hit.point.clone());
+  let dev = ud.rocker?.dev, circ = ud.rocker?.circ;
+  if (!dev) dev = DEV.list.reduce((a, b) => (b.c.distanceTo(p) < a.c.distanceTo(p) ? b : a));
+  if (dev.kind === 'sw') {
+    if (!circ) {
+      const q = p.clone().applyMatrix4(dev.inv), n = dev.gangs.length, o = dev.vert ? -q.z : q.x;
+      const gang = dev.gangs[THREE.MathUtils.clamp(Math.round(o / 0.071 + (n - 1) / 2), 0, n - 1)];
+      circ = gang[gang.length === 2 && q.x > 0 ? 1 : 0];
+    }
+    return () => {
+      const C = flip(circ), g = dev.gangs.findIndex((gg) => gg.includes(circ)), gang = dev.gangs[g];
+      const part = gang.length === 2 ? (gang[0] === circ ? ' left' : ' right') : '';
+      devCard(`<b>${dev.id} ${dev.names?.[g] ?? g + 1}${part}</b> · ${C.label}${C.act ? '' : ` — ${circuitOn(circ) ? 'on' : 'off'}`}`);
+    };
+  }
+  return () => devCard(`<b>${dev.id}</b> · ${KIND_NAME[dev.kind]}, +${dev.h}${dev.info ? ` <span>· ${dev.info}</span>` : ''}`);
 }
 
 // ---------------------------------------------------------------- lights
@@ -2471,12 +2664,12 @@ const MOODS = {
 const BASE = { down: 9, pend: 2.4, led: 26, cove: 60, niche: 0.3, nicheLed: 12, nicheStrip: 30, downLens: 30, globe: 6.5, strip: 14, halo: 2.2, haloLight: 18 };
 // LED strip under the mirror cabinet: runs with the vanity LED, in every scheme
 function applyBacklight(key = moodKey) {
-  const m = MOODS[key], c = kelvin(m.k);
+  const m = moodNow(key), c = kelvin(m.k);
   groups.framed.visible = false;
-  L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = m.led > 0;
+  L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = inScene(m, 'led');
 }
 function applyMood(key) {
-  const m = MOODS[key];
+  const m = moodNow(key);      // (each channel at the mood's level, or as its switch has it)
   const c = kelvin(m.k);
   for (const s of L.down) { s.color.copy(c); s.intensity = BASE.down * m.down; }
   applyDownlights(m);
@@ -2488,7 +2681,8 @@ function applyMood(key) {
   E.down.color.copy(c).multiplyScalar(m.down > 0 ? BASE.downLens * (0.4 + 0.6 * m.down) : 0.02);
   E.globe.emissive.copy(c); E.globe.emissiveIntensity = m.pend > 0 ? BASE.globe * m.pend : 0;
   E.globe.color.set(m.pend > 0 ? 0xffffff : 0xece8e0);
-  E.led.color.copy(c).multiplyScalar(BASE.strip * Math.max(m.led, m.cove));
+  E.led.color.copy(c).multiplyScalar(BASE.strip * m.led);
+  E.cove.color.copy(c).multiplyScalar(BASE.strip * m.cove);
   applyVanityLights(m, c);
   L.cove.visible = false;      // (no ceiling recess here)
   applyBacklight(key);
@@ -2503,6 +2697,7 @@ function applyMood(key) {
   if (m.day) { const { alt, az } = solar(DAY_OF_YEAR, sunHour); setSun(alt, az, true); }
   else setSun(THREE.MathUtils.degToRad(m.sky[0]), THREE.MathUtils.degToRad(m.sky[1]), false);
   $('sunrow').hidden = !m.day;
+  showSwitches();
 }
 // set the daylight again for the current mood and hour (after the blinds or the film change)
 function refreshSun() {
@@ -2658,6 +2853,7 @@ function renderLegend() {
     ['Basin', VANITIES[vanityKey].basin(p), '#f3f2ef'],
     ['Cabinets', wood.short + ' veneer, oiled; mirror doors over the vanity, LED under them', wood.swatch],
     ['Fittings', METALS[p.metal].label + '; a bidet hand shower beside the WC', METALS[p.metal].swatch],
+    ['Switches', DEVCOLORS[devColor].label + ' plates: the switches by the door (lights; blinds and the PDLC film), sockets in the window reveal and in the mirror cabinet', DEVCOLORS[devColor].swatch],
     layoutKey === 'enclosed' ? ['Shower', 'enclosed by a tiled wall where the glass would be: a 70 cm opening by the door wall between rounded stone jambs', tileColor]
       : ['Shower glass', 'bronze tinted, 1.4 m from the window wall', '#8c7059'],
     ['Door', 'flush, white lacquer', '#f2f0eb'],
@@ -2861,28 +3057,34 @@ function buildUI() {
   $('slats').addEventListener('input', (e) => setBlinds(BLINDS.target, parseFloat(e.target.value)));
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   seg($('film'), { on: { label: 'On · clear' }, off: { label: 'Off · frosted' } }, (k) => setFilm(k === 'off'), 'on');
+  seg($('devcolors'), DEVCOLORS, (k) => setDeviceColor(k), devColor);
   {
-    // a click (not a drag) on a cabinet door or the brush box opens or closes it; a double-click only toggles
-    // once. Over them the pointer turns into a hand.
-    let down = null, last = 0, hover = null;
+    // a click (not a drag) on a cabinet door or the brush box opens or closes it, on a switch's rocker works it, on a
+    // socket says what it is (devAction); a double-click only acts once. Over them the pointer turns into a hand.
+    let down = null, last = 0, hover = false, hoverAt = 0;
     const ray = new THREE.Raycaster();
     const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
-    const pick = (e, objects) => {
+    // what a click there would do, as a function (the whole room searched only when a door or a fitting is in line)
+    const actionAt = (e) => {
       ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
-      const hit = ray.intersectObjects(objects, true).find((h) => shown(h.object) && !h.object.userData.occluder
+      if (!ray.intersectObjects([...OPENERS.map((x) => x.g), DEV.group], true).some((h) => shown(h.object))) return null;
+      const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder
         && h.object.material !== M.glass && h.object.material !== M.glassEdge && h.object.material !== M.windowGlass);
-      return hit ? hit.object.userData.opener : null;
+      if (!hit) return null;
+      const o = hit.object.userData.opener;
+      return devAction(hit) ?? (o ? () => toggleOpener(o) : null);
     };
     renderer.domElement.addEventListener('pointerdown', (e) => { down = e.button === 0 ? [e.clientX, e.clientY] : null; });
     renderer.domElement.addEventListener('pointerup', (e) => {
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || performance.now() - last < 450) return;
-      const o = pick(e, R.children);
-      if (o) { last = performance.now(); toggleOpener(o); }
+      const a = actionAt(e);
+      if (a) { last = performance.now(); a(); }
     });
     renderer.domElement.addEventListener('pointermove', (e) => {
-      if (e.buttons) return;
-      const o = pick(e, OPENERS.map((x) => x.g));
-      if (o !== hover) { hover = o; renderer.domElement.style.cursor = o ? 'pointer' : ''; }
+      if (e.buttons || performance.now() - hoverAt < 100) return;
+      hoverAt = performance.now();
+      const a = !!actionAt(e);
+      if (a !== hover) { hover = a; renderer.domElement.style.cursor = a ? 'pointer' : ''; }
     });
   }
   $('t-snap').addEventListener('click', () => saveImage());
@@ -2892,6 +3094,7 @@ function buildUI() {
     if (e.key === 'p' || e.key === 'P') { saveImage(); return; }
     if (e.key === 'd' || e.key === 'D') { setDoor(!DOOR.open); return; }
     if (e.key === 'g' || e.key === 'G') { setFilm(!PDLC.frosted); return; }
+    if (e.key === 'e' || e.key === 'E') { setDeviceColor(devColor === 'black' ? 'white' : 'black'); return; }
     if ((e.key === 'o' || e.key === 'O') && !busy) { const n = WOOD_PICK[(WOOD_PICK.indexOf(woodKey) + 1) % WOOD_PICK.length]; withBusy(async () => { await applyWoodChoice(n); captureEnv(); }); return; }
     if ((e.key === 's' || e.key === 'S') && !busy) { const n = STONE_PICK[(STONE_PICK.indexOf(stoneKey) + 1) % STONE_PICK.length]; withBusy(async () => { await applyStoneChoice(n); captureEnv(); }); return; }
     if ((e.key === 't' || e.key === 'T') && !busy) { const k = Object.keys(TILE_STRUCTS); withBusy(async () => { await setTileStruct(k[(k.indexOf(tileStruct) + 1) % k.length]); captureEnv(); }); return; }
@@ -2917,6 +3120,7 @@ function buildUI() {
 let moodKey = 'day';
 async function setMood(k) {
   document.querySelectorAll('#moods button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  for (const c of Object.keys(SWITCHED)) delete SWITCHED[c];      // a scene picked: the switches follow it
   await withBusy(async () => { moodKey = k; applyMood(k); captureEnv(); });
 }
 async function pickView(view) {
@@ -3039,6 +3243,7 @@ function loop() {
   }
   if (controls.update()) dirty = true;
   if (animateOpenings(dt)) dirty = true;
+  if (animateDevices(dt)) dirty = true;
   if (hampers.length && HAMPER.t !== (HAMPER.open ? 1 : 0)) {
     HAMPER.t = THREE.MathUtils.clamp(HAMPER.t + (HAMPER.open ? dt : -dt) / 0.7, 0, 1);
     for (const h of hampers) h.rotation.y = HAMPER.max * HAMPER.t * HAMPER.t * (3 - 2 * HAMPER.t);
@@ -3078,6 +3283,7 @@ try {
   buildVanities(skp);
   buildSurroundings(await loadView());
   buildLights();
+  buildDevices();
   applyLayout(layoutKey);
   setStatus('Cutting stone and veneer…');
   await applyLook();
@@ -3091,7 +3297,7 @@ try {
   buildUI();
   goTo(VIEWS[1], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, applyLayout, LAYOUTS, OPENERS, toggleOpener, TILE_COLOURS, TILE_STRUCTS, applyTileColour, setTileStruct, setFloor,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, applyVanity, setFlip, setDoor, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyLook, applyStoneChoice, STONE_PICK, applyWoodChoice, WOODS, WOOD_PICK, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, applyLayout, LAYOUTS, OPENERS, toggleOpener, TILE_COLOURS, TILE_STRUCTS, applyTileColour, setTileStruct, setFloor, DEV, DEVICES, CIRCUITS, SWITCHED, setDeviceColor, flip, moodNow,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');

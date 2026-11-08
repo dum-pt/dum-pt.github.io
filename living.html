@@ -4473,7 +4473,9 @@ const WALLS = {
   Cr: { x: EG_B.x1, n: [-1, 0], u: () => 10.03 },                   // the TV wall's end, in the south glazing's reveal
   D: { x: BUILT.x1, n: [-1, 0], u: (X) => BUILT.y1 - X / 1000 },    // the bedroom's wall (behind the dining wall as drawn)
   E: { y: YK, n: [0, -1], u: (X) => 43.21 + X / 1000 },             // the pantry's wall to the living room
-  P: { x: PANTRY.x1, n: [-1, 0], u: () => RACK.switch },            // the pantry's doorway wall, inside (not in the plan)
+  P: { x: PANTRY.x1, n: [-1, 0], u: () => RACK.switch },            // the pantry's doorway wall, inside (Y3 in the drawing)
+  Fh: { y: COR.y0, n: [0, 1], u: (X) => X },     // the hallway: the bedroom's and the wardrobe's side (view F)
+  Nh: { y: COR.y1, n: [0, -1], u: (X) => X },    // the hallway: the entrance's, the stairs' and the powder room's side (N1)
 };
 // what the rockers work: lamp channels (applyMood), an action, or (neither) something not in the model
 const CIRCUITS = {
@@ -4493,6 +4495,11 @@ const CIRCUITS = {
   terspots: { label: 'Terrace: spots' },
   reserve: { label: 'Reserve: exterior blinds / roller' },
   reading: { label: 'Reading light by the sofa' },
+  hall: { label: 'Hallway downlights (in this model also the one over the stairwell)', ch: ['cor'] },
+  stairs: { label: 'Stairs: the LED step lights', ch: ['step'] },
+  hblindsUp: { label: 'Hallway window blinds, up' },
+  hblindsDown: { label: 'Hallway window blinds, down' },
+  shelfLed: { label: 'Ambient LED over the shelves on the living room\'s wall D (its outlet D-P1)' },
 };
 const CIRCUIT_OF = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
@@ -4528,7 +4535,7 @@ const DEVICES = [
   { id: 'D2', w: 'C', X: 2017.5, h: 400, kind: 'data' },
   { id: 'T5', w: 'Cr', h: 250, kind: 'sock', v: true, info: 'in the glazing reveal' },
   { id: 'S-TV1', w: 'Cr', h: 950, kind: 'sw', gangs: [['reading']] },
-  { id: 'D-P1', w: 'D', X: 1000, h: 1700, kind: 'outlet', s: 0.034, info: 'cable outlet, blanked' },
+  { id: 'D-P1', w: 'D', X: 1000, h: 1700, kind: 'outlet', s: 0.034, info: 'cable outlet: the ambient LED over the shelves, switched by D-S1 in the hallway' },
   { id: 'D-T1', w: 'D', X: 1500, h: 160, kind: 'sock', n: 2, info: 'for the TV on this wall (swapped layout)' },
   { id: 'D-T2', w: 'D', X: 1500, h: 400, kind: 'sock' },
   { id: 'D-L1', w: 'D', X: 1600, h: 400, kind: 'data' },
@@ -4541,11 +4548,23 @@ const DEVICES = [
   { id: 'R2', w: 'E', X: 390, h: 950, kind: 'sw', gangs: [['terled', 'terspots']] },
   { id: 'R3', w: 'E', X: 490, h: 950, kind: 'sw', gangs: [['curtain']] },
   { id: 'R4', w: 'E', X: 590, h: 950, kind: 'sw', gangs: [['reserve']] },
-  { id: 'S-P1', w: 'P', h: 950, kind: 'sw', gangs: [['pantry']] },
+  { id: 'Y3-S1', w: 'P', h: 950, kind: 'sw', gangs: [['pantry']] },
+  // the hallway (views F and N1): at the living room's end F-S1 (its lights, two-way with N1-S1's bottom rocker) and
+  // D-S1 (the ambient LED over the shelves on wall D, by its outlet D-P1), a socket under them; by the window F-S2 (its
+  // blinds) over F-Z2; at the top of the stairs N1-S1 on the powder room's wall, 150 off the stairs' opening (top: the
+  // stairs, bottom: the hallway); the smoke detectors on the ceiling
+  { id: 'F-S1', w: 'Fh', X: 50.825, h: 950, kind: 'sw', gangs: [['hall']] },
+  { id: 'D-S1', w: 'Fh', X: 50.725, h: 950, kind: 'sw', gangs: [['shelfLed']] },
+  { id: 'F-Z1', w: 'Fh', X: 50.725, h: 250, kind: 'sock', info: 'in the hallway, by the living room' },
+  { id: 'F-S2', w: 'Fh', X: 56.935, h: 950, kind: 'sw', gangs: [['hblindsUp', 'hblindsDown']] },
+  { id: 'F-Z2', w: 'Fh', X: 56.935, h: 250, kind: 'sock', info: 'in the hallway, by its window' },
+  { id: 'N1-S1', w: 'Nh', X: 53.835, h: 950, kind: 'sw', vert: true, gangs: [['stairs'], ['hall']] },
+  { id: 'HP1', kind: 'smoke', x: 54.28, y: 14.045, info: 'autonomous, in the hallway' },
+  { id: 'HP2', kind: 'smoke', x: 53.185, y: 15.9, info: 'autonomous, over the stairs' },
   { id: 'E14', w: 'E', X: 290, h: 250, kind: 'sock' },
   { id: 'E15', w: 'E', X: 390, h: 250, kind: 'sock' },
 ];
-const KIND_NAME = { sock: 'socket 230 V', data: 'data, 2 x RJ45', coax: 'TV aerial socket', blank: 'blank plate', outlet: 'cable outlet', thermo: 'thermostat', display: 'display', popup: 'worktop sockets' };
+const KIND_NAME = { smoke: 'smoke detector', sock: 'socket 230 V', data: 'data, 2 x RJ45', coax: 'TV aerial socket', blank: 'blank plate', outlet: 'cable outlet', thermo: 'thermostat', display: 'display', popup: 'worktop sockets' };
 const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42 }, white: { label: 'White', color: 0xf0efeb, rough: 0.32 } };
 let devColor = 'black';
 M.dev = physical({ color: DEVCOLORS.black.color, roughness: DEVCOLORS.black.rough, clearcoat: 0.25, clearcoatRoughness: 0.4 });
@@ -4595,14 +4614,16 @@ function buildDevices() {
   const FD = 0.0095, FF = -0.012;          // the frame's depth off the wall; the inserts' faces
   DEVICES.forEach((d, i) => {
     if (d.kind === 'popup') { buildPopup(d, i); return; }
+    if (d.kind === 'smoke') { buildSmoke(d, i); return; }
     const W = WALLS[d.w], [nx, ny] = W.n, u = W.u(d.X), z = d.h / 1000;
     const c = W.x !== undefined ? new THREE.Vector3(d.at ?? W.x, u, z) : new THREE.Vector3(u, d.at ?? W.y, z);
     const F = new THREE.Matrix4().makeBasis(new THREE.Vector3(-ny, nx, 0), new THREE.Vector3(-nx, -ny, 0), new THREE.Vector3(0, 0, 1)).setPosition(c);
     const put = (mat, geo) => add(mat, geo.applyMatrix4(F), { shadow: false });
     const n = d.kind === 'sw' ? d.gangs.length : d.n ?? 1, s = d.s ?? 0.08;
-    const fw = s + (n - 1) * 0.071, fh = d.v ? 0.12 : d.kind === 'display' ? 0.13 : d.kind === 'thermo' ? 0.09 : s;
+    const fw = d.vert ? s : s + (n - 1) * 0.071, fh = d.vert ? s + (n - 1) * 0.071 : d.v ? 0.12 : d.kind === 'display' ? 0.13 : d.kind === 'thermo' ? 0.09 : s;
     const w = d.kind === 'display' ? 0.2 : d.kind === 'thermo' ? 0.09 : fw;
-    const gx = (g) => (g - (n - 1) / 2) * 0.071;
+    // gangs side by side, or (vert) stacked, the first on top
+    const gx = (g) => (d.vert ? 0 : (g - (n - 1) / 2) * 0.071), gz = (g) => (d.vert ? ((n - 1) / 2 - g) * 0.071 : 0);
     // a socket's frame open behind its inserts (their recesses run back into the wall box), the others solid
     if (d.kind === 'sock') {
       put(M.dev, plateGeo(w / 2, fh / 2, 0.003, d.v ? [[0, 0, 0.025, 0.05]] : Array.from({ length: n }, (_, g) => [gx(g), 0, 0.025, 0.025])).translate(0, -FD, 0));
@@ -4619,7 +4640,7 @@ function buildDevices() {
       d.gangs.forEach((gang, g) => gang.forEach((circ, k) => {
         const rw = gang.length === 2 ? 0.0262 : 0.054, x = gx(g) + (gang.length === 2 ? (k ? 0.0139 : -0.0139) : 0);
         const pivot = new THREE.Group();
-        pivot.position.set(x, -FD, 0);
+        pivot.position.set(x, -FD, gz(g));
         pivot.rotation.x = 0.05;
         const m = new THREE.Mesh(rbox(rw, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
         m.receiveShadow = true;
@@ -4659,6 +4680,17 @@ function buildDevices() {
   for (const m of flush(DEV.group)) { m.userData.dev = true; DEV.meshes.push(m); }
   drawScreens();
   setDeviceColor(devColor);
+}
+// a smoke detector on the ceiling (HP1, HP2 in the electro drawing): a white disc, its test button and a red LED
+M.smoke = physical({ color: 0xf2f1ec, roughness: 0.45 });
+M.smokeLed = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
+function buildSmoke(d, i) {
+  const z = H, c = new THREE.Vector3(d.x, d.y, z - 0.02);
+  add(M.smoke, cyl(0.052, 0.03, 'z', [d.x, d.y, z - 0.015], 40), { shadow: false });
+  add(M.smoke, cyl(0.04, 0.004, 'z', [d.x, d.y, z - 0.032], 40), { shadow: false });
+  add(M.devDark, cyl(0.011, 0.002, 'z', [d.x, d.y, z - 0.035], 20), { shadow: false });
+  add(M.smokeLed, cyl(0.0025, 0.001, 'z', [d.x + 0.025, d.y, z - 0.0345], 10), { shadow: false });
+  DEV.list.push({ ...d, i, c });
 }
 // the worktop's pop-up tower (E6): its lid flush on the stone, three sockets facing the cook when it is raised
 function buildPopup(d, i) {
@@ -4771,8 +4803,8 @@ function devAction(hit) {
   if (dev.kind === 'sw') {
     if (!circ) {
       // the frame: the rocker nearest the click
-      const q = p.clone().applyMatrix4(dev.inv), n = dev.gangs.length, g = THREE.MathUtils.clamp(Math.round(q.x / 0.071 + (n - 1) / 2), 0, n - 1), gang = dev.gangs[g];
-      circ = gang.length === 2 && q.x > (g - (n - 1) / 2) * 0.071 ? gang[1] : gang[0];
+      const q = p.clone().applyMatrix4(dev.inv), n = dev.gangs.length, t = dev.vert ? -q.z : q.x, g = THREE.MathUtils.clamp(Math.round(t / 0.071 + (n - 1) / 2), 0, n - 1), gang = dev.gangs[g];
+      circ = gang.length === 2 && q.x > (dev.vert ? 0 : (g - (n - 1) / 2) * 0.071) ? gang[1] : gang[0];
     }
     return () => {
       const C = flip(circ), on = circuitOn(circ);
@@ -4796,6 +4828,7 @@ function devAction(hit) {
       devCard(`<b>${dev.id}</b> · ${KIND_NAME.popup}, ${DEV.popup.up ? 'raised' : 'lowered'} <span>· ${dev.info}</span>`);
     };
   }
+  if (dev.kind === 'smoke') return () => devCard(`<b>${dev.id}</b> · ${KIND_NAME.smoke} <span>· ${dev.info}</span>`);
   const what = dev.kind === 'sock' ? `${dev.v || (dev.n ?? 1) > 1 ? 'double ' : ''}${KIND_NAME.sock}` : KIND_NAME[dev.kind];
   return () => devCard(`<b>${dev.id}</b> · ${what}, ${h}${dev.info ? ` <span>· ${dev.info}</span>` : ''}`);
 }

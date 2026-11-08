@@ -61,6 +61,10 @@
   #status { color: var(--muted); font-size: 12.5px; }
   #busy { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); padding: 7px 12px; font-size: 12px; color: var(--muted); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   #busy.show { opacity: 1; }
+  #devcard { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); padding: 8px 14px; font-size: 12.5px; max-width: min(520px, calc(100vw - 32px)); opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+  #devcard.show { opacity: 1; }
+  #devcard b { font-weight: 600; }
+  #devcard span { color: var(--muted); }
   @keyframes spin { to { transform: rotate(360deg); } }
   #opts { display: none; }
   #stones, #woods { display: grid; grid-template-columns: 1fr 1fr; }
@@ -132,6 +136,7 @@
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="18.75" aria-label="Time of day"><span id="sunlabel">19:49</span></div>
   </div>
+  <div class="group"><h2>Switches</h2><div class="seg" id="devcolors" title="The double switch by the front door: black or white. Click a rocker to switch its lights (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the front door, or click the door itself (D)">Open front door</button><button class="chip" id="t-glass" aria-pressed="false" title="Open or shut the glass door to the corridor, or click the door itself (G)">Open glass door</button><button class="chip" id="t-ward" aria-pressed="false" title="Open or close the wardrobe (C)">Open wardrobe</button></div>
   </div>
@@ -148,7 +153,8 @@
 
 <button id="opts" class="panel" aria-expanded="false" aria-controls="side">Options</button>
 <div id="views" class="panel"></div>
-<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a door to open it</div>
+<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click a door to open it, a switch to work it</div>
+<div id="devcard" class="panel"></div>
 <div id="busy" class="panel">Updating…</div>
 
 <div id="loading"><div class="box"><div class="ring"></div><div id="status">Loading…</div></div></div>
@@ -290,7 +296,7 @@ const COLUMN = { d: 0.08, r: 0.08, y0: 14.875, y1: 15.115, sill: 0.78, top: 2.17
 // curves: the bench, built in (to y1, floating z0..z1), its corner by the opening rounded in plan (r), its edges (bevel)
 const SOFT = { x0: 50.545, y1: 15.18, z0: 0.1, z1: 0.42, r: 0.2, bevel: 0.03, cushion: 0.07 };
 const BOARD = { x0: 51.335, x1: 51.885, z0: 0.95, z1: 1.9 };        // the fuse board's flush door, on the facade wall
-const SWITCHES = [51.225, 1.056];                                   // the light switches by the front door (a double frame)
+const SWITCHES = [51.225, 0.95];                                   // the light switches by the front door (a double frame: DEVICES)
 const MIRROR = { y0: Y0, y1: Y1, z0: 0.004, z1: H - 0.006, x: X0 + 0.006 };   // over the whole kitchen wall (x: its face)
 const BACK_X = X0;
 // (one ceiling here; the shared code asks for its height)
@@ -929,17 +935,17 @@ const METALS = {
 // the powder room's four characters, carried over to the hall: the wood of the slats, the niche and the bench (and of
 // wooden wardrobe doors and floor) to start with, the wall paint, the stone of the shoe rack, the wardrobe's doors
 // (FRONTS), the felt behind the slats, the fittings (the hooks, the door's lever), the bench cushion's cover (POUFS), the floor
-// tiles' colour (TILE_COLOURS), the mirror's tint, the switches' plates, the plaster; ev: the exposure (the pale halls
+// tiles' colour (TILE_COLOURS), the mirror's tint, the plaster; ev: the exposure (the pale halls
 // throw far more light back)
 const PALETTES = {
   noir: { label: 'Noir', wood: 'smoked', paint: 'charcoal', stone: 'marquina', fronts: 'flat', felt: '#121110', feltLabel: 'black', metal: 'gunmetal', floor: 'anthracite',
-    pouf: 'black', mirror: '#d9c9b3', mirrorLabel: 'bronze-tinted', switches: '#262524', switchLabel: 'black', plaster: 'lime plaster', ev: 1.6 },
+    pouf: 'black', mirror: '#d9c9b3', mirrorLabel: 'bronze-tinted', plaster: 'lime plaster', ev: 1.6 },
   cosy: { label: 'Cosy', wood: 'walnutPhoto', paint: 'taupe', stone: 'travertino', fronts: 'fluted', felt: '#2b221c', feltLabel: 'dark brown', metal: 'brass', floor: 'sand',
-    pouf: 'cognac', mirror: '#f0eee9', mirrorLabel: 'clear', switches: '#b8955a', switchLabel: 'brass', plaster: 'clay plaster', ev: 0.75 },
+    pouf: 'cognac', mirror: '#f0eee9', mirrorLabel: 'clear', plaster: 'clay plaster', ev: 0.75 },
   jewel: { label: 'Jewel', wood: 'walnutPhoto', paint: 'forest', stone: 'carrara', fronts: 'paint', felt: '#16201b', feltLabel: 'deep green', metal: 'brass', floor: 'white',
-    pouf: 'ochre', mirror: '#f0f2f1', mirrorLabel: 'clear', switches: '#b8955a', switchLabel: 'brass', plaster: 'lime plaster', ev: 0.9 },
+    pouf: 'ochre', mirror: '#f0f2f1', mirrorLabel: 'clear', plaster: 'lime plaster', ev: 0.9 },
   japandi: { label: 'Japandi', wood: 'whiteoak', paint: 'bone', stone: 'taj', fronts: 'flat', felt: '#34322f', feltLabel: 'charcoal', metal: 'black', floor: 'beige',
-    pouf: 'boucle', mirror: '#f0efec', mirrorLabel: 'clear', switches: '#efede8', switchLabel: 'white', plaster: 'limewash', ev: 0.45 },
+    pouf: 'boucle', mirror: '#f0efec', mirrorLabel: 'clear', plaster: 'limewash', ev: 0.45 },
 };
 // the bench cushion's cover
 const POUFS = {
@@ -1162,7 +1168,6 @@ const M = {
   slideGlass: physical({ color: 0xffffff, roughness: 0.0, transmission: 1, thickness: 0.01, ior: 1.5, attenuationColor: new THREE.Color(0x8f9190), attenuationDistance: 0.02 }),   // grey-tinted
   track: physical({ color: 0x2a2b2c, metalness: 0.6, roughness: 0.45 }),
   boardDoor: physical({ color: 0xece8e1, roughness: 0.55, clearcoat: 0.1 }),           // the fuse board's door, painted like the walls
-  switchPlate: physical({ color: 0xefede8, roughness: 0.4, clearcoat: 0.3 }),
   pouf: physical({ color: 0xe7e1d6, roughness: 1, sheen: 0.8, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.6 }),
   canvas: physical({ color: 0xb9ab90, roughness: 0.95, sheen: 0.4, sheenColor: new THREE.Color(0xffffff) }),   // the tote
   coat1: wool(0x9b7350), coat2: wool(0x3b3b3d), coat3: wool(0x2a3446), coat4: wool(0x5b5e46), coat5: wool(0xd5ccbd),
@@ -2048,7 +2053,7 @@ function buildWardrobe() {
   wardrobeDoors(DESIGN_G.slats, z0 + 0.002, z1 - 0.002);
 }
 
-// The fittings: the fuse board's flush door on the facade wall and the light switches by the front door, the recessed
+// The fittings: the fuse board's flush door on the facade wall (the switches by the front door: DEVICES), the recessed
 // door mat. (The model's pouf is left out: the bench replaces it.)
 function buildFittings() {
   {
@@ -2056,11 +2061,6 @@ function buildFittings() {
     add(M.boardDoor, box(x0, x1, y - 0.006, y, z0, z1, { faces: 'yxXzZ' }));
     add(M.metal, cyl(0.012, 0.004, 'y', [x0 + 0.07, y - 0.008, 1.44], 20));
     add(M.dark, box(x0 + 0.068, x0 + 0.072, y - 0.0105, y - 0.0095, 1.432, 1.448, { faces: 'y' }), { shadow: false });
-  }
-  {
-    const [sx, sz] = SWITCHES, y = Y1;
-    add(M.switchPlate, rbox(0.082, 0.016, 0.153, 0.004, [sx, y - 0.004, sz]));
-    for (const dz of [-0.036, 0.036]) add(M.switchPlate, rbox(0.055, 0.008, 0.055, 0.003, [sx, y - 0.012, sz + dz]));
   }
   // a recessed coir mat inside the front door, flush with the floor, in a slim steel frame
   {
@@ -2524,6 +2524,138 @@ async function loadView() {
   return tex;
 }
 
+// ---------------------------------------------------------------- the switches
+// The electro plan (stena_elektro_displej.dxf, view J1, 2026-11-07): J1-S1, the double switch by the front door, on the
+// facade wall between the door and the fuse board, its centre at h950 (as every switch in the house); above it J1-V1, the
+// doorphone's indoor unit (h1500), and on the stair wall inside the wardrobe a socket and an outlet (J2-Z1, J2-P1), not
+// in this model. Each fitting is on a wall face (at x or y, n its normal into the room, u:
+// where along it); frame 80 x 80, gangs at 71 mm. A rocker works its lamps (CIRCUITS: the moods' channels).
+const DEV_WALLS = {
+  J1: { y: Y1, n: [0, -1], u: () => SWITCHES[0] },                   // the facade wall, between the front door and the fuse board
+};
+const CIRCUITS = {
+  hall: { label: 'The hall: the downlights, the slot over the hooks and the LED lines', ch: ['down', 'graze', 'wash', 'shelf', 'niche'] },
+  porch: { label: 'The porch: the downlights in the canopy', ch: ['porch'] },
+};
+const CIRCUIT_OF = {};
+for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch) CIRCUIT_OF[k] = c;
+// kinds: sw (gangs: [circuit] each; vert: stacked, the first on top)
+const DEVICES = [
+  { id: 'J1-S1', w: 'J1', h: SWITCHES[1] * 1000, kind: 'sw', vert: true, gangs: [['hall'], ['porch']], names: ['top', 'bottom'] },
+];
+const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42, swatch: '#1e1e20' }, white: { label: 'White', color: 0xf0efeb, rough: 0.32, swatch: '#f0efeb' } };
+let devColor = 'black';
+M.dev = physical({ color: DEVCOLORS.black.color, roughness: DEVCOLORS.black.rough, clearcoat: 0.25, clearcoatRoughness: 0.4 });
+const DEV = { group: new THREE.Group(), list: [], meshes: [], rockers: [] };
+// the lamps' switched state (a circuit flipped since the scene was picked: on or off)
+const SWITCHED = {};
+function level(ch, m = MOODS[moodKey]) {
+  const s = SWITCHED[CIRCUIT_OF[ch]];
+  if (s === undefined) return m[ch];
+  return s ? (m[ch] > 0 ? m[ch] : MOODS[m.day ? 'bright' : 'evening'][ch]) : 0;
+}
+// the mood with each channel as its switch has it (applyMood and the rest take this)
+function moodNow(key = moodKey) {
+  const m = MOODS[key];
+  return { ...m, ...Object.fromEntries(Object.keys(CIRCUIT_OF).map((ch) => [ch, level(ch, m)])) };
+}
+// after dark (always, here) a channel's lamps stay in the scene when off, at 0, so a switch flipped doesn't recompile every shader
+const inScene = (m, ch) => m[ch] > 0 || !m.day;
+const circuitOn = (c) => CIRCUITS[c].ch.some((k) => level(k) > 0);
+function buildDevices() {
+  R.add(DEV.group);
+  const FD = 0.0095;          // the frame's depth off the wall
+  DEVICES.forEach((d, i) => {
+    const W = DEV_WALLS[d.w], [nx, ny] = W.n, u = W.u(d.X), z = d.h / 1000;
+    const c = W.x !== undefined ? new THREE.Vector3(W.x, u, z) : new THREE.Vector3(u, W.y, z);
+    const F = new THREE.Matrix4().makeBasis(new THREE.Vector3(-ny, nx, 0), new THREE.Vector3(-nx, -ny, 0), new THREE.Vector3(0, 0, 1)).setPosition(c);
+    const put = (mat, geo) => add(mat, geo.applyMatrix4(F), { shadow: false });
+    const n = d.gangs.length, s = d.s ?? 0.08, long = s + (n - 1) * 0.071;
+    const [w, fh] = d.vert ? [s, long] : [long, s];
+    // a gang's centre in the frame: in a row, or stacked with the first on top
+    const at = (g) => { const o = (g - (n - 1) / 2) * 0.071; return d.vert ? [0, -o] : [o, 0]; };
+    put(M.dev, rbox(w, FD, fh, 0.003, [0, -FD / 2, 0]));
+    const dev = { ...d, i, c, F, inv: F.clone().invert() };
+    DEV.list.push(dev);
+    // the rockers turn on a hinge across their middle (top pressed in: on)
+    const holder = new THREE.Group();
+    holder.matrixAutoUpdate = false;
+    holder.matrix.copy(F);
+    DEV.group.add(holder);
+    d.gangs.forEach(([circ], g) => {
+      const pivot = new THREE.Group(), [x, zg] = at(g);
+      pivot.position.set(x, -FD, zg);
+      pivot.rotation.x = 0.05;
+      const m = new THREE.Mesh(rbox(0.054, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
+      m.receiveShadow = true;
+      m.userData.rocker = { dev, circ };
+      pivot.add(m);
+      holder.add(pivot);
+      DEV.meshes.push(m);
+      DEV.rockers.push({ pivot, circ, a: 0.05, target: 0.05 });
+    });
+  });
+  for (const m of flush(DEV.group)) { m.userData.dev = true; DEV.meshes.push(m); }
+  setDeviceColor(devColor);
+  showSwitches();
+}
+function setDeviceColor(k) {
+  devColor = k;
+  const c = DEVCOLORS[k];
+  M.dev.color.set(c.color); M.dev.roughness = c.rough;
+  document.querySelectorAll('#devcolors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderLegend();
+  envSoon();
+  dirty = true;
+}
+// the rockers follow their circuits; applyMood
+function showSwitches() {
+  for (const r of DEV.rockers) r.target = circuitOn(r.circ) ? -0.05 : 0.05;
+  dirty = true;
+}
+function animateDevices(dt) {
+  let moved = false;
+  for (const r of DEV.rockers) if (r.a !== r.target) {
+    r.a = r.target > r.a ? Math.min(r.target, r.a + dt * 1.2) : Math.max(r.target, r.a - dt * 1.2);
+    r.pivot.rotation.x = r.a;
+    moved = true;
+  }
+  return moved;
+}
+// flip a circuit's rocker: its lamps on or off (until the next scene)
+function flip(c) {
+  SWITCHED[c] = !circuitOn(c);
+  applyMood(moodKey);
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  return CIRCUITS[c];
+}
+let cardTimer = 0;
+function devCard(html) {
+  const el = $('devcard');
+  el.innerHTML = html;
+  el.classList.add('show');
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(() => el.classList.remove('show'), 3800);
+}
+// what a click on the switch does (hit: the raycast's hit on one of DEV.meshes): a rocker flips its circuit (on the frame:
+// the rocker nearest the click)
+function devAction(hit) {
+  const ud = hit.object.userData;
+  if (!ud.rocker && !ud.dev) return undefined;
+  const p = R.worldToLocal(hit.point.clone());
+  let dev = ud.rocker?.dev, circ = ud.rocker?.circ;
+  if (!dev) dev = DEV.list.reduce((a, b) => (b.c.distanceTo(p) < a.c.distanceTo(p) ? b : a));
+  if (!circ) {
+    const q = p.clone().applyMatrix4(dev.inv), n = dev.gangs.length, o = dev.vert ? -q.z : q.x;
+    circ = dev.gangs[THREE.MathUtils.clamp(Math.round(o / 0.071 + (n - 1) / 2), 0, n - 1)][0];
+  }
+  return () => {
+    const C = flip(circ), g = dev.gangs.findIndex(([k]) => k === circ);
+    devCard(`<b>${dev.id} ${dev.names?.[g] ?? g + 1}</b> · ${C.label} — ${circuitOn(circ) ? 'on' : 'off'}`);
+  };
+}
+
 // ---------------------------------------------------------------- lights
 const L = { down: [], pend: [], niche: [], area: [], porch: [], design: [] };
 function buildLights() {
@@ -2724,19 +2856,19 @@ const MOODS = {
 const BASE = { down: 6, graze: 380, wash: 18, shelf: 14, niche: 30, porch: 6, downLens: 30, strip: 7, corridor: 1.0, sky: 2.4, living: 1.4 };
 function applyBacklight() {}
 function applyMood(key) {
-  const m = MOODS[key], c = new THREE.Color(m.tint);
-  for (const s of L.down) { s.color.copy(c); s.intensity = BASE.down * m.down; s.visible = m.down > 0; }
+  const m = moodNow(key), c = new THREE.Color(m.tint);      // (each channel as its switch has it)
+  for (const s of L.down) { s.color.copy(c); s.intensity = BASE.down * m.down; s.visible = inScene(m, 'down'); }
   E.down.color.copy(c).multiplyScalar(m.down > 0 ? BASE.downLens * (0.4 + 0.6 * m.down) : 0.02);
   for (const k of ['graze', 'wash', 'shelf', 'niche']) E[k].color.copy(c).multiplyScalar(m[k] > 0 ? BASE.strip * (0.4 + 0.6 * m[k]) : 0.03);
   L.graze.color.copy(c);
   L.graze.intensity = BASE.graze * m.graze;
-  L.graze.visible = m.graze > 0;
+  L.graze.visible = inScene(m, 'graze');
   for (const { designs, ch, light, k } of L.design) {
     light.color.copy(c);
     light.intensity = BASE[ch] * k * m[ch];
-    light.visible = m[ch] > 0 && designs.includes(designKey);
+    light.visible = inScene(m, ch) && designs.includes(designKey);
   }
-  for (const p of L.porch) { p.color.copy(c); p.intensity = BASE.porch * m.porch; p.visible = m.porch > 0; }
+  for (const p of L.porch) { p.color.copy(c); p.intensity = BASE.porch * m.porch; p.visible = inScene(m, 'porch'); }
   E.porch.color.copy(c).multiplyScalar(m.porch > 0 ? BASE.downLens : 0.02);
   L.corridor.intensity = BASE.corridor * (m.day ? 1.5 : 1);
   renderer.toneMappingExposure = m.exposure * roomEv();
@@ -2747,6 +2879,7 @@ function applyMood(key) {
   if (m.day) { const { alt, az } = solar(DAY_OF_YEAR, sunHour); setSun(alt, az, true); }
   else setSun(THREE.MathUtils.degToRad(m.sky[0]), THREE.MathUtils.degToRad(m.sky[1]), false);
   $('sunrow').hidden = !m.day;
+  showSwitches();
 }
 // the exposure: the style's (pale rooms need less), scaled for a wall paint lighter or darker than the style's own
 // (the walls and ceiling are most of what the eye sees here; it adapts, but only partly)
@@ -2788,7 +2921,6 @@ async function applyPalette(key, over = {}) {
   poufKey = p.pouf;
   applyPouf(p.pouf);
   M.mirror.color.set(p.mirror);
-  M.switchPlate.color.set(p.switches);
   const metal = METALS[p.metal];
   M.metal.color.set(metal.color); M.metal.roughness = metal.roughness;
   M.metalPolished.color.set(metal.color);
@@ -2983,7 +3115,8 @@ function renderLegend() {
     ['Mirror', 'over the whole kitchen-side wall, floor to ceiling, frameless, ' + p.mirrorLabel, p.mirror],
     ['Floor', 'porcelain tiles, 120 × 120 cm, ' + TILE_STRUCTS[tileStruct].desc + ', ' + (tileKey ? TILE_COLOURS[tileKey].label.toLowerCase() : 'your colour (' + tileColor + ')') + ', laid from the middle of the hall', tileColor],
     ['Doors', 'front door in anthracite aluminium (RAL 7016) with a glass sidelight and a recessed mat; ' + (hallKey === 'pivot' ? 'a glass pivot door to the corridor in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'mirror' ? 'right jamb (by the mirror)' : 'left jamb (by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass sliding door to the corridor'), '#383b3e'],
-    ['Light', 'two trimless downlights; ' + light + '; switches in ' + p.switchLabel, '#ffe2c2'],
+    ['Light', 'two trimless downlights; ' + light, '#ffe2c2'],
+    ['Switches', DEVCOLORS[devColor].label + ' double switch by the front door: the hall; the porch', DEVCOLORS[devColor].swatch],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
@@ -3145,6 +3278,7 @@ function buildUI() {
   $('paint-custom').addEventListener('input', (e) => { if (!busy) applyPaint(e.target.value); });
   $('paint-custom').addEventListener('change', (e) => { if (!busy) withBusy(async () => { applyPaint(e.target.value); captureEnv(); }); });
   seg($('moods'), MOODS, (k) => setMood(k), moodKey);
+  seg($('devcolors'), DEVCOLORS, (k) => setDeviceColor(k), devColor);
   let envTimer = 0;
   $('sun').addEventListener('input', (e) => {
     setSunHour(parseFloat(e.target.value));
@@ -3171,6 +3305,7 @@ function buildUI() {
     if (k === 'd') { setDoor(!DOOR.open); return; }
     if (k === 'g') { setGlass(!GLASS.open); return; }
     if (k === 'c') { setWardrobe(!WARDROBE.open, true); return; }
+    if (k === 'e') { setDeviceColor(devColor === 'black' ? 'white' : 'black'); return; }
     if (k === 'v') { setHallDoor(hallKey === 'slide' ? 'pivot' : 'slide'); return; }
     if (k === 'i' && hallKey === 'pivot') { setPivot(swingKey === 'hall' ? 'room' : 'hall'); return; }
     if (k === 'j' && hallKey === 'pivot') { setPivot(swingKey, pivotSide === 'mirror' ? 'hooks' : 'mirror'); return; }
@@ -3191,23 +3326,27 @@ function buildUI() {
     const i = parseInt(e.key, 10);
     if (i >= 1 && i <= VIEWS.length) pickView(VIEWS[i - 1]);
   });
-  // what a click there would open or shut: the front door or the glass door (a door's glass counts, unlike the rest of
-  // the glass), as a function; the whole room searched only when one is in line
+  // what a click there would do: open or shut the front door or the glass door (a door's glass counts, unlike the rest of
+  // the glass), or work the switch's rocker (devAction), as a function; the whole room searched only when one is in line
   const ray = new THREE.Raycaster();
   const aim = (e) => ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
   const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
   const glassy = (m) => m === M.glass || m === M.slideGlass || m === M.windowGlass;
   const actionAt = (e) => {
     aim(e);
-    if (!ray.intersectObjects(DOORS, false).length) return undefined;
+    if (!ray.intersectObjects([...DOORS, DEV.group], true).some((h) => shown(h.object))) return undefined;
     const door = (o) => { for (; o; o = o.parent) if (o.userData.door !== undefined) return o.userData.door; return undefined; };
     const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && (!glassy(h.object.material) || door(h.object)));
-    const d = hit && door(hit.object);
+    if (!hit) return undefined;
+    const sw = devAction(hit);
+    if (sw) return sw;
+    const d = door(hit.object);
     if (d === 'front') return () => setDoor(!DOOR.open);
     if (d === 'glass') return () => setGlass(!GLASS.open);
     return undefined;
   };
-  // a click on a door opens or closes it (not the end of a drag, nor a double-click's second click); a hand over one
+  // a click on a door opens or closes it, on the switch works it (not the end of a drag, nor a double-click's second
+  // click); a hand over them
   let downAt = [0, 0], hoverAt = 0;
   renderer.domElement.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
   renderer.domElement.addEventListener('click', (e) => {
@@ -3232,6 +3371,7 @@ function buildUI() {
 let moodKey = 'evening';
 async function setMood(k) {
   document.querySelectorAll('#moods button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  for (const c of Object.keys(SWITCHED)) delete SWITCHED[c];      // a scene picked: the switches follow it
   await withBusy(async () => { moodKey = k; applyMood(k); captureEnv(); });
 }
 async function pickView(view) {
@@ -3338,6 +3478,7 @@ function loop() {
   }
   if (controls.update()) dirty = true;
   if (animateOpenings(dt)) dirty = true;
+  if (animateDevices(dt)) dirty = true;
   if (hampers.length && HAMPER.t !== (HAMPER.open ? 1 : 0)) {
     HAMPER.t = THREE.MathUtils.clamp(HAMPER.t + (HAMPER.open ? dt : -dt) / 0.7, 0, 1);
     for (const h of hampers) h.rotation.y = HAMPER.max * HAMPER.t * HAMPER.t * (3 - 2 * HAMPER.t);
@@ -3378,6 +3519,7 @@ try {
   buildDoors();
   buildSurroundings(await loadView());
   buildLights();
+  buildDevices();
   setStatus('Laying out the wood and the stone…');
   applyHookWall(hookKey, false);
   await applyDesign(designKey);
@@ -3393,6 +3535,7 @@ try {
   window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, PALETTES, DESIGNS, applyDesign, DESIGN_G, TALL_G, POUFS, FRONTS, applyFronts, applyPouf, setDoor, setGlass, setHallDoor, setPivot, HDOOR, DOORS, setWardrobe, DOOR, GLASS, WARDROBE, OUT, HOOK_WALLS, applyHookWall, TILE_COLOURS, TILE_STRUCTS, applyTileColour, setTileStruct,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, solar, setSun,
+    DEV, DEVICES, CIRCUITS, SWITCHED, setDeviceColor, flip, moodNow,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');

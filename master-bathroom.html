@@ -126,7 +126,7 @@
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
   </div>
-  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switch by the door and the sockets from the electro plan: black or white plates. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
+  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches by the door (lights; blinds and the PDLC film) and the sockets from the electro plan: black or white plates. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the door (D)">Open door</button></div>
     <div class="winrow"><span>Window</span><div class="seg" id="win" title="Window: closed, tilted or open (W)"></div></div>
@@ -2548,13 +2548,14 @@ async function loadView() {
 
 // ---------------------------------------------------------------- the switches and the sockets
 // From the electro plan (stena_elektro_displej.dxf, view KOUPELNA - CELNI, the vanity's wall): the sockets in the window
-// reveal and in the mirror cabinet; the switch by the door is this model's own (the plan has no switching yet; S1-3 in
-// the plan's lights). Each fitting is on a wall face (at x or y, n its normal into the room, u: where along it, from the
+// reveal and in the mirror cabinet; by the door, on its latch side (view W1, 2026-11-07), S1-3 (the lights) and beyond it
+// S4-5 (top: the exterior blinds, up | down; bottom: the PDLC film), both at h950. Each fitting is on a wall face (at x or y, n its normal into the room, u: where along it, from the
 // view's X, mm from the window wall's face) at the view's height h (mm, to its centre). Frames 80 x 80 (70 in the
 // cabinet, as drawn), gangs at 71 mm; Czech sockets (type E, the earth pin up). A rocker works its lamps (CIRCUITS: the
-// moods' channels); the rest say what they are (devCard). (P-L3, the supply of the LED under the vanity, is inside it.)
+// moods' channels; or act, a circuit that does something else: the blinds, the film); the rest say what they are (devCard). (P-L3, the supply of the LED under the vanity, is inside it.)
 const WALLS = {
   W1: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.1 },               // the door wall, 10 cm from the door on its latch side
+  W1b: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.19 },             // (the next frame beyond it)
   K: { x: X1 - 0.01, n: [-1, 0], u: (X) => Y1 - X / 1000 },          // the back of the mirror cabinet over the vanity
   Kr: { x: DOOR_N[1], n: [-1, 0], u: (X) => Y1 - X / 1000 },         // the window's reveal on the vanity's side
 };
@@ -2562,12 +2563,17 @@ const CIRCUITS = {
   down: { label: 'Ceiling downlights', ch: ['down'] },
   led: { label: 'LED under the mirror cabinet and the vanity', ch: ['led'] },
   cove: { label: 'Ambient: LED in the ceiling recess over the bath (built-in bath)', ch: ['cove'] },
+  blindsUp: { label: 'Exterior blinds, up', act: () => setBlinds(0, BLINDS.tilt, true), on: () => BLINDS.target < 0.5 },
+  blindsDown: { label: 'Exterior blinds, down', act: () => setBlinds(1, BLINDS.tilt, true), on: () => BLINDS.target >= 0.5 },
+  film: { label: 'PDLC privacy film (on: clear, off: milky)', act: () => setFilm(!PDLC.frosted), on: () => !PDLC.frosted },
 };
 const CIRCUIT_OF = {};
-for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch) CIRCUIT_OF[k] = c;
-// kinds: sw (gangs: [circuit] each; vert: stacked, the first on top), sock, outlet (a cable's way out)
+for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
+// kinds: sw (gangs: [circuit] a whole rocker, [left, right] split; vert: stacked, the first on top), sock, outlet (a
+// cable's way out)
 const DEVICES = [
-  { id: 'S1-3', w: 'W1', h: 1100, kind: 'sw', vert: true, gangs: [['down'], ['led'], ['cove']], names: ['top', 'middle', 'bottom'] },
+  { id: 'S1-3', w: 'W1', h: 950, kind: 'sw', vert: true, gangs: [['down'], ['led'], ['cove']], names: ['top', 'middle', 'bottom'] },
+  { id: 'S4-5', w: 'W1b', h: 950, kind: 'sw', vert: true, gangs: [['blindsUp', 'blindsDown'], ['film']], names: ['top', 'bottom'] },
   { id: 'K-Z1', w: 'Kr', X: -108, h: 500, kind: 'sock', info: 'in the window reveal' },
   { id: 'K-P1', w: 'Kr', X: -108, h: 50, s: 0.05, kind: 'outlet', info: 'PDLC film supply, 230 V, in the window reveal' },
   { id: 'K-Z2', w: 'K', X: 260, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its door by the window' },
@@ -2598,7 +2604,7 @@ function moodNow(key = moodKey) {
 }
 // after dark a channel's lamps stay in the scene when off (at 0), so a switch flipped doesn't recompile every shader
 const inScene = (m, ch) => m[ch] > 0 || !m.day;
-const circuitOn = (c) => CIRCUITS[c].ch.some((k) => level(k) > 0);
+const circuitOn = (c) => { const C = CIRCUITS[c]; return C.on ? C.on() : C.ch.some((k) => level(k) > 0); };
 // a plate in the device's frame (x along the wall to the right as seen from the room, y into the wall, z up), with holes
 // (round: [x, z, r], square: [x, z, half width, half height])
 function plateGeo(hx, hz, r, holes = []) {
@@ -2651,18 +2657,19 @@ function buildDevices() {
     holder.matrixAutoUpdate = false;
     holder.matrix.copy(F);
     DEV.group.add(holder);
-    d.gangs.forEach(([circ], g) => {
-      const pivot = new THREE.Group(), [x, zg] = at(g);
-      pivot.position.set(x, -FD, zg);
+    d.gangs.forEach((gang, g) => gang.forEach((circ, k) => {
+      // a split gang: two narrow rockers side by side
+      const pivot = new THREE.Group(), [x, zg] = at(g), rw = gang.length === 2 ? 0.0262 : 0.054;
+      pivot.position.set(x + (gang.length === 2 ? (k ? 0.0139 : -0.0139) : 0), -FD, zg);
       pivot.rotation.x = 0.05;
-      const m = new THREE.Mesh(rbox(0.054, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
+      const m = new THREE.Mesh(rbox(rw, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
       m.receiveShadow = true;
       m.userData.rocker = { dev, circ };
       pivot.add(m);
       holder.add(pivot);
       DEV.meshes.push(m);
       DEV.rockers.push({ pivot, circ, a: 0.05, target: 0.05 });
-    });
+    }));
   });
   for (const m of flush(DEV.group)) { m.userData.dev = true; DEV.meshes.push(m); }
   setDeviceColor(devColor);
@@ -2685,6 +2692,8 @@ function showSwitches() {
 }
 function animateDevices(dt) {
   let moved = false;
+  // (the blinds' and the film's rockers follow them, whatever moved them: a rocker, the panel, a key)
+  for (const r of DEV.rockers) if (CIRCUITS[r.circ].on) r.target = CIRCUITS[r.circ].on() ? -0.05 : 0.05;
   for (const r of DEV.rockers) if (r.a !== r.target) {
     r.a = r.target > r.a ? Math.min(r.target, r.a + dt * 1.2) : Math.max(r.target, r.a - dt * 1.2);
     r.pivot.rotation.x = r.a;
@@ -2694,6 +2703,7 @@ function animateDevices(dt) {
 }
 // flip a circuit's rocker: its lamps on or off (until the next scene)
 function flip(c) {
+  if (CIRCUITS[c].act) { CIRCUITS[c].act(); showSwitches(); return CIRCUITS[c]; }
   SWITCHED[c] = !circuitOn(c);
   applyMood(moodKey);
   renderer.shadowMap.needsUpdate = true;
@@ -2719,11 +2729,13 @@ function devAction(hit) {
   if (dev.kind === 'sw') {
     if (!circ) {
       const q = p.clone().applyMatrix4(dev.inv), n = dev.gangs.length, o = dev.vert ? -q.z : q.x;
-      circ = dev.gangs[THREE.MathUtils.clamp(Math.round(o / 0.071 + (n - 1) / 2), 0, n - 1)][0];
+      const gang = dev.gangs[THREE.MathUtils.clamp(Math.round(o / 0.071 + (n - 1) / 2), 0, n - 1)];
+      circ = gang[gang.length === 2 && q.x > 0 ? 1 : 0];
     }
     return () => {
-      const C = flip(circ), g = dev.gangs.findIndex(([k]) => k === circ);
-      devCard(`<b>${dev.id} ${dev.names?.[g] ?? g + 1}</b> · ${C.label} — ${circuitOn(circ) ? 'on' : 'off'}`);
+      const C = flip(circ), g = dev.gangs.findIndex((gg) => gg.includes(circ)), gang = dev.gangs[g];
+      const part = gang.length === 2 ? (gang[0] === circ ? ' left' : ' right') : '';
+      devCard(`<b>${dev.id} ${dev.names?.[g] ?? g + 1}${part}</b> · ${C.label}${C.act ? '' : ` — ${circuitOn(circ) ? 'on' : 'off'}`}`);
     };
   }
   return () => devCard(`<b>${dev.id}</b> · ${KIND_NAME[dev.kind]}, +${dev.h}${dev.info ? ` <span>· ${dev.info}</span>` : ''}`);
@@ -3106,7 +3118,7 @@ function renderLegend() {
     ['Basin', VANITIES[vanityKey].basin(p), '#f3f2ef'],
     ['Cabinets', wood.short + ' veneer, oiled; mirror doors over the vanity, LED under them', wood.swatch],
     ['Fittings', METALS[p.metal].label + '; a bidet hand shower beside the WC', METALS[p.metal].swatch],
-    ['Switches', DEVCOLORS[devColor].label + ' plates: the switch by the door, sockets in the window reveal and in the mirror cabinet', DEVCOLORS[devColor].swatch],
+    ['Switches', DEVCOLORS[devColor].label + ' plates: the switches by the door (lights; blinds and the PDLC film), sockets in the window reveal and in the mirror cabinet', DEVCOLORS[devColor].swatch],
     ['Shower glass', 'bronze tinted', '#8c7059'],
     ['Door', 'flush, white lacquer', '#f2f0eb'],
     ['Window', 'heroal W 72 aluminium, bronze anodised: fixed pane and tilt & turn sash, triple glazed; switchable PDLC privacy film', '#4d443c'],
