@@ -240,7 +240,7 @@ const COLUMN = { x0: 43.09, x1: 43.19, y0: 9.992, y1: 10.092 };    // the steel 
 const FASCIA = { x0: 45.585, x1: 48.294, z0: 2.461, z1: 2.491 };
 // the linear pendant over the island: a slim black profile (len along x, w wide, h tall), its opal diffuser underneath at
 // z (77 cm over the top), hung from the kitchen's lowered ceiling on two cables (drop: from the ends)
-const ISLAND_LIGHT = { x: 46.92, y: 14.693, len: 1.8, w: 0.035, h: 0.05, z: 1.72, drop: 0.15 };
+const ISLAND_LIGHT = { x: 46.92, y: 14.635, len: 1.8, w: 0.035, h: 0.05, z: 1.72, drop: 0.15 };
 // the curtains: sheer linen on tracks in a pocket recessed into the ceiling along the glazing (up to pk; the curtains hang
 // from top), an LED line along the pocket's room-side edge washing them (a glow in the cloth, M.curtain: area lights
 // would weigh on every shader). Each run goes from the end it gathers at when open (a) to its far end (b), the stacks in
@@ -322,13 +322,18 @@ const COFFEE = { x0: 49.02, x1: 49.27, y0: 16.17, y1: 16.54, z0: 0.905, z1: 1.34
 const CLOCK = { y: 15.385, z: 1.875, r: 0.185 };                  // on the hall's wall, over the coffee unit's side
 // the island: a 3 cm top (its corner towards the living room and the dining rounded, r) and a waterfall end of the same
 // stone at the south (wf thick); towards the kitchen three banks of drawers (x0, x1, how many); towards the living room
-// a cabinet with two doors (to x1, its face at y), then a fluted panel (3 cm half-round flutes: their crests on y, round
+// two cabinets of 45 cm (to x1, their fronts' face at y), their doors hinged on their outer sides (meeting in the middle)
+// and opening by open rad, inside d deep (carcass t) with shelves at shelves, the first bank's drawers behind them only
+// drawer deep; then a fluted panel (3 cm half-round flutes: their crests on y, round
 // a corner of radius r, along x to the drawers) set back under the top's overhang
 // the drawers (the run's under the oven and the hob, the island's banks): boxes of anthracite steel depth deep, sliding
 // out travel on a click; the units' insides back deep behind the fronts
 const DRAWER = { depth: 0.5, travel: 0.42, back: 0.56 };
-const ISLAND = { x0: 45.506, x1: 48.337, y0: 14.258, y1: 15.128, z0: 0.92, z1: 0.95, r: 0.2, wf: 0.03, fy: 15.108,
-  banks: [[45.536, 46.436, 3], [46.436, 47.136, 4], [47.136, 48.036, 3]], cab: { x1: 46.736, y: 14.278 }, flute: { y: 14.49, x: 48.08, r: 0.1, rf: 0.015 } };
+// (2026-11-08, user: moved 5.8 cm towards the living room, its edge to the kitchen y1 104 cm from the run's fronts)
+const ISLAND = { x0: 45.506, x1: 48.337, y0: 14.2, y1: 15.07, z0: 0.92, z1: 0.95, r: 0.2, wf: 0.03, fy: 15.05,
+  banks: [[45.536, 46.436, 3], [46.436, 47.136, 4], [47.136, 48.036, 3]],
+  cab: { x1: 46.436, y: 14.22, d: 0.3, t: 0.018, open: Math.PI / 2, shelves: [0.36, 0.63], drawer: 0.46 },
+  flute: { y: 14.432, x: 48.08, r: 0.1, rf: 0.015 } };
 // the dining wall: tall cabinets floor to ceiling, 34 cm deep (x0..x1), in a lacquer of the wall colour, their edges at
 // the niche and at the corridor rounded (r); the niche between them lined in mirror (at mirror) with three black steel
 // shelves; in front a floating sideboard in the wood (its fronts at x0, z0..z1) under a black top (y0..y1, to z)
@@ -2349,8 +2354,8 @@ function frontY(x0, x1, z0, z1, yf, dir, mat = M.cab) {
 }
 // the inside of a unit of drawers (x0..x1, z0..z1; the fronts' inner face at yi, the drawers running in towards s): its
 // sides, top and bottom in anthracite, their front edges closing the joints (its back: the caller's, across the units)
-function drawerCarcass(x0, x1, z0, z1, yi, s) {
-  const t = 0.018, [a, b] = s > 0 ? [yi, yi + DRAWER.back] : [yi - DRAWER.back, yi], e = s > 0 ? 'y' : 'Y';
+function drawerCarcass(x0, x1, z0, z1, yi, s, back = DRAWER.back) {
+  const t = 0.018, [a, b] = s > 0 ? [yi, yi + back] : [yi - back, yi], e = s > 0 ? 'y' : 'Y';
   add(M.carcass, box(x0, x0 + t, a, b, z0, z1, { faces: 'X' + e }));
   add(M.carcass, box(x1 - t, x1, a, b, z0, z1, { faces: 'x' + e }));
   add(M.carcass, box(x0 + t, x1 - t, a, b, z0, z0 + t, { faces: 'Z' + e }));
@@ -2710,21 +2715,31 @@ function buildIsland() {
     add(M.counter, box(I.x0, I.x0 + I.wf, I.y0, I.y1, 0, I.z0, { faces: 'xXyY' }));
   }
   // towards the kitchen: three banks of drawers over the plinth (built on their own: buildDrawers), their units' insides
-  const k0 = I.banks[0][0], k1 = I.banks[2][1];
-  for (const [x0, x1] of I.banks) drawerCarcass(x0, x1, plinth, I.z0, I.fy, -1);
-  add(M.carcass, box(k0, k1, I.fy - DRAWER.back - 0.01, I.fy - DRAWER.back, plinth, I.z0, { faces: 'Y' }));
+  // (the first bank only as deep as the cabinets behind it leave: cb, their back's face towards the kitchen)
+  const k0 = I.banks[0][0], k1 = I.banks[2][1], C = I.cab, cb = C.y + 0.02 + C.d + C.t;
+  I.banks.forEach(([x0, x1], k) => drawerCarcass(x0, x1, plinth, I.z0, I.fy, -1, k ? DRAWER.back : I.fy - cb));
+  add(M.carcass, box(I.banks[1][0], k1, I.fy - DRAWER.back - 0.01, I.fy - DRAWER.back, plinth, I.z0, { faces: 'Y' }));
   add(M.joint, box(k0, k1, I.fy - 0.1, I.fy - 0.05, 0, plinth, { faces: 'Y' }), { shadow: false });
-  add(M.flute, box(k1, I.flute.x, 15.098, I.fy + 0.02, 0, I.z0, { faces: 'XY' }));
-  // towards the living room: a cabinet with two doors, then the fluted panel round the corner, under the top's overhang
+  add(M.flute, box(k1, I.flute.x, I.fy - 0.01, I.fy + 0.02, 0, I.z0, { faces: 'XY' }));
+  // towards the living room: two cabinets of 45 cm (their doors: buildSwings), each its carcass in anthracite with its
+  // shelves, a back shared with the drawers; then the fluted panel round the corner, under the top's overhang
   {
-    const { x1, y } = I.cab, a = I.x0 + I.wf, w = (x1 - a) / 2;
-    for (let i = 0; i < 2; i++) frontY(a + i * w, a + (i + 1) * w, plinth, I.z0, y, -1);
-    add(M.joint, box(a, x1, y + 0.02, y + 0.03, plinth, I.z0, { faces: 'y' }), { shadow: false });
+    const { x1, y, t, shelves } = C, a = I.x0 + I.wf, w = (x1 - a) / 2, yi = y + 0.02, yb = cb - t;
+    add(M.carcass, box(a, x1, yb, cb, plinth, I.z0, { faces: 'yY' }));
+    for (let i = 0; i < 2; i++) {
+      const u0 = a + i * w, u1 = u0 + w;
+      add(M.carcass, box(u0, u0 + t, yi, yb, plinth, I.z0, { faces: 'Xy' }));
+      add(M.carcass, box(u1 - t, u1, yi, yb, plinth, I.z0, { faces: 'xy' }));
+      add(M.carcass, box(u0 + t, u1 - t, yi, yb, plinth, plinth + t, { faces: 'Zy' }));
+      add(M.carcass, box(u0 + t, u1 - t, yi, yb, I.z0 - t, I.z0, { faces: 'zy' }));
+      for (const z of shelves) add(M.carcass, box(u0 + t, u1 - t, yi + 0.01, yb, z - t, z, { faces: 'zZy' }));
+    }
+    islandShelves(a, w, (yi + yb) / 2);
     add(M.joint, box(a, x1, y + 0.07, y + 0.12, 0, plinth, { faces: 'y' }), { shadow: false });
     add(M.cabEnd, box(x1 - 0.02, x1, y, I.flute.y + 0.01, 0, I.z0, { faces: 'X' }));
   }
   {
-    const F = I.flute, rf = F.rf, ax = F.x - F.r, ay = F.y + F.r, ra = F.r - rf, ya = F.y + rf, xa = F.x - rf, yEnd = 15.10, c = [];
+    const F = I.flute, rf = F.rf, ax = F.x - F.r, ay = F.y + F.r, ra = F.r - rf, ya = F.y + rf, xa = F.x - rf, yEnd = I.fy - 0.008, c = [];
     for (let x = I.cab.x1 + rf; x <= ax - rf + 1e-6; x += 2 * rf) c.push({ p: [x, ya], n: [0, -1] });
     for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + (i + 0.5) * Math.PI / 8; c.push({ p: [ax + ra * Math.cos(a), ay + ra * Math.sin(a)], n: [Math.cos(a), Math.sin(a)] }); }
     for (let y = ay + rf; y <= yEnd - rf + 1e-6; y += 2 * rf) c.push({ p: [xa, y], n: [1, 0] });
@@ -2741,15 +2756,32 @@ function buildIsland() {
 // the tall one under the oven, the two under the hob, the
 // island's banks, each from the bottom); last the tall pull-out under the coffee machine (pullOut)
 const DRAWERS = { list: [], meshes: [] };
+// what the island's cabinets keep (a: the left one's side, w: each one's width, ym: the middle of their depth): in the
+// left one wine bottles, serving plates and bowls, jars; in the right one board games, books, glasses
+function islandShelves(a, w, ym) {
+  const { t, shelves: [s1, s2] } = ISLAND.cab, z0 = RUN.plinth + t, b = a + w, rnd = mulberry(77);
+  for (let k = 0; k < 4; k++) add([M.amber, M.slideGlass, M.potteryDark, M.amber][k], lathe(BOTTLE, [a + t + 0.05 + k * 0.09, ym + 0.03, z0], 24));
+  stack(PLATE.map(([r, h]) => [r * 0.8, h]), [a + t + 0.11, ym], s1, 6, 0.012);
+  stack(SMALL_BOWL, [a + w - t - 0.085, ym], s1, 3, 0.022);
+  for (let k = 0; k < 4; k++) add(k % 2 ? M.canister : M.amber, lathe(JAR, [a + t + 0.06 + k * 0.095, ym, s2], 24));
+  [M.book1, M.book3, M.book2].forEach((m, k) => add(m, rbox(0.3, 0.25, 0.055, 0.004, [b + t + 0.17, ym, z0 + 0.0275 + k * 0.056])));
+  for (let x = b + t + 0.012, k = 0; ; k++) {
+    const d = 0.022 + rnd() * 0.02, h = 0.2 + rnd() * 0.04;
+    if (x + d > b + w - t - 0.04) break;
+    add([M.book1, M.book2, M.book3][k % 3], box(x, x + d, ym - 0.1, ym + 0.1, s1, s1 + h));
+    x += d + 0.002;
+  }
+  for (let k = 0; k < 6; k++) add(M.slideGlass, lathe(MUG, [b + t + 0.07 + (k % 3) * 0.1, ym + (k < 3 ? -0.065 : 0.065), s2], 24));
+}
 function drawerSpecs() {
   const { fy, plinth } = RUN, I = ISLAND, out = [];
   out.push({ x0: TALLS[2][0], x1: TALLS[2][1], z0: plinth, z1: OVEN.z0, yf: fy, dir: -1, sides: 0.3 });
   const zh = (plinth + TOP.z0) / 2;
   for (const [z0, z1, sides] of [[plinth, zh, 0.25], [zh, TOP.z0]]) out.push({ x0: BASES.b2[0], x1: BASES.b3[1], z0, z1, yf: fy, dir: -1, sides });
-  for (const [x0, x1, n] of I.banks) {
+  I.banks.forEach(([x0, x1, n], k) => {
     const h = (I.z0 - plinth) / n;
-    for (let i = 0; i < n; i++) out.push({ x0, x1, z0: plinth + i * h, z1: plinth + (i + 1) * h, yf: I.fy + 0.02, dir: 1 });
-  }
+    for (let i = 0; i < n; i++) out.push({ x0, x1, z0: plinth + i * h, z1: plinth + (i + 1) * h, yf: I.fy + 0.02, dir: 1, depth: k ? undefined : I.cab.drawer });
+  });
   out.push({ x0: TALLS[3][0], x1: TALLS[3][1], z0: plinth, z1: COFFEE.niche[0], yf: fy, dir: -1, tall: true });
   out.push({ x0: BASES.sink[0], x1: BASES.sink[1], z0: plinth, z1: TOP.z0, yf: fy, dir: -1, sides: 0.36, fill: 'trash' });
   const { n, z0, pitch, front } = LARDER, [a, b] = TALLS[0], t = 0.018;
@@ -2922,8 +2954,9 @@ function pullOut(d, Y, rnd) {
   });
 }
 function buildDrawers() {
-  const rnd = mulberry(41), D = DRAWER.depth, w = 0.013, g = RUN.gap / 2;
+  const rnd = mulberry(41), w = 0.013, g = RUN.gap / 2;
   drawerSpecs().forEach((d, i) => {
+    const D = d.depth ?? DRAWER.depth;
     const s = -d.dir, yi = d.yf + 0.02 * s, Y = (v) => yi + s * v, span = (v0, v1) => s > 0 ? [Y(v0), Y(v1)] : [Y(v1), Y(v0)];
     const bx0 = d.x0 + 0.024, bx1 = d.x1 - 0.024, zb = d.z0 + 0.02, sh = d.sides ?? Math.min(d.z1 - d.z0 - 0.06, 0.2);
     // the front (its back too, seen in the open drawer); the box: steel sides, a back, its bottom
@@ -3376,13 +3409,13 @@ function buildProps() {
   // the island: a bowl of lemons, a vase of branches, two books
   {
     const z = ISLAND.z1;
-    add(M.potteryWhite, lathe(BOWL, [47.3, 14.72, z], 40));
+    add(M.potteryWhite, lathe(BOWL, [47.3, 14.662, z], 40));
     const rnd = mulberry(5);
-    for (let i = 0; i < 6; i++) { const a = i * 1.1 + rnd(), r = i ? 0.06 : 0; add(i % 3 ? M.lemon : M.orange, sphere(0.034, [47.3 + r * Math.cos(a), 14.72 + r * Math.sin(a), z + 0.05 + (i ? 0 : 0.03)], 20)); }
-    add(M.potteryDark, lathe(VASE, [46.05, 14.62, z], 40));
-    twigs(46.05, 14.62, z + 0.2, 9, 0.62, 3);
-    book(47.95, 14.52, z, 0.22, 0.28, 0.025, 0.25, M.book1);
-    book(47.95, 14.52, z + 0.025, 0.2, 0.26, 0.022, 0.1, M.book3);
+    for (let i = 0; i < 6; i++) { const a = i * 1.1 + rnd(), r = i ? 0.06 : 0; add(i % 3 ? M.lemon : M.orange, sphere(0.034, [47.3 + r * Math.cos(a), 14.662 + r * Math.sin(a), z + 0.05 + (i ? 0 : 0.03)], 20)); }
+    add(M.potteryDark, lathe(VASE, [46.05, 14.562, z], 40));
+    twigs(46.05, 14.562, z + 0.2, 9, 0.62, 3);
+    book(47.95, 14.462, z, 0.22, 0.28, 0.025, 0.25, M.book1);
+    book(47.95, 14.462, z + 0.025, 0.2, 0.26, 0.022, 0.1, M.book3);
   }
   // the kitchen: by the sink a soap bottle, a board leaning on the window, oil by the hob, canisters, a utensil pot
   {
@@ -3716,6 +3749,16 @@ function buildSwings() {
     add(M.cab, box(a + g, b - g, fy, ft, z0 + g, H1 - g, { faces: 'xXyzZ' }));
     add(M.cabEnd, box(a + g, b - g, ft - 0.001, ft, z0 + g, H1 - g, { faces: 'Y' }));
     hang(sw);
+  }
+  // the island's cabinets' (towards the living room): fronts as the kitchen's, hinged on their outer sides
+  {
+    const I = ISLAND, C = I.cab, a = I.x0 + I.wf, w = (C.x1 - a) / 2, z0 = RUN.plinth, y = C.y, yt = y + 0.02;
+    for (const [key, u0, u1, px, s] of [['island0', a, a + w, a + g, -1], ['island1', a + w, C.x1, C.x1 - g, 1]]) {
+      const sw = swing(key, [px, y, 0], (o, e) => { o.rotation.z = s * C.open * e; });
+      add(M.cab, box(u0 + g, u1 - g, y, yt, z0 + g, I.z0 - g, { faces: 'xXyzZ' }));
+      add(M.cabEnd, box(u0 + g, u1 - g, yt - 0.001, yt, z0 + g, I.z0 - g, { faces: 'Y' }));
+      hang(sw);
+    }
   }
   // the wall units': in pairs, hinged on their outer sides
   {
@@ -5253,7 +5296,7 @@ function renderLegend() {
     ['Pantry', 'its walls an L of Porotherm 11,5; behind a sliding door, 70 cm wide: ' + { wood: 'a plain ' + wn + ' panel, 2 cm', glass: 'a frameless pane of dark smoked glass, 10 mm, its edges polished', white: 'a white lacquered slab, 2 cm' }[pantryKey] + ', flush black pulls; hung from an anthracite track on the ceiling, it slides into the gap between the larder and the pantry\'s tall unit (a click opens it), a fixed 8 cm strip of the same beside it by the cabinets; ' + wn + ' shelves inside, 15 cm deep along the south wall and turning along the facade (40 cm) over the counter, a downlight over them (its switch inside, by the doorway); against the east wall a rack, 100 × 40 × 200 cm, black steel and ' + wn + ' shelves; at the facade a tall freezer, 60 cm, behind a door in the wood (a click opens it), and a counter in the wood from it to the wall', { wood: wood.swatch, glass: '#4f5150', white: '#f4f2ee' }[pantryKey]],
     ['Worktop', stone.label + ', 3 cm, running into the window\'s reveal: an undermount steel sink, a drainboard cut in it, a flush induction hob; a copper tap (Gessi Inciso)', stone.swatch],
     ['Window', 'the strip over the worktop, ' + (windowKey === 'fixed' ? 'all fixed: one pane in a slim anthracite profile (15 mm) set in the reveal, the worktop running on to the glass' : 'a fixed pane and, on the right, a tilt-and-turn sash, its lever on its left by the mullion') + '; exterior venetian blinds in its reveal', '#383b3e'],
-    ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room a cabinet and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
+    ['Island', 'the same stone: a 3 cm top, its corner to the room rounded, and a waterfall end; drawers to the kitchen; to the room two cabinets of 45 cm, their doors meeting in the middle (a click opens them), shelves 30 cm deep inside, and, under the overhang, half-round flutes in ' + p.fluteLabel, p.flute],
     ['Dining', (sw ? 'at the south end by the south glazing, across the room towards the east wall: ' : 'at the north end: ') + wn + ' table for six Sky chairs in sage (Icons of Denmark), two Vibia Skan pendants over it', wood.swatch],
     ['Dining wall', sw ? 'on the east wall between the glazings: plain cabinets floor to ceiling a shade lighter than the walls, ' + (fireOn ? 'three flush handleless doors up to the fireplace, the south end rounded' : 'five flush handleless doors, the ends rounded') : 'cabinets floor to ceiling a shade lighter than the walls, their edges rounded, round a mirrored niche with black steel shelves; a floating ' + wn + ' sideboard across it under a black top', M.built.color.getStyle()],
     ...(fireOn ? [['Fireplace', 'built in on the east wall by the terrace door, at the same spot in either layout: a frameless firebox, 70 × 45 cm and 45 cm up, in a plastered breast 34 cm deep, its corners rounded; lit in the evening and at night', '#1b1714']] : []),
