@@ -2545,15 +2545,16 @@ const CIRCUITS = {
 };
 const CIRCUIT_OF = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
-// kinds: sw (gangs: [circuit] each; vert: stacked, the first on top), sock (ip: with an IP44 lid; load: what it feeds),
+// kinds: sw (gangs: [circuit] each; vert: stacked, the first on top), sock (ip: with an IP44 lid; load: what it feeds;
+// pair: a double frame with the next socket 71 mm on, which then has none of its own: inFrame),
 // outlet (a cable's way out; act: the circuit it feeds)
 const DEVICES = [
   { id: 'S1-3', w: 'door', h: 1100, kind: 'sw', vert: true, gangs: [['down'], ['mirror'], ['ambient']], names: ['top', 'middle', 'bottom'] },
   { id: 'S4-5', w: 'vanity', at: 4.95, h: 1250, kind: 'sw', gangs: [['blinds'], ['film']], names: ['left', 'right'] },
   { id: 'Z1', w: 'splash', at: 2.625, h: 1000, kind: 'sock', ip: true, load: 'dryer' },
   { id: 'Z2', w: 'splash', at: 4.3, h: 1000, kind: 'sock', ip: true, load: 'night' },
-  { id: 'Z3', w: 'wcc', at: 2.47, h: 1600, s: 0.07, kind: 'sock', load: 'brushA' },
-  { id: 'Z4', w: 'wcc', at: 2.55, h: 1600, s: 0.07, kind: 'sock', load: 'brushB' },
+  { id: 'Z3', w: 'wcc', at: 2.4745, h: 1600, s: 0.07, kind: 'sock', pair: true, load: 'brushA' },
+  { id: 'Z4', w: 'wcc', at: 2.5455, h: 1600, s: 0.07, kind: 'sock', inFrame: true, load: 'brushB' },
   { id: 'P1', w: 'reveal', at: FRAME.y0 - 0.065, h: 50, s: 0.05, kind: 'outlet', act: 'film', info: 'PDLC film supply, 230 V, in the window reveal' },
 ];
 const KIND_NAME = { sock: 'socket 230 V', outlet: 'cable outlet' };
@@ -2634,8 +2635,11 @@ function buildDevices() {
     const at = (g) => { const o = (g - (n - 1) / 2) * 0.071; return d.vert ? [0, -o] : [o, 0]; };
     // a socket's frame open behind its insert (the recess runs back into the wall box), the others solid
     if (d.kind === 'sock') {
-      put(M.dev, plateGeo(w / 2, fh / 2, 0.003, [[0, 0, 0.025, 0.025]]).translate(0, -FD, 0));
-      put(M.dev, box(-w / 2, w / 2, -FD, 0, -fh / 2, fh / 2, { faces: 'xXzZ' }));
+      const k = d.pair ? 0.071 : 0;       // a double frame reaches on over its partner
+      if (!d.inFrame) {
+        put(M.dev, plateGeo(w / 2 + k / 2, fh / 2, 0.003, [[0, 0, 0.025, 0.025], ...(k ? [[k, 0, 0.025, 0.025]] : [])].map(([x, ...r]) => [x - k / 2, ...r])).translate(k / 2, -FD, 0));
+        put(M.dev, box(-w / 2, w / 2 + k, -FD, 0, -fh / 2, fh / 2, { faces: 'xXzZ' }));
+      }
       socketParts(put, 0, 0, FF);
     } else put(M.dev, rbox(w, FD, fh, 0.003, [0, -FD / 2, 0]));
     if (d.kind === 'outlet') put(M.devDark, cyl(0.006, 0.0012, 'y', [0, -FD - 0.0006, 0], 20));

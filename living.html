@@ -4518,14 +4518,12 @@ const DEVICES = [
   { id: 'E2', w: 'B', X: 5065, h: 300, kind: 'sock', info: 'behind the base units' },
   { id: 'E9', w: 'B', X: 4152.5, h: 2100, kind: 'sock', info: 'hood, in the wall units' },
   { id: 'E10', w: 'B', X: 5040, h: 2250, kind: 'sock', info: 'LED driver, in the wall units' },
-  { id: 'E16', w: 'B', X: 5465, h: 1900, kind: 'sock', info: 'microwave, in its tall unit' },
-  { id: 'E1', w: 'B', X: 5965, h: 1100, at: 16.70, kind: 'sock', info: 'coffee machine, at the back of its niche' },
+  { id: 'E1', w: 'B', X: 5965, h: 1100, at: 16.70, kind: 'sock', n: 2, info: 'coffee machine and the microwave over the oven (its cable through the side panel), at the back of the niche' },
   { id: 'E6', kind: 'popup', x: 46.65, y: 16.55, info: 'pop-up tower in the worktop, 3 sockets: click to raise or lower' },
   { id: 'E7', w: 'Br', h: 1100, kind: 'sock', info: 'in the window reveal' },
   { id: 'S1', w: 'Br', h: 1250, kind: 'sw', gangs: [['ucab']] },
   { id: 'E13', w: 'Bl', h: 1250, kind: 'sock', info: 'in the window reveal' },
-  { id: 'T1', w: 'C', X: 1232.5, h: 1150, kind: 'sock', v: true, info: 'TV, behind it' },
-  { id: 'T2', w: 'C', X: 1312.5, h: 1150, kind: 'sock', v: true, info: 'TV, behind it' },
+  { id: 'T1', w: 'C', X: 1312.5, h: 1150, kind: 'sock', v: true, info: 'TV, behind it, by the bracket' },
   { id: 'T3', w: 'C', X: 1250, h: 400, kind: 'sock', n: 2, info: 'behind the TV unit' },
   { id: 'T4', w: 'C', X: 1450, h: 400, kind: 'sock', n: 2, info: 'behind the TV unit' },
   { id: 'H1', w: 'C', X: 1912.5, h: 1150, kind: 'blank', info: 'conduit box, blank plate' },
@@ -4561,8 +4559,7 @@ const DEVICES = [
   { id: 'N1-S1', w: 'Nh', X: 53.835, h: 950, kind: 'sw', vert: true, gangs: [['stairs'], ['hall']] },
   { id: 'HP1', kind: 'smoke', x: 54.28, y: 14.045, info: 'autonomous, in the hallway' },
   { id: 'HP2', kind: 'smoke', x: 53.185, y: 15.9, info: 'autonomous, over the stairs' },
-  { id: 'E14', w: 'E', X: 290, h: 250, kind: 'sock' },
-  { id: 'E15', w: 'E', X: 390, h: 250, kind: 'sock' },
+  { id: 'E14, E15', w: 'E', X: 340, h: 250, kind: 'sock', n: 2 },
 ];
 const KIND_NAME = { smoke: 'smoke detector', sock: 'socket 230 V', data: 'data, 2 x RJ45', coax: 'TV aerial socket', blank: 'blank plate', outlet: 'cable outlet', thermo: 'thermostat', display: 'display', popup: 'worktop sockets' };
 const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42 }, white: { label: 'White', color: 0xf0efeb, rough: 0.32 } };

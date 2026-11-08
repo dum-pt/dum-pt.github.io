@@ -2569,17 +2569,14 @@ const CIRCUITS = {
 };
 const CIRCUIT_OF = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CIRCUIT_OF[k] = c;
-// kinds: sw (gangs: [circuit] a whole rocker, [left, right] split; vert: stacked, the first on top), sock, outlet (a
-// cable's way out)
+// kinds: sw (gangs: [circuit] a whole rocker, [left, right] split; vert: stacked, the first on top), sock (n in a row),
+// outlet (a cable's way out)
 const DEVICES = [
   { id: 'S1-3', w: 'W1', h: 950, kind: 'sw', vert: true, gangs: [['down'], ['led'], ['cove']], names: ['top', 'middle', 'bottom'] },
   { id: 'S4-5', w: 'W1b', h: 950, kind: 'sw', vert: true, gangs: [['blindsUp', 'blindsDown'], ['film']], names: ['top', 'bottom'] },
   { id: 'K-Z1', w: 'Kr', X: -108, h: 500, kind: 'sock', info: 'in the window reveal' },
   { id: 'K-P1', w: 'Kr', X: -108, h: 50, s: 0.05, kind: 'outlet', info: 'PDLC film supply, 230 V, in the window reveal' },
-  { id: 'K-Z2', w: 'K', X: 260, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its door by the window' },
-  { id: 'K-Z3', w: 'K', X: 340, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its door by the window' },
-  { id: 'K-Z4', w: 'K', X: 860, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its second door' },
-  { id: 'K-Z5', w: 'K', X: 940, h: 1400, s: 0.07, kind: 'sock', info: 'in the mirror cabinet, behind its second door' },
+  { id: 'K-Z2', w: 'K', X: 300, h: 1400, s: 0.07, n: 2, kind: 'sock', info: 'double, in the mirror cabinet, behind its door by the window' },
   { id: 'P-L2', w: 'K', X: 600, h: 1320, s: 0.05, kind: 'outlet', info: 'supply of the LED under the mirror cabinet' },
 ];
 const KIND_NAME = { sock: 'socket 230 V', outlet: 'cable outlet' };
@@ -2638,15 +2635,15 @@ function buildDevices() {
     const c = W.x !== undefined ? new THREE.Vector3(W.x, u, z) : new THREE.Vector3(u, W.y, z);
     const F = new THREE.Matrix4().makeBasis(new THREE.Vector3(-ny, nx, 0), new THREE.Vector3(-nx, -ny, 0), new THREE.Vector3(0, 0, 1)).setPosition(c);
     const put = (mat, geo) => add(mat, geo.applyMatrix4(F), { shadow: false });
-    const n = d.kind === 'sw' ? d.gangs.length : 1, s = d.s ?? 0.08, long = s + (n - 1) * 0.071;
+    const n = d.kind === 'sw' ? d.gangs.length : d.n ?? 1, s = d.s ?? 0.08, long = s + (n - 1) * 0.071;
     const [w, fh] = d.vert ? [s, long] : [long, s];
     // a gang's centre in the frame: in a row, or stacked with the first on top
     const at = (g) => { const o = (g - (n - 1) / 2) * 0.071; return d.vert ? [0, -o] : [o, 0]; };
     // a socket's frame open behind its insert (the recess runs back into the wall box), the others solid
     if (d.kind === 'sock') {
-      put(M.dev, plateGeo(w / 2, fh / 2, 0.003, [[0, 0, 0.025, 0.025]]).translate(0, -FD, 0));
+      put(M.dev, plateGeo(w / 2, fh / 2, 0.003, Array.from({ length: n }, (_, g) => [...at(g), 0.025, 0.025])).translate(0, -FD, 0));
       put(M.dev, box(-w / 2, w / 2, -FD, 0, -fh / 2, fh / 2, { faces: 'xXzZ' }));
-      socketParts(put, 0, 0, FF);
+      for (let g = 0; g < n; g++) socketParts(put, ...at(g), FF);
     } else put(M.dev, rbox(w, FD, fh, 0.003, [0, -FD / 2, 0]));
     if (d.kind === 'outlet') put(M.devDark, cyl(0.006, 0.0012, 'y', [0, -FD - 0.0006, 0], 20));
     const dev = { ...d, i, c, F, inv: F.clone().invert() };
