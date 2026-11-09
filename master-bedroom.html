@@ -2995,15 +2995,15 @@ const DEVICES = [
   // the hallway (views F and N1): at the living room's end F-S1 (its lights, two-way with N1-S1's bottom rocker) and
   // D-S1 (the ambient LED over the shelves on wall D, by its outlet D-P1), a socket under them; by the window F-S2 (its
   // blinds) over F-Z2; at the top of the stairs N1-S1 on the powder room's wall, 150 off the stairs' opening (top: the
-  // stairs, bottom: the hallway); the smoke detectors on the ceiling
+  // stairs, bottom: the hallway); the smoke detector on the ceiling over the stairs' head (one: the
+  // user, 2026-11-09, the hallway's and the stairs' were 2 m apart)
   { id: 'F-S1', w: 'Fh', X: 50.825, h: 950, kind: 'sw', gangs: [['hall']] },
   { id: 'D-S1', w: 'Fh', X: 50.725, h: 950, kind: 'sw', gangs: [['shelfLed']] },
   { id: 'F-Z1', w: 'Fh', X: 50.725, h: 250, kind: 'sock', info: 'in the hallway, by the living room' },
   { id: 'F-S2', w: 'Fh', X: 56.935, h: 950, kind: 'sw', gangs: [['hblindsUp', 'hblindsDown']] },
   { id: 'F-Z2', w: 'Fh', X: 56.935, h: 250, kind: 'sock', info: 'in the hallway, by its window' },
   { id: 'N1-S1', w: 'Nh', X: 53.835, h: 950, kind: 'sw', vert: true, gangs: [['stairs'], ['hall']] },
-  { id: 'HP1', kind: 'smoke', x: 54.28, y: 14.045, info: 'autonomous, in the hallway' },
-  { id: 'HP2', kind: 'smoke', x: 53.185, y: 15.9, info: 'autonomous, over the stairs' },
+  { id: 'HP1', kind: 'smoke', x: 53.185, y: 14.675, info: 'autonomous, over the head of the stairs: the only one upstairs' },
   { id: 'G-Z1', w: 'G', X: G_PIER + 0.06, h: 250, kind: 'sock', v: true, info: 'under the TV' },
   { id: 'G-Z2', w: 'G', X: G_PIER + 0.06, h: 1450, kind: 'sock', info: 'behind the TV' },
   { id: 'G-TV1', w: 'G', X: G_PIER + 0.16, h: 1450, kind: 'coax', info: 'behind the TV' },
@@ -3128,7 +3128,7 @@ function buildDevices() {
   drawScreens();
   setDeviceColor(devColor);
 }
-// a smoke detector on the ceiling (HP1, HP2 in the electro drawing): a white disc, its test button and a red LED
+// a smoke detector on the ceiling (HP1 in the electro drawing): a white disc, its test button and a red LED
 M.smoke = physical({ color: 0xf2f1ec, roughness: 0.45 });
 M.smokeLed = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
 function buildSmoke(d, i) {

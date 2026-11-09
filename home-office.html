@@ -2416,7 +2416,6 @@ const WALLS = {
 const CIRCUITS = {
   track: { label: 'Track lights', ch: ['track', 'line'] },
   shelf: { label: 'LED in the wall unit', ch: ['shelf'] },
-  desk: { label: 'Desk lamp, on a switched socket', ch: ['desk'] },
   gblindsUp: { label: 'Garden door exterior blinds, up' },        // (user, 2026-11-08: blinds at every window)
   gblindsDown: { label: 'Garden door exterior blinds, down' },
 };
@@ -2425,7 +2424,7 @@ for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CI
 // kinds: sw (gangs: [circuit] a whole rocker, [left, right] split), sock (n in a row), data; use: the use that has it (none:
 // every use)
 const DEVICES = [
-  { id: 'S1', w: 'N', X: 14.66, h: 1100, kind: 'sw', gangs: [['track'], ['shelf', 'desk']] },
+  { id: 'S1', w: 'N', X: 14.66, h: 1100, kind: 'sw', gangs: [['track'], ['shelf']] },     // (the desk lamp: its own switch, the user 2026-11-08)
   { id: 'Z1', w: 'N', X: 14.95, h: 880, kind: 'sock', n: 2, info: 'over the desk' },
   { id: 'D1', w: 'N', X: 15.11, h: 880, kind: 'data', info: 'over the desk' },
   { id: 'S2', w: 'E', X: 43.45, h: 1100, kind: 'sw', gangs: [['track'], ['gblindsUp', 'gblindsDown']] },
@@ -2819,7 +2818,7 @@ function renderLegend() {
     ['Curtain', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtain on a slim black track in a recess in the ceiling, across the garden door, gathered west of it', LOOK.curtain],
     ['Garden door', 'the model\'s: anthracite aluminium, 1.0 × 2.55 m, fully glazed, hinged on the west as the plan draws it, opening into the room (a click opens it; a drawn curtain opens first); outside the terrace under the upper floor, the exterior store\'s boarded wall beside it', '#383b3e'],
     ['Hallway door', 'satin glass in a slim black frame, as in the Stairs & lower hallway page, hinged by the east wall, opening into the room against it; it glows with the hallway\'s lights', '#e6e4df'],
-    ['Light', 'a black magnetic track, 2 m, flush in the ceiling down the room: four spots turned to the desk, the print and the wall unit, a 60 cm opal line between them; the desk lamp on a switched socket; the LED line in the wall unit', '#ffe2c2'],
+    ['Light', 'a black magnetic track, 2 m, flush in the ceiling down the room: four spots turned to the desk, the print and the wall unit, a 60 cm opal line between them; the desk lamp on its own switch; the LED line in the wall unit', '#ffe2c2'],
     ['Things', 'a tall plant, books, files, boxes, a printer: for scale, none of them in the model', LOOK.rug],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');

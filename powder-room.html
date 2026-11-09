@@ -61,6 +61,10 @@
   #status { color: var(--muted); font-size: 12.5px; }
   #busy { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); padding: 7px 12px; font-size: 12px; color: var(--muted); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   #busy.show { opacity: 1; }
+  #devcard { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); padding: 8px 14px; font-size: 12.5px; max-width: min(520px, calc(100vw - 32px)); opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+  #devcard.show { opacity: 1; }
+  #devcard b { font-weight: 600; }
+  #devcard span { color: var(--muted); }
   @keyframes spin { to { transform: rotate(360deg); } }
   #opts { display: none; }
   #stones, #woods { display: grid; grid-template-columns: 1fr 1fr; }
@@ -114,11 +118,12 @@
   <div class="group"><h2>Wood</h2><div class="seg" id="woods" title="The wood of the drawer, the cabinet and the frame (in the styles that have them in wood) and of a wooden floor; each style starts with its own (O)"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Seamless poured epoxy, oiled planks in the chosen wood, or 60 × 60 cm porcelain tiles; the epoxy and the tiles take the style's colour (F)"></div></div>
   <div class="group"><h2>Ceiling</h2><div class="seg" id="ceilings" title="As built at 2.60 m, lowered to 2.35 m, or lowered with a recess up to 2.60 m over the basin, lit by an LED hidden on the lowered ceiling (H)"></div></div>
-  <div class="group"><h2>WC wall</h2><div class="seg" id="walls" title="The cabinet over the WC: over a lit niche with the stack in a corner chase, with an open cubby beside a closed column, or full height (N)"></div></div>
+  <div class="group"><h2>WC wall</h2><div class="seg" id="walls" title="The cabinet over the WC: over an open niche with the stack in a corner chase, with an open cubby beside a closed column, or full height (N)"></div></div>
   <div class="group"><h2>WC pre-wall</h2><div class="seg" id="prewalls" title="The finish of the pre-wall behind the WC and its ledge: the basin's stone, glazed tiles (handmade 10 × 10 cm zellige or slim 7.5 × 30 cm, stacked) in the glaze below, or the wood (G)"></div><div id="glazes" title="The tiles' glaze; each style starts with its own"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
   </div>
+  <div class="group"><h2>Switch</h2><div class="seg" id="devcolors" title="The light switch by the door: a black or white plate. Click a rocker to switch its lights (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the door (D)">Open door</button><button class="chip" id="t-cab" aria-pressed="false" title="Open or close the cabinet over the WC (C)">Open cabinet</button></div>
   </div>
@@ -135,7 +140,8 @@
 
 <button id="opts" class="panel" aria-expanded="false" aria-controls="side">Options</button>
 <div id="views" class="panel"></div>
-<div id="hint">Drag to look around · scroll to move closer · double-click to focus</div>
+<div id="hint">Drag to look around · scroll to move closer · double-click to focus · click the switch by the door to work it</div>
+<div id="devcard" class="panel"></div>
 <div id="busy" class="panel">Updating…</div>
 
 <div id="loading"><div class="box"><div class="ring"></div><div id="status">Loading…</div></div></div>
@@ -1078,6 +1084,7 @@ const E = {
   down: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   globe: physical({ color: 0xffffff, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 1 }),
   led: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+  cove: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the strip in the lit recess
   nicheLed: physical({ color: 0xe8e4dc, roughness: 0.35, emissive: 0xffffff, emissiveIntensity: 0 }),   // opal diffuser
   // glow of the LED strip behind the mirror on the wall around it (additive, falls off with distance from the edge)
   halo: new THREE.ShaderMaterial({
@@ -1538,7 +1545,7 @@ function setFilm(frosted) {
 
 function buildCeilingFixtures() {
   // the ceiling in its versions (CEILINGS), each in its own group with the fittings set in it: the trimless
-  // downlights, the small adjustable spot aimed at the print, the pendant's canopy and cable (in a group of its own,
+  // downlight over the WC (only one: the user, 2026-11-08), the pendant's canopy and cable (in a group of its own,
   // as the pendants are hidden from above)
   for (const [key, c] of Object.entries(CEILINGS)) {
     c.group = new THREE.Group();
@@ -1553,9 +1560,9 @@ function buildCeilingFixtures() {
       put(M.ceiling, box(x, X1, Y0, Y1, c.z, zt, { faces: 'zxZ' }));
       put(M.ceiling, box(X0, x + pocket, Y0, Y1, H, WT, { faces: 'z' }));
       put(M.ceiling, box(x + pocket, x + pocket + 0.02, Y0, Y1, zt, H, { faces: 'x' }));
-      put(E.led, box(x + RECESS.led - 0.01, x + RECESS.led + 0.01, Y0 + 0.01, Y1 - 0.01, zt, zt + 0.006, { faces: 'xZ' }));
+      put(E.cove, box(x + RECESS.led - 0.01, x + RECESS.led + 0.01, Y0 + 0.01, Y1 - 0.01, zt, zt + 0.006, { faces: 'xZ' }));
     } else put(M.ceiling, box(X0, X1, Y0, Y1, c.z, WT, { faces: 'z' }));
-    for (const [x, y] of [...DOWNLIGHTS, ART_SPOT]) {
+    for (const [x, y] of DOWNLIGHTS) {
       const z = ceilAt(x, key);
       put(M.dark, cyl(0.035, 0.004, 'z', [x, y, z - 0.001]));
       put(E.down, cyl(0.024, 0.002, 'z', [x, y, z - 0.0035]));
@@ -1591,7 +1598,6 @@ function applyCeiling(key) {
   MIRROR.edge.geometry = MIRROR.geos[zm][1];
   MIRROR.back.geometry = MIRROR.backGeos[zm];
   L.down.forEach((s, i) => { const [x, y] = DOWNLIGHTS[i]; s.position.copy(SU(x, y, ceilAt(x) - 0.01)); });
-  L.art.position.copy(SU(ART_SPOT[0], ART_SPOT[1], ceilAt(ART_SPOT[0]) - 0.01));
   BP.bpMax.value.y = CEILINGS[key].z;              // the room's box for the reflections
   document.querySelectorAll('#ceilings button').forEach((b) => b.classList.toggle('on', b.dataset.key === key));
   applyWall(wallKey);                              // (relights the room, the shadows, the legend)
@@ -1747,15 +1753,15 @@ function buildMirrorFrame() {
 // lowered ceiling, with a shelf less under the lowered one: shelvesLow). The WC's vent stack
 // (DN 100) rises from the pre-wall up the back of the cabinet, where the shelves are notched round it, to the roof.
 // Spare rolls, towels and a basket inside. The WC wall in three versions (z0: the bottom of the cabinet's doors;
-// led: the LED line lighting the niche or cubby; ledge: the candle and the reed diffuser stand on the ledge):
-//   niche - the cabinet floats 40 cm over the ledge, a lit niche; the stack crosses it in a stone-clad corner chase
+// led: an LED line lighting the niche or cubby, none since 2026-11-08 (the user: no LED over the WC); ledge: the candle and the reed diffuser stand on the ledge):
+//   niche - the cabinet floats 40 cm over the ledge, an open niche; the stack crosses it in a stone-clad corner chase
 //   cubby - the cabinet comes down to the ledge; its bottom 40 cm is an open cubby lined in the cabinet's finish,
 //           the stack hidden beside it in a closed column flush with the doors
 //   full  - doors from the ledge to the ceiling, the stack all inside (the diffuser moves to the basin)
 // Two doors hinged at the side walls, built in each style's front (flat, fluted) and opened together (CABINET).
 const WALLS = {
-  niche: { label: 'Lit niche', z0: CAB.z0, shelves: [1.9, 2.24], shelvesLow: [1.94], ledge: true, led: { x: WC.front + 0.035, y0: Y0 + 0.01, y1: CAB.chase - 0.01, z: CAB.z0, w: 0.009 } },
-  cubby: { label: 'Cubby', z0: CAB.z0, shelves: [1.9, 2.24], shelvesLow: [1.94], ledge: true, led: { x: WC.front + 0.035, y0: Y0 + 0.026, y1: CAB.column - 0.026, z: CAB.z0, w: 0.009 } },
+  niche: { label: 'Niche', z0: CAB.z0, shelves: [1.9, 2.24], shelvesLow: [1.94], ledge: true, led: null },
+  cubby: { label: 'Cubby', z0: CAB.z0, shelves: [1.9, 2.24], shelvesLow: [1.94], ledge: true, led: null },
   full: { label: 'Full height', z0: WC.top, shelves: [1.52, 1.9, 2.24], shelvesLow: [1.52, 1.94], ledge: false, led: null },
 };
 let wallKey = 'cubby';
@@ -1879,8 +1885,7 @@ function setCabinet(open, look = false) {
   dirty = true;
 }
 const WT_COVE = WT + 0.04;
-const DOWNLIGHTS = [[54.7, YC], [55.42, YC]];          // in the middle of the room, over the WC
-const ART_SPOT = [(ART.x0 + ART.x1) / 2, 15.24];       // the picture light, aimed at the print
+const DOWNLIGHTS = [[55.42, YC]];                      // one, over the WC (the user, 2026-11-08: no other downlight, no picture light)
 const PENDANTS = [[54.43, 15.40]];
 const PENDANT = { r: 0.024, z0: 1.45, z1: 1.75, tip: 0.07 };   // the tube's radius, its foot and top, the glass tip's height
 
@@ -2165,7 +2170,7 @@ function applyVanity(key = vanityKey) {
     v.flipGroup.visible = on && vanityFlip;
   }
   groups.radiators.position.z = (vanityFlip ? VANITIES[key].flip : VANITIES[key]).radiatorDz;
-  applyVanityLights(MOODS[moodKey]);
+  applyVanityLights(moodNow());
   renderer.shadowMap.needsUpdate = true;
   renderLegend();
   dirty = true;
@@ -2176,7 +2181,7 @@ function applyVanityLights(m, c = new THREE.Color(m.tint)) {
   const leds = VANITIES[vanityKey].leds;
   L.vanityLights.forEach((a, i) => {
     const l = leds[i];
-    a.visible = !!l && m.led > 0;
+    a.visible = !!l && inScene(m, 'led');
     if (!l) return;
     a.position.copy(SU(l.x, (l.y0 + l.y1) / 2, l.z - 0.004));
     a.height = l.y1 - l.y0 - 0.04;
@@ -2262,6 +2267,139 @@ async function loadView() {
   return tex;
 }
 
+// ---------------------------------------------------------------- the switch
+// The electro plan (stena_elektro_displej.dxf, views Q1-Q4) has no fittings in the WC yet; Q3-S1 is the proposal drawn in
+// its plan with the lights: a vertical three-gang switch inside, on the door wall 10 cm from the door on its latch side, at
+// the plan's switch height (h, mm, to its centre). Each fitting is on a wall face (at x or y, n its normal into the room,
+// u: where along it); frame 80 x 80, gangs at 71 mm. A rocker works its lamps (CIRCUITS: the moods' channels). In Cosy the
+// fluted panelling (15 mm) covers the door wall up to the WC ledge: the switch sits on it (applyPalette).
+const DEV_WALLS = {
+  Q3: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.1 },               // the door wall, 10 cm from the door on its latch side
+};
+const CIRCUITS = {
+  down: { label: 'The downlight over the WC', ch: ['down'] },
+  pend: { label: 'The pendant by the mirror', ch: ['pend'] },
+  led: { label: 'LED lines: under the basin, under the mirror (and the lit recess)', ch: ['led', 'cove'] },
+};
+const CIRCUIT_OF = {};
+for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch) CIRCUIT_OF[k] = c;
+// kinds: sw (gangs: [circuit] each; vert: stacked, the first on top)
+const DEVICES = [
+  { id: 'Q3-S1', w: 'Q3', h: 950, kind: 'sw', vert: true, gangs: [['down'], ['pend'], ['led']], names: ['top', 'middle', 'bottom'] },
+];
+const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42, swatch: '#1e1e20' }, white: { label: 'White', color: 0xf0efeb, rough: 0.32, swatch: '#f0efeb' } };
+let devColor = 'black';
+M.dev = physical({ color: DEVCOLORS.black.color, roughness: DEVCOLORS.black.rough, clearcoat: 0.25, clearcoatRoughness: 0.4 });
+const DEV = { group: new THREE.Group(), list: [], meshes: [], rockers: [] };
+// the lamps' switched state (a circuit flipped since the scene was picked: on or off)
+const SWITCHED = {};
+function level(ch, m = MOODS[moodKey]) {
+  const s = SWITCHED[CIRCUIT_OF[ch]];
+  if (s === undefined) return m[ch];
+  return s ? (m[ch] > 0 ? m[ch] : MOODS[m.day ? 'bright' : 'evening'][ch]) : 0;
+}
+// the mood with each channel as its switch has it (applyMood and the rest take this)
+function moodNow(key = moodKey) {
+  const m = MOODS[key];
+  return { ...m, ...Object.fromEntries(Object.keys(CIRCUIT_OF).map((ch) => [ch, level(ch, m)])) };
+}
+// after dark (always, here) a channel's lamps stay in the scene when off, at 0, so a switch flipped doesn't recompile every shader
+const inScene = (m, ch) => m[ch] > 0 || !m.day;
+const circuitOn = (c) => CIRCUITS[c].ch.some((k) => level(k) > 0);
+function buildDevices() {
+  R.add(DEV.group);
+  const FD = 0.0095;          // the frame's depth off the wall
+  DEVICES.forEach((d, i) => {
+    const W = DEV_WALLS[d.w], [nx, ny] = W.n, u = W.u(d.X), z = d.h / 1000;
+    const c = W.x !== undefined ? new THREE.Vector3(W.x, u, z) : new THREE.Vector3(u, W.y, z);
+    const F = new THREE.Matrix4().makeBasis(new THREE.Vector3(-ny, nx, 0), new THREE.Vector3(-nx, -ny, 0), new THREE.Vector3(0, 0, 1)).setPosition(c);
+    const put = (mat, geo) => add(mat, geo.applyMatrix4(F), { shadow: false });
+    const n = d.gangs.length, s = d.s ?? 0.08, long = s + (n - 1) * 0.071;
+    const [w, fh] = d.vert ? [s, long] : [long, s];
+    // a gang's centre in the frame: in a row, or stacked with the first on top
+    const at = (g) => { const o = (g - (n - 1) / 2) * 0.071; return d.vert ? [0, -o] : [o, 0]; };
+    put(M.dev, rbox(w, FD, fh, 0.003, [0, -FD / 2, 0]));
+    const dev = { ...d, i, c, F, inv: F.clone().invert() };
+    DEV.list.push(dev);
+    // the rockers turn on a hinge across their middle (top pressed in: on)
+    const holder = new THREE.Group();
+    holder.matrixAutoUpdate = false;
+    holder.matrix.copy(F);
+    DEV.group.add(holder);
+    d.gangs.forEach(([circ], g) => {
+      const pivot = new THREE.Group(), [x, zg] = at(g);
+      pivot.position.set(x, -FD, zg);
+      pivot.rotation.x = 0.05;
+      const m = new THREE.Mesh(rbox(0.054, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
+      m.receiveShadow = true;
+      m.userData.rocker = { dev, circ };
+      pivot.add(m);
+      holder.add(pivot);
+      DEV.meshes.push(m);
+      DEV.rockers.push({ pivot, circ, a: 0.05, target: 0.05 });
+    });
+  });
+  for (const m of flush(DEV.group)) { m.userData.dev = true; DEV.meshes.push(m); }
+  setDeviceColor(devColor);
+  showSwitches();
+}
+function setDeviceColor(k) {
+  devColor = k;
+  const c = DEVCOLORS[k];
+  M.dev.color.set(c.color); M.dev.roughness = c.rough;
+  document.querySelectorAll('#devcolors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderLegend();
+  envSoon();
+  dirty = true;
+}
+// the rockers follow their circuits; applyMood
+function showSwitches() {
+  for (const r of DEV.rockers) r.target = circuitOn(r.circ) ? -0.05 : 0.05;
+  dirty = true;
+}
+function animateDevices(dt) {
+  let moved = false;
+  for (const r of DEV.rockers) if (r.a !== r.target) {
+    r.a = r.target > r.a ? Math.min(r.target, r.a + dt * 1.2) : Math.max(r.target, r.a - dt * 1.2);
+    r.pivot.rotation.x = r.a;
+    moved = true;
+  }
+  return moved;
+}
+// flip a circuit's rocker: its lamps on or off (until the next scene)
+function flip(c) {
+  SWITCHED[c] = !circuitOn(c);
+  applyMood(moodKey);
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  return CIRCUITS[c];
+}
+let cardTimer = 0;
+function devCard(html) {
+  const el = $('devcard');
+  el.innerHTML = html;
+  el.classList.add('show');
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(() => el.classList.remove('show'), 3800);
+}
+// what a click on the switch does (hit: the raycast's hit on one of DEV.meshes): a rocker flips its circuit (on the frame:
+// the rocker nearest the click)
+function devAction(hit) {
+  const ud = hit.object.userData;
+  if (!ud.rocker && !ud.dev) return undefined;
+  const p = R.worldToLocal(hit.point.clone());
+  let dev = ud.rocker?.dev, circ = ud.rocker?.circ;
+  if (!dev) dev = DEV.list.reduce((a, b) => (b.c.distanceTo(p) < a.c.distanceTo(p) ? b : a));
+  if (!circ) {
+    const q = p.clone().applyMatrix4(dev.inv), n = dev.gangs.length, o = dev.vert ? -q.z : q.x;
+    circ = dev.gangs[THREE.MathUtils.clamp(Math.round(o / 0.071 + (n - 1) / 2), 0, n - 1)][0];
+  }
+  return () => {
+    const C = flip(circ), g = dev.gangs.findIndex(([k]) => k === circ);
+    devCard(`<b>${dev.id} ${dev.names?.[g] ?? g + 1}</b> · ${C.label} — ${circuitOn(circ) ? 'on' : 'off'}`);
+  };
+}
+
 // ---------------------------------------------------------------- lights
 const L = { down: [], pend: [], niche: [], area: [] };
 function buildLights() {
@@ -2327,17 +2465,6 @@ function buildLights() {
   scene.add(L.corridor);
   L.corridor.visible = DOOR.open;           // a closed door keeps the corridor's light out
 
-  // the picture light: a narrow spot from the ceiling on the print
-  L.art = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(19), 0.55, 2);
-  L.art.position.copy(SU(ART_SPOT[0], ART_SPOT[1], H - 0.01));
-  L.art.target.position.copy(SU(ART_SPOT[0], Y1, (ART.z0 + ART.z1) / 2));
-  L.art.castShadow = true;
-  L.art.shadow.mapSize.set(1024, 1024);
-  L.art.shadow.bias = -0.0002;
-  L.art.shadow.normalBias = 0.012;
-  L.art.shadow.camera.near = 0.05;
-  L.art.shadow.camera.far = 4;
-  scene.add(L.art, L.art.target);
   L.candles = CANDLES.map(([x, y, z]) => { const p = new THREE.PointLight(0xffffff, 1, 1.8, 2); p.position.copy(SU(x, y, z + 0.03)); scene.add(p); return p; });
   // (no window: the sun and the sky never reach this room; these only keep the shared daylight code fed)
   L.sun = new THREE.DirectionalLight(0xffffff, 0);
@@ -2417,24 +2544,24 @@ function kelvinRaw(k) {
 }
 
 // The room has no daylight: three moods of its own lights. pend: the pendant; led: the backlit basin and the
-// floor wash under it; art: the picture light; down: the two downlights; candle: the two candles; cove: the lit
+// floor wash under it; down: the downlight over the WC; candle: the two candles; cove: the lit
 // recess, when the ceiling has one. tint: the colour
 // of the lamps as the eye sees it (set directly: the kelvin approximation drops blue too steeply this warm).
 // sky only sets the dark outside.
 const MOODS = {
-  intimate: { label: 'Intimate', down: 0, pend: 0.6, led: 1, art: 1, candle: 1, cove: 0.7, tint: '#ffdcb8', exposure: 1.2, sky: [-14, 340], bloom: 1.0 },
-  evening: { label: 'Evening', down: 0.3, pend: 1, led: 1, art: 1, candle: 0.8, cove: 1, tint: '#ffe6cc', exposure: 0.85, sky: [-14, 340], bloom: 1.2 },
-  bright: { label: 'Bright', down: 1, pend: 1, led: 0.7, art: 0.7, candle: 0, cove: 1, tint: '#fff4e8', exposure: 0.7, sky: [-14, 340], bloom: 1.6 },
+  intimate: { label: 'Intimate', down: 0, pend: 0.6, led: 1, candle: 1, cove: 0.7, tint: '#ffdcb8', exposure: 1.2, sky: [-14, 340], bloom: 1.0 },
+  evening: { label: 'Evening', down: 0.3, pend: 1, led: 1, candle: 0.8, cove: 1, tint: '#ffe6cc', exposure: 0.85, sky: [-14, 340], bloom: 1.2 },
+  bright: { label: 'Bright', down: 1, pend: 1, led: 0.7, candle: 0, cove: 1, tint: '#fff4e8', exposure: 0.7, sky: [-14, 340], bloom: 1.6 },
 };
-const BASE = { down: 6, pend: 1.6, led: 20, downLens: 30, globe: 1.6, strip: 7, haloLight: 10, art: 5, candle: 0.12, flame: 6, coveLed: 300, coveBounce: 3, glow: 8, glowRoom: 0.8 };
+const BASE = { down: 6, pend: 1.6, led: 20, downLens: 30, globe: 1.6, strip: 7, haloLight: 10, candle: 0.12, flame: 6, coveLed: 300, coveBounce: 3, glow: 8, glowRoom: 0.8 };
 const FLAME = '#ff9d4a';
 function applyBacklight() {}
 function applyMood(key) {
-  const m = MOODS[key], c = new THREE.Color(m.tint), glass = new THREE.Color(PALETTES[paletteKey].glass);
+  const m = moodNow(key), c = new THREE.Color(m.tint), glass = new THREE.Color(PALETTES[paletteKey].glass);      // (each channel as its switch has it)
   const tint = glass.clone().multiplyScalar(1 / Math.max(glass.r, glass.g, glass.b));
-  for (const s of L.down) { s.color.copy(c); s.intensity = BASE.down * m.down; s.visible = m.down > 0; }
+  for (const s of L.down) { s.color.copy(c); s.intensity = BASE.down * m.down; s.visible = inScene(m, 'down'); }
   const clear = 0.35 + 0.65 * Math.max(glass.r, glass.g, glass.b);      // smoked glass lets less through
-  for (const p of L.pend) { p.color.copy(c).multiply(tint); p.intensity = BASE.pend * m.pend * clear; p.visible = m.pend > 0; }
+  for (const p of L.pend) { p.color.copy(c).multiply(tint); p.intensity = BASE.pend * m.pend * clear; p.visible = inScene(m, 'pend'); }
   E.down.color.copy(c).multiplyScalar(m.down > 0 ? BASE.downLens * (0.4 + 0.6 * m.down) : 0.02);
   E.globe.color.copy(glass);
   E.globe.emissive.copy(c).multiply(tint);
@@ -2444,18 +2571,19 @@ function applyMood(key) {
   E.flame.color.copy(flame).multiplyScalar(BASE.flame);
   E.flame.visible = m.candle > 0;
   E.led.color.copy(c).multiplyScalar(BASE.strip * m.led);
+  E.cove.color.copy(c).multiplyScalar(BASE.strip * m.cove);
   applyVanityLights(m, c);
-  L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = m.led > 0 && mirrorKey === 'full';   // (the LED line goes with the full-width mirror)
-  L.art.color.copy(c); L.art.intensity = BASE.art * m.art; L.art.visible = m.art > 0;
+  L.halo.color.copy(c); L.halo.intensity = BASE.haloLight * m.led; L.halo.visible = inScene(m, 'led') && mirrorKey === 'full';   // (the LED line goes with the full-width mirror)
   // the lit recess (with that ceiling): the hidden LED washing its ceiling, and the soft light that ceiling throws
   // down (the lamp's colour times the ceiling's paint)
   const cove = CEILINGS[ceilKey].recess ? m.cove : 0;
-  L.coveLed.color.copy(c); L.coveLed.intensity = BASE.coveLed * cove; L.coveLed.visible = cove > 0;
-  L.cove.color.copy(c).multiply(M.ceiling.color); L.cove.intensity = BASE.coveBounce * cove; L.cove.visible = cove > 0;
+  const coveIn = !!CEILINGS[ceilKey].recess && inScene(m, 'cove');
+  L.coveLed.color.copy(c); L.coveLed.intensity = BASE.coveLed * cove; L.coveLed.visible = coveIn;
+  L.cove.color.copy(c).multiply(M.ceiling.color); L.cove.intensity = BASE.coveBounce * cove; L.cove.visible = coveIn;
   // a backlit mirror (it glows with the basin's LEDs): the glow on the backdrop, and the light it throws
   const glow = MIRRORS[mirrorKey].halo ? m.led : 0;
   GLOW.glowColor.value.copy(c).multiplyScalar(BASE.glow * glow);
-  L.glow.color.copy(c).multiply(backdropColor()); L.glow.intensity = BASE.glowRoom * glow; L.glow.visible = glow > 0;
+  L.glow.color.copy(c).multiply(backdropColor()); L.glow.intensity = BASE.glowRoom * glow; L.glow.visible = !!MIRRORS[mirrorKey].halo && inScene(m, 'led');
   for (const a of L.nicheStrips) a.visible = false;
   L.corridor.intensity = 1.0;
   for (const mat of OUT_ROOM) mat.emissive.copy(mat.color).multiplyScalar(0.025);
@@ -2465,6 +2593,7 @@ function applyMood(key) {
   bloom.radius = 0.6;
   setSun(THREE.MathUtils.degToRad(m.sky[0]), THREE.MathUtils.degToRad(m.sky[1]), false);
   $('sunrow').hidden = true;
+  showSwitches();
 }
 // the exposure: the style's (pale rooms need less), scaled for a wall paint lighter or darker than the style's own
 // (the walls and ceiling are most of what the eye sees here; it adapts, but only partly)
@@ -2502,6 +2631,7 @@ async function applyPalette(key) {
   for (const [k, g] of Object.entries(CABINET.fronts)) g.visible = k === cabFrontKey();
   for (const g of CABINET.knobs) g.visible = !!p.cab.knobs;
   groups.panels.visible = p.panels === 'fluted';
+  DEV.group.position.y = p.panels === 'fluted' ? 0.015 : 0;      // the switch on the door wall's panelling
   M.art.map = printTexture(p.print);
   M.art.needsUpdate = true;
   dropPhotos();
@@ -2697,13 +2827,14 @@ function renderLegend() {
     ['Basin', VANITIES[vanityKey].basin(p), STONES[stoneKey].swatch],
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + (p.panels ? ' over fluted ' + wn + ' panelling' : '') + ', walls and ceiling; the door to match', paintColor],
     ['WC', 'wall-hung, ' + p.wcLabel + ', on a pre-wall ' + ({ stone: 'in ' + STONES[stoneKey].label, wood: 'clad in ' + wn, fluted: 'clad in fluted ' + wn }[prewallKey] ?? 'in ' + GLAZES[glazeKey].label.toLowerCase() + ' ' + PREWALLS[prewallKey].desc), p.wc],
-    ['Cabinet', 'over the WC, hiding its vent stack, ' + { niche: 'over a lit niche', cubby: 'with a lit cubby', full: 'full height' }[wallKey] + ': ' + (cab.finish === 'wood' ? (cab.front === 'fluted' ? 'fluted ' : '') + wn + ', ' + cab.desc : cab.label), cab.finish === 'wood' ? wood.swatch : cab.finish],
+    ['Cabinet', 'over the WC, hiding its vent stack, ' + { niche: 'over an open niche', cubby: 'with an open cubby', full: 'full height' }[wallKey] + ': ' + (cab.finish === 'wood' ? (cab.front === 'fluted' ? 'fluted ' : '') + wn + ', ' + cab.desc : cab.label), cab.finish === 'wood' ? wood.swatch : cab.finish],
     ['Drawer', wood.label, wood.swatch],
     ['Fittings', METALS[p.metal].label, METALS[p.metal].swatch],
     ['Ceiling', CEILINGS[ceilKey].desc, paintColor],
     ['Floor', { epoxy: 'seamless poured epoxy', wood: wn + ' planks, 20 cm wide, oiled', tiles: 'porcelain tiles, 60 × 60 cm, from the middle of the room' }[floorKey], floorKey === 'wood' ? wood.swatch : p.floor],
     ['Mirror', MIRRORS[mirrorKey].desc + ', ' + p.mirrorLabel + (mirrorKey === 'full' ? '' : '; ' + { paint: 'the wall behind it built out flush with the backsplash, painted', stone: 'behind it a ' + STONES[stoneKey].label + ' backdrop up to the ceiling', wood: 'behind it ' + wn + ' panelling up to the ceiling', fluted: 'behind it fluted ' + wn + ' panelling up to the ceiling' }[backKey]), p.mirror],
-    ['Light', p.light + ', backlit basin, ' + (WALLS[wallKey].led ? 'lit ' + wallKey + ', ' : '') + 'picture light', p.glass],
+    ['Light', p.light + ', backlit basin, a downlight over the WC', p.glass],
+    ['Switch', DEVCOLORS[devColor].label + ' plate by the door: the downlight; the pendant; the LED lines', DEVCOLORS[devColor].swatch],
   ].filter(Boolean);
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
@@ -2884,6 +3015,7 @@ function buildUI() {
   $('paint-custom').addEventListener('input', (e) => { if (!busy) applyPaint(e.target.value); });
   $('paint-custom').addEventListener('change', (e) => { if (!busy) withBusy(async () => { applyPaint(e.target.value); captureEnv(); }); });
   seg($('moods'), MOODS, (k) => setMood(k), moodKey);
+  seg($('devcolors'), DEVCOLORS, (k) => setDeviceColor(k), devColor);
   let envTimer = 0;
   $('sun').addEventListener('input', (e) => {
     setSunHour(parseFloat(e.target.value));
@@ -2958,6 +3090,7 @@ function buildUI() {
       return;
     }
     if (e.key === 'd' || e.key === 'D') { setDoor(!DOOR.open); return; }
+    if (e.key === 'e' || e.key === 'E') { setDeviceColor(devColor === 'black' ? 'white' : 'black'); return; }
     const i = parseInt(e.key, 10);
     if (i >= 1 && i <= VIEWS.length) pickView(VIEWS[i - 1]);
   });
@@ -2971,11 +3104,38 @@ function buildUI() {
     const toPos = camera.position.clone().sub(controls.target).setLength(Math.min(1.2, camera.position.distanceTo(hit.point))).add(toT);
     tween = { t: 0, fromPos: camera.position.clone(), toPos, fromT: controls.target.clone(), toT, fromFov: camera.fov, toFov: camera.fov };
   });
+  // a click (not a drag) on the switch works the rocker under it (devAction); a double-click only acts once. Over it the
+  // pointer turns into a hand.
+  {
+    let down = null, last = 0, hover = false, hoverAt = 0;
+    const ray = new THREE.Raycaster();
+    const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+    // what a click there would do, as a function (the whole room searched only when the switch is in line)
+    const actionAt = (e) => {
+      ray.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+      if (!ray.intersectObject(DEV.group, true).length) return null;
+      const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && h.object.material !== M.glass);
+      return hit ? devAction(hit) ?? null : null;
+    };
+    renderer.domElement.addEventListener('pointerdown', (e) => { down = e.button === 0 ? [e.clientX, e.clientY] : null; });
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || performance.now() - last < 450) return;
+      const a = actionAt(e);
+      if (a) { last = performance.now(); a(); }
+    });
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (e.buttons || performance.now() - hoverAt < 100) return;
+      hoverAt = performance.now();
+      const a = !!actionAt(e);
+      if (a !== hover) { hover = a; renderer.domElement.style.cursor = a ? 'pointer' : ''; }
+    });
+  }
   controls.addEventListener('change', () => { dirty = true; });
 }
 let moodKey = 'intimate';
 async function setMood(k) {
   document.querySelectorAll('#moods button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  for (const c of Object.keys(SWITCHED)) delete SWITCHED[c];      // a scene picked: the switches follow it
   await withBusy(async () => { moodKey = k; applyMood(k); captureEnv(); });
 }
 async function pickView(view) {
@@ -3098,6 +3258,7 @@ function loop() {
   }
   if (controls.update()) dirty = true;
   if (animateOpenings(dt)) dirty = true;
+  if (animateDevices(dt)) dirty = true;
   if (hampers.length && HAMPER.t !== (HAMPER.open ? 1 : 0)) {
     HAMPER.t = THREE.MathUtils.clamp(HAMPER.t + (HAMPER.open ? dt : -dt) / 0.7, 0, 1);
     for (const h of hampers) h.rotation.y = HAMPER.max * HAMPER.t * HAMPER.t * (3 - 2 * HAMPER.t);
@@ -3136,6 +3297,7 @@ try {
   buildVanities();
   buildSurroundings(await loadView());
   buildLights();
+  buildDevices();
   setStatus('Laying out the stone and the veneer…');
   await applyPalette(paletteKey);
   await applyPrewall(prewallKey, false);
@@ -3154,6 +3316,7 @@ try {
   renderFrame();
   window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, VANITIES, PALETTES, applyVanity, setFlip, setDoor, setCabinet, CABINET, applyWall, WALLS, applyStoneChoice,
     PAINTS, WOODS, FLOORS, applyPaint, applyWoodChoice, setFloor, roomEv, CEILINGS, applyCeiling, MIRRORS, BACKDROPS, applyMirror, applyBackdrop, GLOW, mirrorRefl, PREWALLS, GLAZES, applyPrewall, applyGlaze, setWindow, DOOR, WINDOW, STONES, texCache, bakeSet, captureImage, saveImage, setBlinds, BLINDS, setFilm, PDLC, setHamper, HAMPER, goTo, pickView, setMood, setSunHour, applyFloor, sunGlintView, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors,
+    DEV, DEVICES, CIRCUITS, SWITCHED, setDeviceColor, flip, moodNow,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
   loop();
   $('loading').classList.add('done');
