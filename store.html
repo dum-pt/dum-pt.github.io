@@ -197,12 +197,15 @@ const HALL = { x0: 45.806, x1: 53.83, y0: 13.545, y1: 14.545, h: 2.5, wood: 14.5
 const HALL_TINT = '#ffe8d2';                     // its lamps' white (warm, whatever the store's batten)
 // the soil stack in the south-west corner (the model's, 110 mm), boxed in in plasterboard (x0..x1, y0..y1)
 const STACK = { x0: X0, x1: 46.1, y0: 16.6, y1: Y1 };
+// the house's data rack (the electrics list: DR): a 19" wall cabinet, 12U, 60 cm wide, 45 deep, high in the corner of the north
+// wall and the door's wall (inside, facing the door: top left), on the north wall, its front to the south; its bottom at z0
+const RACK = { x0: X1 - 0.45, x1: X1, y0: Y0, y1: Y0 + 0.6, z0: 1.95, z1: 2.585 };
 // the shelving: three runs, along the south wall (S), the west wall (W) and the north wall (N), the aisle between them; u runs
 // along each from u0 to u1 (y for S and N, x for W), v across it from the wall (vw) to the front (vf); bays of at most 1 m
 const RUNS = [
   { key: 'S', ax: 'y', u0: Y0, u1: STACK.y0, vw: X0, vf: X0 + 0.4 },
   { key: 'W', ax: 'x', u0: X0 + 0.4, u1: X1 - 0.4, vw: Y1, vf: Y1 - 0.5 },
-  { key: 'N', ax: 'y', u0: Y0, u1: Y1, vw: X1, vf: X1 - 0.4 },
+  { key: 'N', ax: 'y', u0: RACK.y1 + 0.05, u1: Y1, vw: X1, vf: X1 - 0.4 },
 ];
 // The shelving systems (the picker: room 0.07's 'uses', each system's shelving and things in a group of its own, USE.g): solid
 // pine ladders and shelves (like IKEA IVAR), black steel (like BROR), white rails and brackets on the walls with the floor left
@@ -1052,7 +1055,16 @@ const E = {
   track: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the track's spots' lenses
   line: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // its opal line
   batten: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the store's batten's opal
+  ledG: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x55ff88).multiplyScalar(1.4) }),     // the rack's status lights
 };
+// the data rack: black steel, its door's smoked glass, the patch panels' ports, the switch, the router, the NAS, the trunking
+M.rack = physical({ color: 0x1d1e20, metalness: 0.3, roughness: 0.5 });
+M.smoke = physical({ color: 0x30363a, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.03, transparent: true, opacity: 0.45, depthWrite: false });
+M.port = physical({ color: 0xd8d8d4, roughness: 0.5 });
+M.switch = physical({ color: 0x3a3d40, metalness: 0.4, roughness: 0.45 });
+M.router = physical({ color: 0xf0f0ee, roughness: 0.35 });
+M.nas = physical({ color: 0x1a1b1d, roughness: 0.45 });
+M.trunk = physical({ color: 0xeeeeea, roughness: 0.4 });
 // outside (lit as OUTDOOR: the sun and the sky's glow, setSun): white render, anthracite metal, the soffit's boards, the
 // paving, the lawn, the hedge
 M.render = physical({ color: 0xe9e7e2, roughness: 0.85 });
@@ -1245,7 +1257,7 @@ M.print.map = pictureTex(720, 968, (g, w, h) => {
   });
   g.restore();
 });
-const NO_AO = new Set([M.windowGlass, M.clearGlass, M.feature]);
+const NO_AO = new Set([M.windowGlass, M.clearGlass, M.feature, M.smoke]);
 
 function applyStone(mat, set, def) {
   mat.map = set.map; mat.normalMap = set.normalMap; mat.roughnessMap = set.roughnessMap;
@@ -1899,6 +1911,43 @@ function buildUtility() {
   }
 }
 
+// The data rack (RACK): a 19" wall cabinet, black, its door smoked glass in a black frame, facing south; inside on its rails,
+// from the top: a brush panel for the cables, two patch panels (24 ports each), the switch with its status lights, a shelf
+// with the router, a shelf with the NAS (two drive bays); its cables in through the top from a white trunking up to the slab
+function buildRack() {
+  const K = RACK, w = 0.012, yc = (K.y0 + K.y1) / 2, hw = 0.2415, xf = K.x0 + 0.06, U = 0.04445;
+  add(M.rack, box(K.x0, K.x1, K.y0, K.y1, K.z0, K.z0 + w));
+  add(M.rack, box(K.x0, K.x1, K.y0, K.y1, K.z1 - w, K.z1));
+  for (const [a, b] of [[K.y0, K.y0 + w], [K.y1 - w, K.y1]]) add(M.rack, box(K.x0, K.x1, a, b, K.z0, K.z1));
+  add(M.rack, box(K.x1 - w, K.x1, K.y0, K.y1, K.z0, K.z1, { faces: 'x' }));
+  const f = 0.03;
+  for (const [a, b, c, d] of [[K.y0, K.y0 + f, K.z0, K.z1], [K.y1 - f, K.y1, K.z0, K.z1], [K.y0 + f, K.y1 - f, K.z0, K.z0 + f], [K.y0 + f, K.y1 - f, K.z1 - f, K.z1]])
+    add(M.rack, box(K.x0 - 0.02, K.x0, a, b, c, d));
+  add(M.smoke, box(K.x0 - 0.012, K.x0 - 0.008, K.y0 + f, K.y1 - f, K.z0 + f, K.z1 - f, { faces: 'xX' }), { shadow: false });
+  for (const y of [yc - hw + 0.008, yc + hw - 0.008]) add(M.rack, box(xf, xf + 0.02, y - 0.008, y + 0.008, K.z0 + w, K.z1 - w), { shadow: false });
+  // the 19" units from the top (n high, depth deep); a row of n ports or lights across a unit's face
+  let z = K.z1 - w - 0.008;
+  const unit = (n, mat, depth) => { const z1 = z, z0 = z - n * U + 0.0015; add(mat, box(xf - 0.004, xf - 0.004 + depth, yc - hw, yc + hw, z0, z1)); z = z0 - 0.0015; return (z0 + z1) / 2; };
+  const row = (zc, n, mat, s) => { for (let i = 0; i < n; i++) { const y = yc - 0.2 + (i + 0.5) * 0.4 / n; add(mat, box(xf - 0.0054, xf - 0.004, y - s / 2, y + s / 2, zc - s / 2, zc + s / 2, { faces: 'x' }), { shadow: false }); } };
+  unit(1, M.dark, 0.04);
+  row(unit(1, M.rack, 0.06), 24, M.port, 0.012);
+  row(unit(1, M.rack, 0.06), 24, M.port, 0.012);
+  const zs = unit(1, M.switch, 0.25);
+  row(zs - 0.004, 24, M.dark, 0.012);
+  row(zs + 0.016, 24, E.ledG, 0.0025);
+  // the router on its shelf; the NAS on the bottom one
+  const shelf = (zt) => add(M.rack, box(xf, xf + 0.36, yc - hw + 0.004, yc + hw - 0.004, zt - 0.003, zt));
+  const zr = 2.25, zn = K.z0 + w + 0.012;
+  shelf(zr);
+  add(M.router, rbox(0.2, 0.25, 0.04, 0.01, [xf + 0.13, yc + 0.05, zr + 0.02]));
+  add(E.ledG, box(xf + 0.0292, xf + 0.0296, yc + 0.1, yc + 0.104, zr + 0.026, zr + 0.03, { faces: 'x' }), { shadow: false });
+  shelf(zn);
+  add(M.nas, rbox(0.22, 0.11, 0.17, 0.008, [xf + 0.13, yc - 0.12, zn + 0.085]));
+  for (const dy of [-0.025, 0.025]) add(M.dark, box(xf + 0.019, xf + 0.02, yc - 0.12 + dy - 0.021, yc - 0.12 + dy + 0.021, zn + 0.03, zn + 0.14, { faces: 'x' }), { shadow: false });
+  add(E.ledG, box(xf + 0.0186, xf + 0.019, yc - 0.17, yc - 0.166, zn + 0.153, zn + 0.157, { faces: 'x' }), { shadow: false });
+  add(M.trunk, box(X1 - 0.045, X1, K.y0 + 0.05, K.y0 + 0.11, K.z1, H));
+}
+
 // ---------------------------------------------------------------- doors: open / close
 // The store's door (LEAF), turning in a group at its hinge (the leaf built in place in an inner group set back by it). DOORS: its
 // meshes (a click on one opens or shuts it: userData.door on its group)
@@ -2021,9 +2070,11 @@ function setUse(k, refresh = true) {
 // Each fitting is on a wall face (at x or y, n its normal into the room, u: where X runs along it, here in metres), at X and
 // height h (mm, to its centre). Frames 80 x 80, gangs at 71 mm; Czech sockets (type E, the earth pin up). A rocker works its
 // circuit (CIRCUITS: the lamps' channels), the rest say what they are (devCard). The model has no fittings in this room: the
-// switch is inside by the door's latch side, a socket by the vacuum's dock, one low by the door.
+// switch is inside by the door's latch side, a socket by the vacuum's dock, one low by the door; the data rack's double socket
+// under it on the north wall.
 const WALLS = {
   E: { y: Y0, n: [0, 1], u: (X) => X },            // the east wall, the hallway's
+  N: { x: X1, n: [-1, 0], u: (X) => X },           // the north wall, the technical room's
 };
 // what the rocker works: lamp channels (applyMood)
 const CIRCUITS = {
@@ -2037,6 +2088,7 @@ const DEVICES = [
   { id: 'S1', w: 'E', X: 48.86, h: 1100, kind: 'sw', gangs: [['batten']] },
   { id: 'Z1', w: 'E', X: 46.8, h: 1050, kind: 'sock', info: 'by the vacuum\'s dock, for its charger' },
   { id: 'Z2', w: 'E', X: 49.12, h: 300, kind: 'sock', info: 'by the door' },
+  { id: 'Z3', w: 'N', X: RACK.y0 + 0.3, h: 1800, kind: 'sock', n: 2, info: 'under the data rack: the switch, the router, the NAS' },
 ];
 const KIND_NAME = { sock: 'socket 230 V', data: 'data, 2 x RJ45' };
 const DEVCOLORS = { black: { label: 'Black', color: 0x1e1e20, rough: 0.42 }, white: { label: 'White', color: 0xf0efeb, rough: 0.32 } };
@@ -2301,6 +2353,7 @@ function renderLegend() {
     ['Floor', tn + ' porcelain tiles, matt, ' + f.desc + ', an 8 cm skirting of them (ceramic tiles and skirting, as the plan\'s room table has it)', floorColor],
     ['Shelving', U.desc + '; round three walls, the aisle 3.0 × 1.43 m between them', U.swatch],
     ['Utility wall', 'by the door: a black rail with hooks, the cordless vacuum on its dock (a socket beside it), a broom, a flat mop over its bucket, the ironing board hung flat', '#34373c'],
+    ['Data rack', 'high in the corner by the door (inside, facing the door: top left), on the north wall: a 19" wall cabinet, 12U, 60 × 45 cm, its bottom at 1.95 m, a smoked glass door; the patch panels for every data socket in the house, the switch, the router and the NAS; a double socket under it, the cables in from the hallway\'s ceiling', '#1d1e20'],
     ['Door', 'as in the Stairs & lower hallway page: a white leaf flush with the store\'s wall in a concealed frame, hinged at the south jamb as the plan draws it, opening into the store (a click opens it); a stone frame in the hallway\'s wood on its other side; a ventilation grille low in the leaf', '#f5f4f0'],
     ['Light', 'an LED batten, 1.2 m, on the ceiling over the aisle, ' + MOODS[moodKey].desc + '; its switch inside, by the door\'s handle', MOODS[moodKey].tint],
     ['Things', 'boxes and bins, tins and jars, water and a crate of bottles, linen, baskets, suitcases, tool cases, paint: for scale, none of them in the model', '#b48f63'],
@@ -2709,6 +2762,7 @@ try {
     flush(USE.g[k]);
   }
   buildUtility();
+  buildRack();
   flush(groups.room);
   buildDrawers();
   buildDoors();

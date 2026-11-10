@@ -230,8 +230,6 @@ const PIPES = [{ x: 52.2, y: 14.92, r: 0.055, what: 'rain' }, { x: 52.45, y: 14.
 // manifold on the west wall beside the heat pump (your sketch: bars x0..x1 at y, flow at zs, return at zr, n loops)
 const WATER = { x: 51.12, z: 1.32 };
 const MANI = { x0: 51.17, x1: 51.57, y: 16.64, zs: 0.62, zr: 0.47, n: 6 };
-// the NAS and the router (the electrics list) in a small wall cabinet with a smoked glass door, on the west wall
-const RACK = { x0: 50.7, x1: 51.02, y0: Y1 - 0.3, z0: 1.58, z1: 1.92 };
 // the floor drain with an odour trap (the plan's: x, y, s its grate's size)
 const DRAIN = { x: 51.57, y: 15.74, s: 0.15 };
 // the light: an LED batten on the ceiling (x0..x1 at y, w wide, d deep), opal underneath; clear of the ventilation's tubes
@@ -1034,7 +1032,7 @@ const M = {
 // the technical room: the laundry unit (applyFinish), the oak worktop, the wall tiles; the machines, the plant's casings,
 // the pipes (the radon venting and the rainwater stack in the model's orange PVC, black rubber insulation, the water main's
 // blue PE, brass and chrome fittings, the manifold's PEX loops), the ventilation's galvanised boxes, white tubes, black EPP and
-// aluminium ducts; the battery and the inverter; the NAS's cabinet; things in the cupboards; in the hallway: its walls (they
+// aluminium ducts; the battery and the inverter; things in the cupboards; in the hallway: its walls (they
 // keep their own paint), the door frame's stone, the white leaves
 Object.assign(M, {
   cab: physical({ roughness: 0.5, clearcoat: 0.1 }),
@@ -1818,7 +1816,7 @@ function machine(y0, y1, z0, h, dryer) {
 // Each piece in a group carrying its card (equip): the heat pump with its lines and its pipes to the tank and up through the
 // slab; the hot water tank; the ventilation unit and its four ducts; the ComfoWell boxes and their tubes; the radon venting
 // and the rainwater stack (and the plasterboard box round them, groups.box, shown by setBox); the water main; the manifold;
-// the battery and the inverter; the NAS's cabinet
+// the battery and the inverter
 function buildPlant() {
   NO_AO.add(M.smoke);
   equip('<b>Heat pump, indoor unit</b> · TČ in the plan, where the plan and the model have it: 74 × 74 × 150 cm in the model, against the west wall. Its lines come from the outdoor unit through the 150 mm penetration high in the wall; it feeds the hot water tank, the underfloor heating\'s manifold beside it and the upper floor through the slab', () => {
@@ -1941,22 +1939,6 @@ function buildPlant() {
     add(E.ledG, box(X1 - I.d - 0.0012, X1 - I.d - 0.0011, iy - 0.08, iy - 0.06, I.z1 - 0.1, I.z1 - 0.09, { faces: 'x' }), { shadow: false });
     add(M.trunk, box(X1 - 0.04, X1, iy - 0.03, iy + 0.03, I.z1, 2.45));
     add(M.trunk, box(X1 - 0.04, X1, iy - 0.03, iy + 0.03, 0, I.z0));
-  });
-  equip('<b>NAS and router</b> · in a small wall cabinet with a smoked glass door (the electrics list: the NAS in the technical room), its cables up in a trunking to the ceiling', () => {
-    const K = RACK, w = 0.012, y1 = Y1;
-    add(M.rack, box(K.x0, K.x1, K.y0, y1, K.z0, K.z0 + w));
-    add(M.rack, box(K.x0, K.x1, K.y0, y1, K.z1 - w, K.z1));
-    add(M.rack, box(K.x0, K.x0 + w, K.y0, y1, K.z0, K.z1));
-    add(M.rack, box(K.x1 - w, K.x1, K.y0, y1, K.z0, K.z1));
-    add(M.rack, box(K.x0, K.x1, y1 - w, y1, K.z0, K.z1, { faces: 'y' }));
-    add(M.nas, rbox(0.11, 0.2, 0.16, 0.008, [K.x0 + 0.08, K.y0 + 0.13, K.z0 + w + 0.08]));
-    for (const dx of [-0.025, 0.025]) add(M.dark, box(K.x0 + 0.08 + dx - 0.02, K.x0 + 0.08 + dx + 0.02, K.y0 + 0.029, K.y0 + 0.03, K.z0 + w + 0.03, K.z0 + w + 0.14, { faces: 'y' }), { shadow: false });
-    add(E.ledG, box(K.x0 + 0.06, K.x0 + 0.064, K.y0 + 0.0288, K.y0 + 0.029, K.z0 + w + 0.148, K.z0 + w + 0.152, { faces: 'y' }), { shadow: false });
-    add(M.router, rbox(0.16, 0.12, 0.035, 0.01, [K.x0 + 0.225, K.y0 + 0.12, K.z0 + w + 0.0175]));
-    add(M.nas, box(K.x0 + w, K.x1 - w, K.y0 + 0.03, K.y0 + 0.2, K.z1 - w - 0.06, K.z1 - w - 0.016));
-    for (let i = 0; i < 8; i++) add(E.ledG, box(K.x0 + 0.04 + i * 0.03, K.x0 + 0.044 + i * 0.03, K.y0 + 0.0298, K.y0 + 0.03, K.z1 - w - 0.03, K.z1 - w - 0.026, { faces: 'y' }), { shadow: false });
-    add(M.smoke, box(K.x0, K.x1, K.y0, K.y0 + 0.004, K.z0, K.z1, { faces: 'yY' }));
-    add(M.trunk, box(50.84, 50.88, Y1 - 0.03, Y1, K.z1, H));
   });
   flush(groups.room);
 }
@@ -2420,7 +2402,7 @@ function renderLegend() {
     ['Laundry', 'the model\'s unit along the south wall, 65 cm deep, 2.4 m high, in ' + fin.desc + ': a cleaning cupboard, the washer and the dryer stacked with a pull-out shelf between them, the utility sink in an oak worktop, a cupboard under it and one over it (click the doors, the shelf)', fin.wood ? '#c7b391' : fin.color],
     ['Heating', 'the heat pump\'s indoor unit (TČ) where the plan and the model have it, its lines from the outdoor unit through the 150 mm penetration in the west wall; the hot water tank (TUV) under the landing; the underfloor heating\'s manifold on the west wall (your sketch)', '#f2f2ef'],
     ['Ventilation', 'the Zehnder ComfoAir Standard 375 (the offer of 15 May 2026) on the east wall under the flight, its outdoor air and exhaust out through the hallway\'s ceiling; the two ComfoWell boxes where the model has them, white tubes from them into the hallway and up through the slab', '#b9bcbe'],
-    ['Water & power', 'the water main through the west wall (the plan\'s penetration) with a valve, a filter, the meter and a pressure reducer (your sketch); the photovoltaics\' battery and inverter (FVE in the plan); a small wall cabinet for the NAS and the router (the electrics list)', '#2f5f9e'],
+    ['Water & power', 'the water main through the west wall (the plan\'s penetration) with a valve, a filter, the meter and a pressure reducer (your sketch); the photovoltaics\' battery and inverter (FVE in the plan)', '#2f5f9e'],
     ['Pipes', 'the radon venting (DN 150) and the rainwater stack by the door, ' + (groups.box.visible ? 'boxed in plasterboard' : 'exposed, in the model\'s orange PVC') + ' (the plan allows either)', '#b8622d'],
     ['Door', 'as in the Stairs & lower hallway page: a white leaf flush with the room\'s wall in a concealed frame, hinged at the north jamb as the plan draws it, opening in (a click opens it); a stone frame in the hallway\'s wood on its other side', '#f5f4f0'],
     ['Light', 'an LED batten, 1.2 m, on the ceiling, ' + MOODS[moodKey].desc + '; its switch inside, by the door\'s handle', MOODS[moodKey].tint],
