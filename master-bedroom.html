@@ -294,11 +294,20 @@ const WBAY = { plinth: 0.08, bottom: 0.1, shelf: 2.2, rails: [2.12, 1.1], drawer
 // a round pouf in the wardrobe before its window; the rugs: under the bed and along the wardrobe's aisle (x0, x1, y0, y1)
 const WPOUF = { x: 56.55, y: 12.17, r: 0.24, h: 0.42 };
 const RUGS = [[50.95, 53.1, 9.12, 11.72], [54.0, 56.25, 11.93, 12.57]];
-// the lights: round downlights in the ceilings (DOWN: the bedroom's, the first over the dressing top; WDOWN: the
-// wardrobe's); the reading lights on the bed wall over the nightstands (READ, at READ_Z: black, a short arm out from a
-// round plate, the head angled down at the pillow)
-const DOWN = [[52.05, 12.42], [53.05, 12.42], [51.12, 12.42]];
-const WDOWN = [[54.75, 12.25], [56.2, 12.25]];
+// the lights: two black magnetic tracks flush in the ceilings (TRACK: at y, w wide) in one line, down the wardrobe's aisle
+// and on through the opening into the bedroom (TRACKS: x0..x1, 2 m each; the bedroom's on the 'down' channel, the
+// wardrobe's on 'wdown'; the user, 2026-11-11, in place of the downlights, on the wardrobe's downlights' line). On each three
+// spots, black cylinders (r round, len long) hung from a stem at drop under the ceiling, each turned to its at with its
+// beam's half angle a (sh: with shadows): in the bedroom the dressing top, the bed, the floor before the opening; in the
+// wardrobe its fronts, west, east and west. The reading lights on the bed wall over the nightstands (READ, at READ_Z:
+// black, a short arm out from a round plate, the head angled down at the pillow)
+const TRACK = { y: 12.25, w: 0.025, r: 0.028, len: 0.11, drop: 0.05 };
+const TRACKS = [
+  { x0: 51.3, x1: 53.3, list: 'spot', lens: 'spot', spots: [
+    { x: 51.45, at: [50.95, 12.45, 0.78], a: 22, sh: true }, { x: 52.3, at: [52.4, 10.5, 0.45], a: 26 }, { x: 53.15, at: [53.3, 12.3, 0], a: 26 }] },
+  { x0: 54.25, x1: 56.25, list: 'wdown', lens: 'wspot', spots: [
+    { x: 54.45, at: [54.7, 12.8, 1.0], a: 24, sh: true }, { x: 55.25, at: [55.95, 11.7, 1.0], a: 24, sh: true }, { x: 56.05, at: [56.1, 12.8, 1.0], a: 24, sh: true }] },
+];
 const READ = [{ y: 9.165, ch: 'readE', s: 1 }, { y: 11.645, ch: 'readW', s: -1 }];
 const READ_Z = 1.17;
 // outside: the terrace's east strip south of the door (its decking level with the floor; x0..x1, y0..y1), the glass
@@ -1188,7 +1197,7 @@ const M = {
 };
 // emissive surfaces, driven by the light mood
 const E = {
-  spot: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the downlights' lenses: the bedroom's,
+  spot: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the track spots' lenses: the bedroom's,
   wspot: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the wardrobe's
   readE: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the reading lights' lenses
   readW: new THREE.MeshBasicMaterial({ color: 0xffffff }),
@@ -1833,6 +1842,18 @@ function buildGlazing() {
   }
 }
 
+// a track's spot (TRACKS): its pivot on the stem under the track, its beam's direction (towards at), its lens's centre;
+// a rod from a to b (r round); a disc (rad) at at facing d
+const spotAim = (p) => {
+  const pivot = V3(p.x, TRACK.y, H - TRACK.drop), d = V3(...p.at).sub(pivot).normalize();
+  return { pivot, d, lens: pivot.clone().addScaledVector(d, TRACK.len) };
+};
+const rodTo = (a, b, r, seg = 24) => {
+  const d = b.clone().sub(a), m = a.clone().addScaledVector(d, 0.5), g = new THREE.CylinderGeometry(r, r, d.length(), seg);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), d.normalize()));
+  return g.translate(m.x, m.y, m.z);
+};
+const disc = (rad, at, d) => new THREE.CircleGeometry(rad, 32).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 0, 1), d)).translate(at.x, at.y, at.z);
 // ---------------------------------------------------------------- ceilings and their lights
 function buildCeiling() {
   const put = (mat, geo) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; groups.ceiling.add(m); return m; };
@@ -1863,11 +1884,20 @@ function buildCeiling() {
     put(E.pocket, box(ps - 0.022, ps - 0.012, pe + r, end - 0.02, pk - 0.002, pk, { faces: 'z' }));
   }
   put(M.ceiling, box(WX0, WX1, WY0, Y1, H, WT, { faces: 'z' }));
-  // the downlights: round, recessed, a black trim round the lens
-  for (const [list, lens] of [[DOWN, E.spot], [WDOWN, E.wspot]]) for (const [x, y] of list) {
-    put(M.trim, new THREE.RingGeometry(0.03, 0.042, 40).rotateX(Math.PI).translate(x, y, H - 0.0008));
-    put(M.dark, new THREE.CircleGeometry(0.03, 40).rotateX(Math.PI).translate(x, y, H - 0.004));
-    put(lens, new THREE.CircleGeometry(0.018, 32).rotateX(Math.PI).translate(x, y, H - 0.006));
+  // the tracks (TRACKS): the profile flush in the ceiling, the slot down its middle; each spot a black cylinder turned to its
+  // target on a stem from the track, a dark face, the lens in it (none of it casts shadows)
+  for (const T of TRACKS) {
+    const { y, w, r, drop } = TRACK, lens = E[T.lens];
+    put(M.trim, box(T.x0, T.x1, y - w / 2, y + w / 2, H - 0.001, H, { faces: 'z' }));
+    put(M.dark, box(T.x0 + 0.004, T.x1 - 0.004, y - 0.006, y + 0.006, H - 0.0015, H - 0.001, { faces: 'z' }));
+    for (const p of T.spots) {
+      const { pivot, d, lens: c } = spotAim(p);
+      put(M.trim, box(p.x - 0.011, p.x + 0.011, y - 0.009, y + 0.009, H - 0.012, H - 0.0015, { faces: 'xXyYz' }));
+      put(M.trim, cyl(0.004, drop - 0.012, 'z', [p.x, y, H - 0.012 - (drop - 0.012) / 2], 12));
+      put(M.trim, rodTo(pivot.clone().addScaledVector(d, -0.012), c, r, 32));
+      put(M.dark, disc(r - 0.003, c.clone().addScaledVector(d, 0.0006), d));
+      put(lens, disc(0.015, c.clone().addScaledVector(d, 0.0012), d));
+    }
   }
   // with the slats (BW.slats): a black slot in the ceiling along the bed wall, its LED line washing them
   {
@@ -2857,9 +2887,12 @@ function buildLights() {
     if (list) list.push(s);
     return s;
   };
-  // the downlights: the bedroom's (the one over the dressing top with shadows), the wardrobe's (both); the reading lights
-  DOWN.forEach(([x, y], i) => spot(V3(x, y, H - 0.008), V3(x, y, 0), 30, 0.7, i === 0, L.spot));
-  for (const [x, y] of WDOWN) spot(V3(x, y, H - 0.008), V3(x, y, 0), 38, 0.7, true, L.wdown);
+  // the tracks' spots: the bedroom's (the one at the dressing top with shadows), the wardrobe's (all with shadows); the
+  // reading lights
+  for (const T of TRACKS) for (const p of T.spots) {
+    const { d, lens } = spotAim(p);
+    spot(lens.clone().addScaledVector(d, 0.004), V3(...p.at), p.a, 0.55, !!p.sh, L[T.list]);
+  }
   for (const r of READ) {
     const { head, at } = READ_HEAD(r), dir = at.clone().sub(head).normalize();
     L.read.push([spot(head.clone().addScaledVector(dir, 0.085), at, 30, 0.65, true), r.ch]);
@@ -2953,11 +2986,11 @@ const WALLS = {
 const G_PIER = 10.105, G_COL = Y1 - 0.5;
 // what the rockers work: lamp channels (applyMood), or (none) something not in this model
 const CIRCUITS = {
-  down: { label: 'Ceiling spots', ch: ['down'] },
+  down: { label: 'Track (bedroom)', ch: ['down'] },
   leds: { label: 'LED lines: the curtain pocket, the bed wall, the niche and the mirror, under the bed', ch: ['pocket', 'glow', 'cove', 'niche'] },
   readE: { label: 'Reading light, east side', ch: ['readE'] },
   readW: { label: 'Reading light, west side', ch: ['readW'] },
-  wdown: { label: 'Wardrobe spots', ch: ['wdown'] },
+  wdown: { label: 'Track (wardrobe)', ch: ['wdown'] },
   wled: { label: 'LED in the wardrobe', ch: ['wled'] },
   wblindsUp: { label: 'Wardrobe window blinds, up' },
   wblindsDown: { label: 'Wardrobe window blinds, down' },
@@ -3348,7 +3381,7 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// Four moods. The lamps: down: the bedroom's downlights; wdown: the wardrobe's; readE, readW: the reading lights; the LED
+// Four moods. The lamps: down: the bedroom's track; wdown: the wardrobe's; readE, readW: the reading lights; the LED
 // lines: pocket (in the curtains' pocket), glow (under the bed and the nightstands), cove (the bed wall's), niche (the
 // dressing niche's), wled (the wardrobe's shelves); hall: the bathroom's lamps, seen through its door; cor: the hallway's
 // downlights and the one over the stairs, step: the stairs' step lights.
@@ -3562,7 +3595,7 @@ function renderLegend() {
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
     ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom; into the wardrobe a pocket door, sliding into the bed wall towards the corridor (no casing, the reveals plastered): ' + PDOORS[pdoorKey].legend + ' (a click slides it)', M.lacquer.color.getStyle()],
     ['Hallway', 'outside the bedroom\'s door, as in the Kitchen & living page: from the lobby north to a fixed window floor to ceiling, three ' + wn + ' panels on the bedroom\'s wall, the powder room\'s flush door, three small downlights; off it the stairs down to the lower floor round the powder room in three arms, clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side, LED step lights, a glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
-    ['Light', 'round downlights (three in the bedroom, two in the wardrobe), the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, upright by the mirror, under the bed and the nightstands, in the wardrobe; by the door split switches for the lights (the spots, the LED lines) and the blinds, by the bed a socket and a split switch either side, as in the electro drawing', '#ffe2c2'],
+    ['Light', 'black magnetic tracks flush in the ceilings, in one line down the wardrobe\'s aisle and through the opening into the bedroom, three spots on each; the reading lights; LED lines in the curtains\' pocket, on the bed wall, in the niche, upright by the mirror, under the bed and the nightstands, in the wardrobe; by the door split switches for the lights (the spots, the LED lines) and the blinds, by the bed a socket and a split switch either side, as in the electro drawing', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }

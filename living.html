@@ -348,11 +348,12 @@ const SOFA = { x0: 43.797, x1: 46.697, y0: 12.428, y1: 13.358, cx1: 44.727, cy0:
 const COFFEE_TABLE = { x: 45.352, y: 11.53, r: 0.441, h: 0.297 };
 const TV_UNIT = { x0: 44.731, x1: 47.051, y1: 10.495, z0: 0.194, z1: 0.544 };
 const TV = { x0: 45.149, x1: 46.609, z0: 0.772, z1: 1.542 };
-// the lights in the ceiling: two rows of three square spots along the room (at y = ROWS, x = SPOTS, about 2.8 m apart: the
-// user, 2026-11-08, left out the second and the fourth of five; no track between them);
+// the lights in the ceiling: a row of three square spots along the room by the TV (at y = ROWS, x = SPOTS, about 2.8 m
+// apart: the user, 2026-11-08, left out the second and the fourth of five; no track between them); the row along the
+// kitchen's side small round downlights continuing the hallway's (HROW, after COR);
 // the black ring over the sofa, its diffuser underneath (r0..r, h tall); in the kitchen's ceiling a black slot
 // (2 m) with three spots over the worktop
-const ROWS = [10.637, 14.064];
+const ROWS = [10.637];
 const SPOTS = [43.798, 46.553, 49.354];
 const RING = { x: 45.885, y: 11.61, r: 0.5, r0: 0.38, h: 0.12 };
 // two speakers flush in the ceiling in front of the TV, trimless: a round micro-perforated grille (r) painted like the
@@ -429,6 +430,9 @@ const BED = { wall: [50.57, 50.71], cor: [13.405, 13.545] };
 const COR = { x1: 57.085, y0: 13.545, y1: 14.545, bed: [51.435, 52.335], pdoor: [54.345, 55.145], doorH: 2.15,
   panels: [[52.85, 53.52], [54.02, 54.69], [55.22, 55.89]], pz: [0.968, 1.841], lamps: [50.795, 53.172, 55.549], ly: 14.055,
   win: { x0: 57.235, x1: 57.385, glass: 57.31, y0: 13.605, y1: 14.479, g0: 13.681, g1: 14.397, sill: 0.07, head: 2.52 } };
+// the living room's row along the kitchen's side: three round downlights like the hallway's, on its line (COR.ly) and at its
+// spacing, on south from its last (the user, 2026-11-11: as the hallway's downlights' continuation); on the room's spots
+const HROW = [1, 2, 3].map((i) => +(COR.lamps[0] - i * (COR.lamps[1] - COR.lamps[0])).toFixed(3));
 // the stairs down to the lower floor (lower), off the hallway's west side, wrapped round the powder room's core (core:
 // x0..x1 from YK to y1): 18 risers of r, treads g deep, 1 m wide. The first arm runs west between the hall's wall (hall)
 // and the core from its first riser (y0), a landing at the west facade (west), the second arm north along it, a landing
@@ -2313,7 +2317,12 @@ function buildCeiling() {
     put(M.dark, box(x0 + f, x1 - f, YK - 0.001, YK, z0 + f, z1 - f, { faces: 'y' }));
     for (const z of [z0 + 0.0115, z1 - 0.0135]) put(M.trim, box(x0 + f, x1 - f, YK - 0.002, YK - 0.001, z, z + 0.002, { faces: 'yzZ' }));
   }
-  // two rows of square spots along the room
+  // the row along the kitchen's side (HROW): round, like the hallway's, a black ring round the lens
+  for (const x of HROW) {
+    put(M.trim, cyl(0.036, 0.002, 'z', [x, COR.ly, H - 0.001], 32));
+    put(E.spot, cyl(0.029, 0.002, 'z', [x, COR.ly, H - 0.003], 32));
+  }
+  // the row of square spots by the TV
   for (const y of ROWS) {
     for (const x of SPOTS) {
       put(M.trim, box(x - 0.035, x + 0.035, y - 0.035, y + 0.035, H - 0.01, H, { faces: 'xXyYz' }));
@@ -4425,9 +4434,10 @@ function buildLights() {
     if (list) list.push(s);
     return s;
   };
-  // the living room's square spots (no shadows: there are six), the kitchen's three over the worktop, the pendants' over the
+  // the living room's spots (no shadows: there are six), the kitchen's three over the worktop, the pendants' over the
   // table, the ring's over the coffee table
   for (const y of ROWS) for (const x of SPOTS) spot(x, y, H - 0.012, 22, 0.6, false, L.spot);
+  for (const x of HROW) spot(x, COR.ly, H - 0.012, 36, 0.75, false, L.spot);
   for (const x of KSLOT.spots) spot(x, KSLOT.y, HK + 0.006, 34, 0.7, true, L.kdown);
   spot(...PANTRY.lamp, HK - 0.012, 58, 0.8, false, L.pantry).distance = PANTRY.gate;      // the pantry's (no shadows: gated)
   // the hallway's three downlights and the one over the stairwell (no shadows), on their own channel
@@ -4960,7 +4970,7 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// Four moods. The lamps: spot: the living room's square spots; kdown: the kitchen's spots over the worktop; skan: the pendants
+// Four moods. The lamps: spot: the living room's spots; kdown: the kitchen's spots over the worktop; skan: the pendants
 // over the table; ring: the ring over the sofa; island: the linear pendant over the island; the LED lines: curtain (in
 // the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); fire: the fireplace (swapped); hall: the hall's and
 // the corridor's lamps, seen beyond the lobby; cor: the hallway's downlights and the stairwell's, step: the stairs' step
@@ -5302,7 +5312,7 @@ function renderLegend() {
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
     ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers, both flush with the wall (the bedroom\'s in a reverse concealed frame, opening into the bedroom; the powder room\'s opening out), three small round downlights' + (gapsOn ? ', shadow gaps in black profiles: 20 mm between the walls and the ceiling, the stairwell\'s too, 15 mm at the walls\' foot' : '') + '; before the window a large white bird of paradise (Strelitzia nicolai) in a dark clay pot; off it the stairs down to the lower floor, round the powder room in three arms: clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side round the powder room, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
-    ['Light', 'two rows of three square spots, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
+    ['Light', 'three square spots in a row by the TV, three small round ones along the kitchen\'s side continuing the hallway\'s, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }
