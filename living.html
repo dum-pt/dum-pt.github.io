@@ -348,13 +348,11 @@ const SOFA = { x0: 43.797, x1: 46.697, y0: 12.428, y1: 13.358, cx1: 44.727, cy0:
 const COFFEE_TABLE = { x: 45.352, y: 11.53, r: 0.441, h: 0.297 };
 const TV_UNIT = { x0: 44.731, x1: 47.051, y1: 10.495, z0: 0.194, z1: 0.544 };
 const TV = { x0: 45.149, x1: 46.609, z0: 0.772, z1: 1.542 };
-// the lights in the ceiling: a row of three square spots along the room by the TV (at y = ROWS, x = SPOTS, about 2.8 m
-// apart: the user, 2026-11-08, left out the second and the fourth of five; no track between them); the row along the
-// kitchen's side small round downlights continuing the hallway's (HROW, after COR);
+// the lights in the ceiling: two rows of four spots (x = SPOTS, after SOFFIT): square ones along the room by the TV (at
+// y = ROWS), small round ones along the kitchen's side like the hallway's (on its line, COR.ly);
 // the black ring over the sofa, its diffuser underneath (r0..r, h tall); in the kitchen's ceiling a black slot
 // (2 m) with three spots over the worktop
 const ROWS = [10.637];
-const SPOTS = [43.798, 46.553, 49.354];
 const RING = { x: 45.885, y: 11.61, r: 0.5, r0: 0.38, h: 0.12 };
 // two speakers flush in the ceiling in front of the TV, trimless: a round micro-perforated grille (r) painted like the
 // ceiling, a hairline (gap) round it; 90 cm out from the TV wall (at y, clear of the spots' row and the ring), dx either side
@@ -430,9 +428,6 @@ const BED = { wall: [50.57, 50.71], cor: [13.405, 13.545] };
 const COR = { x1: 57.085, y0: 13.545, y1: 14.545, bed: [51.435, 52.335], pdoor: [54.345, 55.145], doorH: 2.15,
   panels: [[52.85, 53.52], [54.02, 54.69], [55.22, 55.89]], pz: [0.968, 1.841], lamps: [50.795, 53.172, 55.549], ly: 14.055,
   win: { x0: 57.235, x1: 57.385, glass: 57.31, y0: 13.605, y1: 14.479, g0: 13.681, g1: 14.397, sill: 0.07, head: 2.52 } };
-// the living room's row along the kitchen's side: three round downlights like the hallway's, on its line (COR.ly) and at its
-// spacing, on south from its last (the user, 2026-11-11: as the hallway's downlights' continuation); on the room's spots
-const HROW = [1, 2, 3].map((i) => +(COR.lamps[0] - i * (COR.lamps[1] - COR.lamps[0])).toFixed(3));
 // the stairs down to the lower floor (lower), off the hallway's west side, wrapped round the powder room's core (core:
 // x0..x1 from YK to y1): 18 risers of r, treads g deep, 1 m wide. The first arm runs west between the hall's wall (hall)
 // and the core from its first riser (y0), a landing at the west facade (west), the second arm north along it, a landing
@@ -457,6 +452,13 @@ const PLANT = { x: 56.5, y: 14.04, r: 0.25, h: 0.54, soil: 0.5, box: { x0: 55.7,
 const TERRACE = { x0: 40.18, x1: 50.4, y0: 8.37, y1: 17.03 };
 const RAIL = { y: [8.444, 8.464], x: [40.24, 40.26], h: 1.0 };
 const SOFFIT = { x0: 40.345, y0: 8.555 };
+// the terrace's lights in the soffit (switch R2): an LED strip in an L, 43 cm in from the overhang's edges (its east leg at
+// y from x0 to the bedroom's wall at x1, its south leg at x0 from y to y1; w wide), and two round spots mid-way across the
+// south overhang (at x, on the living room's two rows of spots). The living room's spots (the user, 2026-11-11): two rows
+// of four, at even steps from the terrace's spot to the hallway's first downlight (COR.lamps[0]), about 1.83 m
+const TLED = { x0: 40.7775, x1: 50.4, y: 8.9875, y1: 16.53, w: 0.018 };
+const TSPOT_X = (SOFFIT.x0 + XS) / 2;
+const SPOTS = [1, 2, 3, 4].map((i) => +(TSPOT_X + i * (COR.lamps[0] - TSPOT_X) / 5).toFixed(3));
 const POST = [40.49, 40.63, 8.634, 8.774];
 const FINS = [40.496, 40.761, 41.026, 41.291, 41.556];
 // the garden west of the house, outside the kitchen window (buildGarden), its ground at z (22 cm under the floor, the
@@ -625,7 +627,8 @@ function patchShader(shader) {
 // OUTDOOR surfaces take only the lights that can really reach them: the sun (not its bounce off the mirror,
 // directional light 1, which only lights the room) and the shadowed downlights shining out through the window.
 // The point and area lights cast no shadows, so they would shine through the walls; the env cube (captured in
-// the room) is left out too (see patchShader).
+// the room) is left out too (see patchShader). Of the area lights, the outside takes only the terrace's LED strip's,
+// and the room only its own.
 const outdoorLights = THREE.ShaderChunk.lights_fragment_begin
   .replace('getDirectionalLightInfo( directionalLight, directLight );', `getDirectionalLightInfo( directionalLight, directLight );
     #ifdef OUTDOOR
@@ -636,9 +639,15 @@ const outdoorLights = THREE.ShaderChunk.lights_fragment_begin
       directLight.color = vec3( 0.0 );
     #endif`)
   .replace('rectAreaLight = rectAreaLights[ i ];', `rectAreaLight = rectAreaLights[ i ];
-    #ifdef OUTDOOR
-      rectAreaLight.color = vec3( 0.0 );
-    #endif`)
+    {
+      vec3 lw = ( rectAreaLight.position - viewMatrix[ 3 ].xyz ) * mat3( viewMatrix );
+      bool outside = lw.x < ${(XS - 0.3).toFixed(3)} || - lw.z < ${(YW - 0.3).toFixed(3)};
+      #ifdef OUTDOOR
+        if ( ! outside ) rectAreaLight.color = vec3( 0.0 );
+      #else
+        if ( outside ) rectAreaLight.color = vec3( 0.0 );
+      #endif
+    }`)
   .replace('getSpotLightInfo( spotLight, geometryPosition, directLight );', `getSpotLightInfo( spotLight, geometryPosition, directLight );
     if ( spotLight.distance > ${(PANTRY.gate - 500).toFixed(1)} && ( vWPos.x < ${(PANTRY.x0 - 0.02).toFixed(3)} || vWPos.x > ${KX0.toFixed(3)} || - vWPos.z < ${YK.toFixed(3)} || - vWPos.z > ${(Y1 + 0.02).toFixed(3)} ) ) directLight.color = vec3( 0.0 );`);
 if (!outdoorLights.includes('vWPos.x < ')) throw new Error('the pantry lamp\'s gate did not patch in');
@@ -1344,6 +1353,8 @@ const E = {
   tvwash: new THREE.MeshBasicMaterial({ color: 0xffffff }),  // (the TV unit's, on its own switch)
   cor: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the hallway's downlights' lenses
   step: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the stairs' LED step lights
+  terled: new THREE.MeshBasicMaterial({ color: 0xffffff }),  // the terrace's LED strip
+  terspot: new THREE.MeshBasicMaterial({ color: 0xffffff }), // the terrace's spots' lenses
   skan: physical({ color: 0xf7f2ec, roughness: 0.3, emissive: 0xffffff, emissiveIntensity: 0 }),   // the Skan's diffusers
 };
 M.mirror.defines.NO_DIRECT_SPEC = '';
@@ -2317,8 +2328,8 @@ function buildCeiling() {
     put(M.dark, box(x0 + f, x1 - f, YK - 0.001, YK, z0 + f, z1 - f, { faces: 'y' }));
     for (const z of [z0 + 0.0115, z1 - 0.0135]) put(M.trim, box(x0 + f, x1 - f, YK - 0.002, YK - 0.001, z, z + 0.002, { faces: 'yzZ' }));
   }
-  // the row along the kitchen's side (HROW): round, like the hallway's, a black ring round the lens
-  for (const x of HROW) {
+  // the row along the kitchen's side: round, like the hallway's, a black ring round the lens
+  for (const x of SPOTS) {
     put(M.trim, cyl(0.036, 0.002, 'z', [x, COR.ly, H - 0.001], 32));
     put(E.spot, cyl(0.029, 0.002, 'z', [x, COR.ly, H - 0.003], 32));
   }
@@ -4169,6 +4180,16 @@ function buildSurroundings(viewTex) {
   R.add(RF);
   o(M.soffit, mergeGeometries([box(SOFFIT.x0, 50.71, SOFFIT.y0, YW, H, H + 0.02, { faces: 'z' }), box(SOFFIT.x0, XS, YW, T.y1, H, H + 0.02, { faces: 'z' })]), true, RF);
   o(M.anthOut, mergeGeometries([box(SOFFIT.x0, 50.71, SOFFIT.y0 - 0.03, SOFFIT.y0, H - 0.05, H + 1.0, { faces: 'yxXzZ' }), box(SOFFIT.x0 - 0.03, SOFFIT.x0, SOFFIT.y0, T.y1 + 0.2, H - 0.05, H + 1.0, { faces: 'xyYzZ' })]), true, RF);
+  // the LED strip in its anthracite profile, the spots' black rings and lenses
+  {
+    const { x0, x1, y, y1, w } = TLED;
+    o(M.anthOut, mergeGeometries([box(x0 - 0.014, x1, y - 0.014, y + 0.014, H - 0.0015, H, { faces: 'z' }), box(x0 - 0.014, x0 + 0.014, y + 0.014, y1, H - 0.0015, H, { faces: 'z' })]), false, RF);
+    o(E.terled, mergeGeometries([box(x0 - w / 2, x1, y - w / 2, y + w / 2, H - 0.002, H - 0.0015, { faces: 'z' }), box(x0 - w / 2, x0 + w / 2, y + w / 2, y1, H - 0.002, H - 0.0015, { faces: 'z' })]), false, RF);
+    for (const ty of [ROWS[0], COR.ly]) {
+      o(M.trim, cyl(0.036, 0.002, 'z', [TSPOT_X, ty, H - 0.001], 32), false, RF);
+      o(E.terspot, cyl(0.029, 0.002, 'z', [TSPOT_X, ty, H - 0.003], 32), false, RF);
+    }
+  }
   o(M.anthOut, box(...POST, 0, H));
   for (const x of FINS) o(M.battens, box(x - 0.02, x + 0.02, 16.8, 16.94, 0, H));
   // the facades: the battens over the TV wall and the south wall; on the west, the battens over the dark membrane,
@@ -4416,7 +4437,7 @@ async function loadView() {
 }
 
 // ---------------------------------------------------------------- lights
-const L = { spot: [], kdown: [], pantry: [], skan: [], area: [], sky: [], layout: [], cor: [] };
+const L = { spot: [], kdown: [], pantry: [], skan: [], area: [], sky: [], layout: [], cor: [], terspot: [] };
 function buildLights() {
   const spot = (x, y, z, angle, pen, shadow, list) => {
     const s = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(angle), pen, 2);
@@ -4434,10 +4455,11 @@ function buildLights() {
     if (list) list.push(s);
     return s;
   };
-  // the living room's spots (no shadows: there are six), the kitchen's three over the worktop, the pendants' over the
-  // table, the ring's over the coffee table
+  // the living room's spots (no shadows: there are eight), the kitchen's three over the worktop, the pendants' over the
+  // table, the ring's over the coffee table; the terrace's two (no shadows)
   for (const y of ROWS) for (const x of SPOTS) spot(x, y, H - 0.012, 22, 0.6, false, L.spot);
-  for (const x of HROW) spot(x, COR.ly, H - 0.012, 36, 0.75, false, L.spot);
+  for (const x of SPOTS) spot(x, COR.ly, H - 0.012, 36, 0.75, false, L.spot);
+  for (const y of [ROWS[0], COR.ly]) spot(TSPOT_X, y, H - 0.012, 36, 0.75, false, L.terspot);
   for (const x of KSLOT.spots) spot(x, KSLOT.y, HK + 0.006, 34, 0.7, true, L.kdown);
   spot(...PANTRY.lamp, HK - 0.012, 58, 0.8, false, L.pantry).distance = PANTRY.gate;      // the pantry's (no shadows: gated)
   // the hallway's three downlights and the one over the stairwell (no shadows), on their own channel
@@ -4482,6 +4504,12 @@ function buildLights() {
     const F = TV_UNIT_F, lf = F.x1 - F.x0 - 0.08;
     L.tvWash = L.layout[L.layout.length - 1];
     Object.assign(L.tvWash, { full: L.tvWash.drawn, short: { pos: [(F.x0 + F.x1) / 2, F.y1 - 0.054, F.z0 - 0.003], w: lf, h: 0.012 } });
+  }
+  // the terrace's LED strip: an area light along each leg, facing down
+  {
+    const { x0, x1, y, y1, w } = TLED;
+    area('terled', 1, x1 - x0, w, SU((x0 + x1) / 2, y, H - 0.003));
+    area('terled', 1, w, y1 - y, SU(x0, (y + y1) / 2, H - 0.003));
   }
   // the fire's glow out of the firebox into the room (with the fireplace: setFire, applyMood)
   {
@@ -4557,8 +4585,8 @@ const CIRCUITS = {
   blinds: { label: 'Kitchen window blinds', act: () => setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true), on: () => BLINDS.target > 0.5 },
   firepit: { label: 'Garden: fire pit lighting' },
   woodwall: { label: 'Garden: wooden wall lighting' },
-  terled: { label: 'Terrace: LED strip' },
-  terspots: { label: 'Terrace: spots' },
+  terled: { label: 'Terrace: LED strip', ch: ['terled'] },
+  terspots: { label: 'Terrace: spots', ch: ['terspot'] },
   eDoorUp: { label: 'East glazing blinds (the sliding door), up' },
   eDoorDown: { label: 'East glazing blinds (the sliding door), down' },
   eFixedUp: { label: 'East glazing blinds (the fixed pane), up' },
@@ -4974,27 +5002,27 @@ function kelvinRaw(k) {
 // over the table; ring: the ring over the sofa; island: the linear pendant over the island; the LED lines: curtain (in
 // the curtains' pocket), ucab (under the wall units, in the coffee niche), niche (the dining wall's), wash (under the sideboard and the TV unit); fire: the fireplace (swapped); hall: the hall's and
 // the corridor's lamps, seen beyond the lobby; cor: the hallway's downlights and the stairwell's, step: the stairs' step
-// lights. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
+// lights; terled, terspot: the terrace's LED strip and spots. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the
 // horizon, for the dusk outside. Day: daylight only, the sun coming in through the east glazing in the morning, the south
 // at noon (and under the soffit in the evening, through the kitchen's window)
 const MOODS = {
-  evening: { label: 'Evening', cor: 0.45, step: 1, spot: 0.3, kdown: 0.5, pantry: 0.6, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
-  bright: { label: 'Bright', cor: 1, step: 1, spot: 1, kdown: 1, pantry: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
-  night: { label: 'Night', cor: 0.06, step: 1, spot: 0, kdown: 0, pantry: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, cor: 0, step: 0, spot: 0, kdown: 0, pantry: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', cor: 0.45, step: 1, spot: 0.3, kdown: 0.5, pantry: 0.6, skan: 1, ring: 0.7, island: 0.7, curtain: 0.8, ucab: 1, niche: 1, wash: 1, fire: 1, hall: 0.25, terled: 1, terspot: 1, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 305], bloom: 1.2 },
+  bright: { label: 'Bright', cor: 1, step: 1, spot: 1, kdown: 1, pantry: 1, skan: 1, ring: 1, island: 1, curtain: 0.6, ucab: 1, niche: 0.7, wash: 0.7, fire: 0.7, hall: 0.3, terled: 1, terspot: 1, tint: '#fff4ea', exposure: 1.45, sky: [-10, 310], bloom: 1.6 },
+  night: { label: 'Night', cor: 0.06, step: 1, spot: 0, kdown: 0, pantry: 0, skan: 0.3, ring: 0, island: 0.35, curtain: 0.5, ucab: 0.4, niche: 0.6, wash: 0.6, fire: 1, hall: 0.02, terled: 0.5, terspot: 0, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, cor: 0, step: 0, spot: 0, kdown: 0, pantry: 0, skan: 0, ring: 0, island: 0, curtain: 0, ucab: 0, niche: 0, wash: 0, fire: 0, hall: 0, terled: 0, terspot: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { cor: 8, north: 2.5, fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, pantry: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
+const BASE = { terled: 300, terspot: 8, cor: 8, north: 2.5, fire: 3, flame: 3.5, sun: 28, spot: 8, kdown: 8, pantry: 8, skan: 6, ring: 4, island: 350, curtain: 1.4, ucab: 300, niche: 300, wash: 18, lens: 30, strip: 7, skanGlow: 3, sky: 1.0 };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
   // (each channel at the mood's level or as its switch has it; after dark the lamps stay in the scene when off, so a
   // switch flipped doesn't recompile every shader)
   const shown = (ch) => lv(ch) > 0 || !m.day;
-  for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.pantry, 'pantry'], [L.skan, 'skan'], [[L.ring], 'ring'], [L.cor, 'cor']]) {
+  for (const [lights, ch] of [[L.spot, 'spot'], [L.kdown, 'kdown'], [L.pantry, 'pantry'], [L.skan, 'skan'], [[L.ring], 'ring'], [L.cor, 'cor'], [L.terspot, 'terspot']]) {
     for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch); s.visible = shown(ch); }
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = a.userData.drawnOnly && layoutSwapped ? 0 : BASE[ALIAS[ch] ?? ch] * k * lv(ch); a.visible = shown(ch); }
-  for (const ch of ['spot', 'kdown', 'pantry', 'cor']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
-  for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash', 'tvwash', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
+  for (const ch of ['spot', 'kdown', 'pantry', 'cor', 'terspot']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
+  for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash', 'tvwash', 'step', 'terled']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   E.skan.emissive.copy(c);
   E.fire.color.setScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
   E.ember.color.set(0xff5a1e).multiplyScalar(m.fire > 0 ? BASE.flame * m.fire : 0);
@@ -5312,7 +5340,7 @@ function renderLegend() {
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
     ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers, both flush with the wall (the bedroom\'s in a reverse concealed frame, opening into the bedroom; the powder room\'s opening out), three small round downlights' + (gapsOn ? ', shadow gaps in black profiles: 20 mm between the walls and the ceiling, the stairwell\'s too, 15 mm at the walls\' foot' : '') + '; before the window a large white bird of paradise (Strelitzia nicolai) in a dark clay pot; off it the stairs down to the lower floor, round the powder room in three arms: clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side round the powder room, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
-    ['Light', 'three square spots in a row by the TV, three small round ones along the kitchen\'s side continuing the hallway\'s, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units', '#ffe2c2'],
+    ['Light', 'two rows of four spots in line with the terrace\'s two, square by the TV, small and round like the hallway\'s along the kitchen\'s side, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units; on the terrace an LED strip in an L round the soffit and two spots (switch R2)', '#ffe2c2'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
 }

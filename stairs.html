@@ -236,8 +236,9 @@ const PIPE = { x0: 53.702, x1: 53.872, y0: LR.y0, y1: 10.245 };
 // niche, the wall between the niche and the last arm shortened back to them (the second step running on across its end)
 // (clad: the hallway's wood cladding carried round its end into the niche's south side, back to the doors, the user's)
 const NICHE = { x0: 53.83, x1: 55.83, y0: 14.795, y1: 15.6, deep: 0.6, clad: 0.02 };
-// the landing's downlights: two in the room (with shadows), one over the landing (between the niche and the stairs' foot)
-const LDOWN = [[54.35, 11.75], [55.95, 11.75]];
+// the landing room's light: one large flat LED ceiling light, surface-mounted, opal underside, at the midpoint of the
+// two downlights it replaced (r radius, h depth); the landing's downlight (between the niche and the stairs' foot)
+const LPANEL = { x: 55.15, y: 11.75, r: 0.3, h: 0.05 };
 const SDOWN = [[55.7, 13.975]];
 // the lounge in the landing room (LANDINGS; the model has the room empty): a low three-seat sofa with its back to the
 // landing, facing the window (x0..x1; y0 its front, y1 its back; the base's top, the seat, the back's frame and its
@@ -1111,6 +1112,7 @@ const M = {
   stone: physical({ roughness: 1 }),                           // the door frames in the wood (STONE_PICK: applyStoneChoice)
   coat1: fabricMat(0x2e333c), coat2: fabricMat(0xa47f58), coat3: fabricMat(0x7a776f), coat4: fabricMat(0xcfc7b8),
   ceiling: physical({ color: 0xf2efea }),
+  panel: physical({ color: 0xf7f5f1, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0 }),   // the landing room's flat light's opal
   poche: new THREE.MeshBasicMaterial({ color: 0x2b2622 }),
   dark: physical({ color: 0x1b1714, roughness: 0.7 }),
   joint: physical({ color: 0x15120f, roughness: 0.9 }),                // the gaps between fronts
@@ -1812,10 +1814,17 @@ function buildCeiling() {
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0, LR.y0 + POCKET, HL, HL + 0.01, { faces: 'z' }));
   put(M.ceiling, box(STAIR.x3, COR.x1, w0 - 0.01, w0, HC, HL, { faces: 'Y' }));
   // the downlights: round, recessed, a black trim round the lens
-  for (const [list, lens] of [[LH.lamps.map((x) => [x, LH.ly]), E.hall], [[...LDOWN, ...SDOWN], E.land]]) for (const [x, y] of list) {
+  for (const [list, lens] of [[LH.lamps.map((x) => [x, LH.ly]), E.hall], [SDOWN, E.land]]) for (const [x, y] of list) {
     put(M.trim, new THREE.RingGeometry(0.03, 0.042, 40).rotateX(Math.PI).translate(x, y, HC - 0.0008));
     put(M.dark, new THREE.CircleGeometry(0.03, 40).rotateX(Math.PI).translate(x, y, HC - 0.004));
     put(lens, new THREE.CircleGeometry(0.018, 32).rotateX(Math.PI).translate(x, y, HC - 0.006));
+  }
+  // the landing room's flat LED light: a white drum on the ceiling, its opal underside glowing (M.panel, by the mood)
+  {
+    const P = LPANEL;
+    put(M.white, new THREE.CylinderGeometry(P.r, P.r, P.h, 96, 1, true).rotateX(Math.PI / 2).translate(P.x, P.y, HC - P.h / 2));
+    put(M.white, new THREE.RingGeometry(P.r - 0.012, P.r, 96).rotateX(Math.PI).translate(P.x, P.y, HC - P.h));
+    put(M.panel, new THREE.CircleGeometry(P.r - 0.012, 96).rotateX(Math.PI).translate(P.x, P.y, HC - P.h + 0.003));
   }
   // for the sun's shadows only: the upper floor's overhang over the east facade, the slab over the lower floor (all but
   // the stairwell), the house west of the stairwell, the upper floor's rooms east of its hallway, the lobby, the roof
@@ -2557,7 +2566,7 @@ async function loadView() {
 
 // ---------------------------------------------------------------- lights
 // Each light lights only the zones its own zone reaches (ZONE_REACH, patchShader). Shadows (five spots and the sun, the
-// shaders' texture units): the hallway's last downlight (by the landing room's wall), the landing room's two, the floor
+// shaders' texture units): the hallway's last downlight (by the landing room's wall), the landing room's flat light, the floor
 // lamp, the one over the stairwell. Eight area lights (more slows the shaders' compile): the niche's two, the sideboard's,
 // the four step lights, the sky's through the east window
 const L = { hall: [], land: [], cor: [], area: [], sky: [] };
@@ -2579,7 +2588,10 @@ function buildLights() {
     return s;
   };
   LH.lamps.forEach((x, i) => spot(V3(x, LH.ly, HC - 0.012), V3(x, LH.ly, 0), 36, 0.75, i === LH.lamps.length - 1, L.hall));
-  for (const [x, y] of LDOWN) spot(V3(x, y, HC - 0.008), V3(x, y, 0), 34, 0.7, true, L.land);
+  // the flat light: a wide spot (78 deg, penumbra 1: about a cosine spread), with shadows; k: about twice the light of the
+  // two downlights it replaced
+  L.panel = spot(V3(LPANEL.x, LPANEL.y, HC - LPANEL.h - 0.01), V3(LPANEL.x, LPANEL.y, 0), 78, 1, true, L.land);
+  L.panel.userData.k = 0.8;
   for (const [x, y] of SDOWN) spot(V3(x, y, HC - 0.008), V3(x, y, 0), 34, 0.7, false, L.land);
   L.lamp = spot(V3(FLAMP.x, FLAMP.y, FLAMP.h - 0.2), V3(FLAMP.x - 0.12, FLAMP.y - 0.1, 0), 56, 0.85, true);
   L.stair = spot(V3(...STAIR.lamp, H - 0.012), V3(...STAIR.lamp, 0), 44, 0.8, true, null, 7);
@@ -2747,7 +2759,7 @@ const MOODS = {
   night: { label: 'Night', hall: 0.06, land: 0, lamp: 0.35, niche: 0.4, cove: 0.5, glow: 0.5, step: 1, stair: 0.06, cor: 0.04, study: 0, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
   day: { label: 'Day', day: true, hall: 0.6, land: 0, lamp: 0, niche: 0, cove: 0, glow: 0, step: 0, stair: 0, cor: 0, study: 0, tint: '#fff4ea', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, hall: 10, land: 12, lamp: 7, stair: 12, cor: 8, niche: 4, cove: 30, glow: 2.5, step: 60, lens: 30, strip: 7, shade: 1.6, sky: 1.0, north: 4, study: 1.2 };
+const BASE = { sun: 28, hall: 10, land: 12, lamp: 7, stair: 12, cor: 8, niche: 4, cove: 30, glow: 2.5, step: 60, lens: 30, strip: 7, shade: 1.6, panel: 1.5, sky: 1.0, north: 4, study: 1.2 };
 const LENS = { hall: 'hall', land: 'land', cor: 'cor', stair: 'stair' };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
@@ -2756,12 +2768,13 @@ function applyMood(key) {
   const shown = (ch) => lv(ch) > 0 || !m.day;
   const lounge = landingKey === 'lounge' ? 1 : 0, lit = nicheKey === 'step' ? 1 : 0, has = { lamp: lounge, glow: lounge, niche: lit };
   for (const [lights, ch] of [[L.hall, 'hall'], [L.land, 'land'], [L.cor, 'cor'], [[L.lamp], 'lamp'], [[L.stair], 'stair']]) {
-    for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch) * (has[ch] ?? 1); s.visible = shown(ch); }
+    for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * (s.userData.k ?? 1) * lv(ch) * (has[ch] ?? 1); s.visible = shown(ch); }
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch) * (has[ch] ?? 1); a.visible = shown(ch); }
   for (const [e, ch] of Object.entries(LENS)) E[e].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['niche', 'glow', 'step', 'cove']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   M.shade.emissive.copy(c).multiply(M.shade.color).multiplyScalar(lv('lamp') > 0 ? BASE.shade * lv('lamp') : 0);
+  M.panel.emissive.copy(c); M.panel.emissiveIntensity = lv('land') > 0 ? BASE.panel * (0.3 + 0.7 * lv('land')) : 0;
   renderer.toneMappingExposure = m.exposure * roomEv();
   bloom.threshold = m.bloom;
   // by day only the sun itself (and its reflection) clears the threshold, so it can flare
@@ -2941,7 +2954,7 @@ function renderLegend() {
   const epoxy = epoxyKey ? EPOXIES[epoxyKey].label.toLowerCase() : 'your colour (' + epoxyColor + ')';
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white', paintColor],
-    ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights; along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
+    ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights (in the landing room one large flat LED light); along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
     ['Floor', 'seamless poured epoxy, satin, ' + epoxy + ', through the hallway, the landing room, the landing and the niche; the stairs in ' + wn + '; upstairs ' + fw + ' planks', epoxyColor],
     ['Landing room', landingKey === 'lounge'
       ? 'the room at the foot of the stairs, empty in the model, as a lounge (this page\'s): an IKEA ÄPPLARYD sofa as in the Kitchen & living page, three seats and a chaise longue (290 cm), in ' + fab.desc + ' with ' + fab.cushionLabel + ' cushions, against the north wall with the chaise by the window, under a poster 2 × 1.4 m of a bridge\'s towers rising out of a sea of clouds in a slim black frame; facing it on the bathroom\'s wall a 65" TV over a floating ' + wn + ' unit with an LED line under it and, to their right, a cupboard floor to ceiling, 1 m wide and 60 cm deep, behind two handleless doors lacquered a shade lighter than the walls; a round ' + wn + ' coffee table, a wool rug, a floor lamp in ' + metal.label + ' with a linen drum shade by the sofa\'s arm, a fig tree in the corner by the window'
@@ -2963,7 +2976,7 @@ function renderLegend() {
     ['Upstairs', 'the upper hallway\'s north end round the stairs, as in the Kitchen & living and the Master bedroom pages: three ' + wn + ' panels on the bedroom\'s wall; the bedroom\'s, the powder room\'s and the hall\'s doors, shut', wood.swatch],
     ['Switches', 'at the foot of the stairs, on the end of the wall between the niche and the stairs (18.5 cm wide, in line with the cupboard\'s doors) over the second step: two switches in one black frame, one over the other, ' + Math.round(SWITCH.h * 100) + ' cm to their middle: the upper for the stairs (the step lights and the downlight over the stairwell), the lower for the lower hallway (its downlights and the LED line along the wooden wall). Click a rocker to work it (a new mood resets them)', '#1e1e20'],
     ['Sockets', 'Czech 230 V sockets (the earth pin up) in black frames like the switch\'s (this page\'s: the permit\'s electro drawing shows an older lower floor): 30 cm high, a double by the sofa\'s arm for the floor lamp, one in the corner by the window behind the fig; a double behind the TV (1.15 m) and another behind the TV unit (37 cm); none in the hallway (for cleaning from the rooms). Click one to see what it is for', '#1e1e20'],
-    ['Light', 'small round downlights (three in the hallway, two in the landing room, one over the landing, one over the stairwell, three upstairs), the floor lamp; LED lines under the step cupboard\'s plinth and under the TV unit; the step lights', '#ffe2c2'],
+    ['Light', 'small round downlights (three in the hallway, one over the landing, one over the stairwell, three upstairs), a large flat LED ceiling light (60 cm) in the middle of the landing room, the floor lamp; LED lines under the step cupboard\'s plinth and under the TV unit; the step lights', '#ffe2c2'],
     ['Outside', 'paving along the east facade, box balls, a lawn and a clipped hedge (this page\'s); the view from the plot beyond', '#4d6a35'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
