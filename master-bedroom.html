@@ -1768,20 +1768,18 @@ function buildHallway() {
       for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n), ax, w);
     }
   }
-  // the LED step lights: small, low in the outer walls, by every other step
+  // the LED step lights: small, low in the core's walls (the inner side), by every fourth step: the 3rd, 7th, 11th, 15th
   {
     const lit = (dn, x, y, z) => {
       const w = 0.06, hh = 0.012, e = 0.002;
       if (dn === 'X') add(E.step, box(x, x + e, y - w, y + w, z - hh, z + hh, { faces: 'X' }), { shadow: false });
       else if (dn === 'x') add(E.step, box(x - e, x, y - w, y + w, z - hh, z + hh, { faces: 'x' }), { shadow: false });
-      else add(E.step, box(x - w, x + w, y - e, y, z - hh, z + hh, { faces: 'y' }), { shadow: false });
+      else add(E.step, box(x - w, x + w, y, y + e, z - hh, z + hh, { faces: 'Y' }), { shadow: false });
     };
     const zl = (k) => -k * r + 0.22;
-    lit('X', S.hall, ya(2) + g / 2, zl(2));
-    lit('X', S.hall, (ya(4) + S.west) / 2, zl(4));
-    for (const k of [6, 8, 10, 12]) lit('y', xb(k) + g / 2, S.west, zl(k));
-    lit('x', C.x1, (K.y1 + S.west) / 2, zl(13));
-    for (const k of [15, 17]) lit('x', C.x1, yc(k) - g / 2, zl(k));
+    lit('x', K.x0, ya(3) + g / 2, zl(3));
+    for (const k of [7, 11]) lit('Y', xb(k) + g / 2, K.y1, zl(k));
+    lit('X', S.x3, yc(15) - g / 2, zl(15));
   }
   // a frameless glass balustrade along the hallway's edge over the last arm, fixed to the slab's edge by two steel discs,
   // its top edge polished

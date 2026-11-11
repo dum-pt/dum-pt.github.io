@@ -213,10 +213,10 @@ const WT = HL;                           // walls up to here get their cut drawn
 const BACK_X = 0;                        // (no backlit mirror here: the shared glow stays off)
 // the lower hallway: from the study's glass door (x0) to the landing (x1); its east wall (ye: the bedrooms' and the
 // bathroom's, y0..y1) and its west wall (yw); the doors in them (x: jambs, e: in the east wall; up to head): flush leaves
-// t thick hung on the rooms' side, shown shut; four downlights along its middle (lamps, at ly)
+// t thick hung on the rooms' side, shown shut; three downlights along its middle (lamps, at ly)
 const LH = { x0: 45.806, x1: 53.83, ye: [13.405, 13.545], yw: [14.545, 14.795], head: 2.15, t: 0.04,
   doors: [{ x: [46.006, 46.906], e: true }, { x: [47.806, 48.706], e: true }, { x: [50.93, 51.73], e: true }, { x: [47.88, 48.68], e: false }, { x: [50.93, 51.83], e: false }],
-  lamps: [46.85, 48.8, 50.75, 52.7], ly: 14.045 };
+  lamps: [46.85, 49.775, 52.7], ly: 14.045 };
 // the study's door at the hallway's south end (the model's glass across it): satin glass in a slim black frame (f) up to
 // z1, plaster over it to the ceiling; the study's light shows through it
 const GDOOR = { x: 45.801, z1: HC, f: 0.035 };      // (2.56 in the model: now up to the lowered ceiling)
@@ -236,9 +236,9 @@ const PIPE = { x0: 53.702, x1: 53.872, y0: LR.y0, y1: 10.245 };
 // niche, the wall between the niche and the last arm shortened back to them (the second step running on across its end)
 // (clad: the hallway's wood cladding carried round its end into the niche's south side, back to the doors, the user's)
 const NICHE = { x0: 53.83, x1: 55.83, y0: 14.795, y1: 15.6, deep: 0.6, clad: 0.02 };
-// the landing's downlights: two in the room (with shadows), two over the landing (before the niche, at the stairs' foot)
+// the landing's downlights: two in the room (with shadows), one over the landing (between the niche and the stairs' foot)
 const LDOWN = [[54.35, 11.75], [55.95, 11.75]];
-const SDOWN = [[54.865, 14.0], [56.585, 13.95]];
+const SDOWN = [[55.7, 13.975]];
 // the lounge in the landing room (LANDINGS; the model has the room empty): a low three-seat sofa with its back to the
 // landing, facing the window (x0..x1; y0 its front, y1 its back; the base's top, the seat, the back's frame and its
 // cushions' tops; arms armW wide up to arm; the back backD deep; on legs); a round coffee table in the wood (centre,
@@ -273,7 +273,7 @@ const COR = { x0: 49.6, x1: 57.085, wy0: 13.405, y0: 13.545, y1: 14.545, hdoor: 
 // from COR.y1 to y1). From the top: the first arm west between the hall's wall (hall) and the core from its first riser
 // (y0), a landing at the west facade (west), the second arm north along it, a landing at the north facade, the third arm
 // east down to the landing under the upper hallway's end (a glass balustrade guards the drop up there); LED step lights low
-// in the walls by every other tread, a downlight over the stairwell (lamp), a black steel handrail on the outer walls
+// in the core's walls by every fourth tread, a downlight over the stairwell (lamp), a black steel handrail on the outer walls
 const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, core: { x0: 53.685, x1: 56.085, y1: 15.73 }, x3: 56.015, lamp: [54.885, 16.23] };
 // the light switches at the foot of the stairs (the user's): one frame of two gangs stacked (80 x 151 mm, gangs 71 mm
 // apart, as the Kitchen & living page's fittings) on the end of the wall between the niche and the last arm (its face
@@ -288,8 +288,6 @@ const SOCKETS = [
   { x: 52.99, nrm: [1, 0], u: 10.42, h: 0.3, info: 'in the corner by the window, behind the fig: an uplight, the vacuum' },
   { x: 52.99, nrm: [1, 0], u: 11.605, h: 1.15, v: true, info: 'behind the TV' },
   { x: 52.99, nrm: [1, 0], u: 11.2, h: 0.37, gangs: 2, info: 'behind the TV unit: the media' },
-  { y: 13.545, nrm: [0, 1], u: 49.82, h: 0.3, info: 'the hallway, between the bedrooms\' doors: for cleaning' },
-  { y: 13.545, nrm: [0, 1], u: 52.8, h: 0.3, info: 'the hallway, by the landing: for cleaning' },
 ];
 // the window over the stairs' corner landing: in the model an opening in the west facade, 1 m wide (x0..x1), the upper
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
@@ -1896,7 +1894,7 @@ function buildUpper() {
 // As in the model and the other pages: 18 risers round the powder room's core, from the upper floor down to the landing
 // here. The stairwell's walls floor to the upper ceiling; the steps and landings clad in the wood as solid blocks (4 cm
 // treads flush with their wooden risers, no nosings; the bottom step's open side clad too), the black steel handrail on
-// the inner side round the core, the LED step lights in the outer walls (STEP_LIT: four of them light as well as glow,
+// the inner side round the core, the LED step lights in the core's walls (STEP_LIT: all four light as well as glow,
 // buildLights), the glass balustrade along the upper hallway's edge over the last arm
 const STEP_LIT = [];
 // the window over the stairs' corner landing (WW): a fixed pane in an anthracite frame in the facade's outer half, the
@@ -1980,23 +1978,22 @@ function buildStairs() {
       for (let j = 0; j < n; j++) bracket(a.clone().lerp(b, (j + 0.5) / n), ax, w);
     }
   }
-  // the LED step lights: small, low in the outer walls, by every other step (lit: those that light the treads too)
+  // the LED step lights: small, low in the core's walls (the inner side, round the powder room), by every fourth step: the
+  // 3rd, 7th, 11th and 15th from the top (the 15th's wall under the slab, S.x3); all four light the treads too (STEP_LIT)
   {
-    const put = (dn, x, y, z, lit = false) => {
-      const w = 0.06, hh = 0.012, e = 0.002;
+    const put = (dn, x, y, z) => {
+      const w = 0.06, hh = 0.012, e = 0.002, t = 0.008;
       if (dn === 'X') add(E.step, box(x, x + e, y - w, y + w, z - hh, z + hh, { faces: 'X' }), { shadow: false });
       else if (dn === 'x') add(E.step, box(x - e, x, y - w, y + w, z - hh, z + hh, { faces: 'x' }), { shadow: false });
-      else add(E.step, box(x - w, x + w, y - e, y, z - hh, z + hh, { faces: 'y' }), { shadow: false });
-      add(M.trim, dn === 'y' ? box(x - w - 0.008, x + w + 0.008, y - 0.0005, y, z - hh - 0.008, z + hh + 0.008, { faces: 'y' })
-        : box(x + (dn === 'X' ? 0 : -0.0005), x + (dn === 'X' ? 0.0005 : 0), y - w - 0.008, y + w + 0.008, z - hh - 0.008, z + hh + 0.008, { faces: dn }), { shadow: false });
-      if (lit) STEP_LIT.push({ dn, x, y, z });
+      else add(E.step, box(x - w, x + w, y, y + e, z - hh, z + hh, { faces: 'Y' }), { shadow: false });
+      const T = { X: [x, x + 0.0005, y - w - t, y + w + t], x: [x - 0.0005, x, y - w - t, y + w + t], Y: [x - w - t, x + w + t, y, y + 0.0005] }[dn];
+      add(M.trim, box(T[0], T[1], T[2], T[3], z - hh - t, z + hh + t, { faces: dn }), { shadow: false });
+      STEP_LIT.push({ dn, x, y, z });
     };
     const zl = (k) => zk(k) + 0.22;
-    put('X', S.hall, ya(2) + g / 2, zl(2));
-    put('X', S.hall, (ya(4) + S.west) / 2, zl(4));
-    for (const k of [6, 8, 10, 12]) put('y', xb(k) + g / 2, S.west, zl(k), k === 12);
-    put('x', C.x1, (K.y1 + S.west) / 2, zl(13), true);
-    for (const k of [15, 17]) put('x', C.x1, yc(k) - g / 2, zl(k), true);
+    put('x', K.x0, ya(3) + g / 2, zl(3));
+    for (const k of [7, 11]) put('Y', xb(k) + g / 2, K.y1, zl(k));
+    put('X', S.x3, yc(15) - g / 2, zl(15));
   }
   // a frameless glass balustrade along the upper hallway's edge over the last arm, fixed to the slab's edge by two steel
   // discs, its top edge polished
@@ -2562,7 +2559,7 @@ async function loadView() {
 // Each light lights only the zones its own zone reaches (ZONE_REACH, patchShader). Shadows (five spots and the sun, the
 // shaders' texture units): the hallway's last downlight (by the landing room's wall), the landing room's two, the floor
 // lamp, the one over the stairwell. Eight area lights (more slows the shaders' compile): the niche's two, the sideboard's,
-// four of the step lights, the sky's through the east window
+// the four step lights, the sky's through the east window
 const L = { hall: [], land: [], cor: [], area: [], sky: [] };
 function buildLights() {
   const spot = (p, t, angle, pen, shadow, list, far = 4) => {
@@ -2615,7 +2612,7 @@ function buildLights() {
   }
   // the step lights that light the treads: just out from the wall, tilted down
   for (const { dn, x, y, z } of STEP_LIT) {
-    const [nx, ny] = { X: [1, 0], x: [-1, 0], y: [0, -1] }[dn], c = SU(x + nx * 0.012, y + ny * 0.012, z);
+    const [nx, ny] = { X: [1, 0], x: [-1, 0], Y: [0, 1], y: [0, -1] }[dn], c = SU(x + nx * 0.012, y + ny * 0.012, z);
     area('step', 1, 0.12, 0.024, c, SU(x + nx, y + ny, z - 0.7));
   }
   // daylight: the sun, with shadows over the rooms and the garden; the sky's light coming in through the east window as a
@@ -2954,7 +2951,7 @@ function renderLegend() {
       cupboard: 'the niche closed by four flush handleless doors floor to ceiling, lacquered a shade lighter than the walls: a cupboard ' + Math.round(NICHE.deep * 100) + ' cm deep to the niche\'s back wall, its doors set back ' + Math.round((NICHE.y1 - NICHE.y0 - NICHE.deep) * 100) + ' cm into the niche, the second step running on to its side (this page\'s)',
       step: 'the stairs\' second step carried on across the niche, in its riser\'s plane and to its height: a ' + sn + ' plinth of four drawers floating over a gap the first step high (36 cm deep, for shoes; an LED line under the plinth\'s front edge lights the floor); the plinth\'s top a ' + sn + ' tread in front of the doors, running on into the second step (the niche\'s wall between them shortened back to the doors); over it a cupboard to the ceiling behind four white lacquered handleless doors, set back into the niche, ' + Math.round(NICHE.deep * 100) + ' cm deep to its back wall: coats on a rail under a hat shelf behind the south pair, shelves with baskets behind the north pair. Click a door or a drawer to open it (this page\'s)',
     }[nicheKey], nicheKey === 'cupboard' ? M.lacquer.color.getStyle() : '#f5f4f0'],
-    ['Stairs', 'as in the model: 18 risers of 17.5 cm, 27.5 cm treads, in three arms round the powder room, the first two 1 m wide, the last 1.07 m (its inner wall under the slab set back 7 cm into the niche\'s side), its bottom two steps running on across the end of the niche\'s wall (shortened back to the cupboard\'s doors) to the niche, the bottom one 1.255 m; clad in ' + wn + ' as solid blocks, the treads flush with their risers (no nosings), the risers and the bottom step\'s open side in the wood too; a black steel handrail on the inner side, round the powder room\'s core; LED step lights in the outer walls by every other step; a frameless glass balustrade upstairs over the last arm', wood.swatch],
+    ['Stairs', 'as in the model: 18 risers of 17.5 cm, 27.5 cm treads, in three arms round the powder room, the first two 1 m wide, the last 1.07 m (its inner wall under the slab set back 7 cm into the niche\'s side), its bottom two steps running on across the end of the niche\'s wall (shortened back to the cupboard\'s doors) to the niche, the bottom one 1.255 m; clad in ' + wn + ' as solid blocks, the treads flush with their risers (no nosings), the risers and the bottom step\'s open side in the wood too; a black steel handrail on the inner side, round the powder room\'s core; LED step lights in the powder room\'s walls (the inner side) by every fourth step; a frameless glass balustrade upstairs over the last arm', wood.swatch],
     ['Second step', 'the stairs\' second step and, carried on from it across the niche, the drawers\' fronts and the tread in front of the cupboard\'s doors' + (nicheKey === 'step' ? ' (the shoe gap under them lined to match)' : nicheKey === 'cupboard' ? ' (with the plain cupboard only the step, running on to the niche)' : '') + ': ' + {
       wood: 'in ' + wn + ' like the other steps',
       stone: 'in honed ' + STONES[stoneKey].label.replace(', vein cut', '') + ' (the Stone picker\'s, as the door frames), solid-looking blocks, the drawers\' fronts cut from the same stone',
@@ -2965,8 +2962,8 @@ function renderLegend() {
     ['Glazing', 'anthracite aluminium (RAL 7016): the landing room\'s east window floor to ceiling (a turn sash and a fixed pane) under the upper floor\'s overhang; fixed windows floor to ceiling in the north facade, at the landing and upstairs; over the stairs\' corner landing a fixed window 1 m wide in the west facade, the upper floor\'s full height (2.6 m; in the model an opening, glazed here), its daylight down the stairwell', '#383b3e'],
     ['Upstairs', 'the upper hallway\'s north end round the stairs, as in the Kitchen & living and the Master bedroom pages: three ' + wn + ' panels on the bedroom\'s wall; the bedroom\'s, the powder room\'s and the hall\'s doors, shut', wood.swatch],
     ['Switches', 'at the foot of the stairs, on the end of the wall between the niche and the stairs (18.5 cm wide, in line with the cupboard\'s doors) over the second step: two switches in one black frame, one over the other, ' + Math.round(SWITCH.h * 100) + ' cm to their middle: the upper for the stairs (the step lights and the downlight over the stairwell), the lower for the lower hallway (its downlights and the LED line along the wooden wall). Click a rocker to work it (a new mood resets them)', '#1e1e20'],
-    ['Sockets', 'Czech 230 V sockets (the earth pin up) in black frames like the switch\'s (this page\'s: the permit\'s electro drawing shows an older lower floor): 30 cm high, a double by the sofa\'s arm for the floor lamp, one in the corner by the window behind the fig; a double behind the TV (1.15 m) and another behind the TV unit (37 cm); two in the hallway\'s east wall for cleaning, between the bedrooms\' doors and by the landing. Click one to see what it is for', '#1e1e20'],
-    ['Light', 'small round downlights (four in the hallway, two in the landing room, two over the landing, one over the stairwell, three upstairs), the floor lamp; LED lines under the step cupboard\'s plinth and under the TV unit; the step lights', '#ffe2c2'],
+    ['Sockets', 'Czech 230 V sockets (the earth pin up) in black frames like the switch\'s (this page\'s: the permit\'s electro drawing shows an older lower floor): 30 cm high, a double by the sofa\'s arm for the floor lamp, one in the corner by the window behind the fig; a double behind the TV (1.15 m) and another behind the TV unit (37 cm); none in the hallway (for cleaning from the rooms). Click one to see what it is for', '#1e1e20'],
+    ['Light', 'small round downlights (three in the hallway, two in the landing room, one over the landing, one over the stairwell, three upstairs), the floor lamp; LED lines under the step cupboard\'s plinth and under the TV unit; the step lights', '#ffe2c2'],
     ['Outside', 'paving along the east facade, box balls, a lawn and a clipped hedge (this page\'s); the view from the plot beyond', '#4d6a35'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
