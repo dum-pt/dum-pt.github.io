@@ -438,6 +438,10 @@ const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower
 // the window over the stairs' corner landing: in the model an opening in the west facade, 1 m wide (x0..x1), the upper
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
 // pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
+// the chandelier over the stairs (the user's, as on the Stairs & lower hallway page): in the well of the last arm, on the
+// 1 m window's axis, across from it; 18 opal glass tubes stepping down one turn from a slim black canopy, its foot
+// (foot) 30 cm over this floor
+const CHAND = { x: 56.585, y: 15.65, n: 18, r: 0.18, d: 0.035, len: 0.55, cap: 0.04, top: 0.3, foot: 0.3, canopy: 0.22 };
 const WW = { x0: 56.085, x1: 57.085, y0: 16.88, y1: 17.03, glass: 16.955, f: 0.076, sill: 0.07, head: 2.52, h: 2.6 };
 // the hallway's shadow gaps (an option: setGaps), black profiles set in the plaster: c wide and d deep where the walls meet
 // the ceiling, the ceiling held off them, round the hallway and the stairwell; f high and fd deep at the walls' foot
@@ -1300,6 +1304,7 @@ const M = {
   // reed diffuser
   chair: physical({ color: 0x7a8378, roughness: 0.85, sheen: 0.5, sheenColor: new THREE.Color(0xc5ccc2), sheenRoughness: 0.6 }),
   blackMetal: physical({ color: 0x19191a, metalness: 0.5, roughness: 0.45 }),
+  tube: physical({ color: 0xf4f1ea, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 0 }),   // the chandelier's opal glass
   skanWhite: physical({ color: 0xf3f2ee, roughness: 0.4, clearcoat: 0.3 }),
   skanGraphite: physical({ color: 0x3c3d41, roughness: 0.5 }),
   clearAcrylic: physical({ color: 0xffffff, roughness: 0.05, transmission: 1, thickness: 0.004, ior: 1.49 }),
@@ -2156,6 +2161,19 @@ function buildHallway() {
   for (const [x, y] of [...C.lamps.map((x) => [x, C.ly]), S.lamp]) {
     ceil(M.trim, cyl(0.036, 0.002, 'z', [x, y, H - 0.001], 32));
     ceil(E.cor, cyl(0.029, 0.002, 'z', [x, y, H - 0.003], 32));
+  }
+  // the chandelier over the stairs (as on the Stairs & lower hallway page: CHAND), its tubes glowing with the hallway's
+  // lights (applyMood)
+  {
+    const K = CHAND, ns = { shadow: false }, zc = H - 0.025, z0 = H - K.top, z1 = K.foot + K.len, dz = (z0 - z1) / (K.n - 1);
+    add(M.blackMetal, cyl(K.canopy, 0.025, 'z', [K.x, K.y, H - 0.0125], 64), ns);
+    for (let i = 0; i < K.n; i++) {
+      const a = Math.PI / 2 + (i + 0.5) * 2 * Math.PI / K.n, x = K.x + K.r * Math.cos(a), y = K.y + K.r * Math.sin(a), zt = z0 - i * dz;
+      add(M.blackMetal, cyl(0.0012, zc - zt, 'z', [x, y, (zc + zt) / 2], 6), ns);
+      add(M.blackMetal, cyl(K.d / 2 + 0.002, K.cap, 'z', [x, y, zt - K.cap / 2], 24), ns);
+      add(M.tube, cyl(K.d / 2, K.len - K.cap, 'z', [x, y, zt - K.cap - (K.len - K.cap) / 2], 24), ns);
+    }
+    flush(groups.ceiling);
   }
 }
 
@@ -5021,6 +5039,7 @@ function applyMood(key) {
     for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch); s.visible = shown(ch); }
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = a.userData.drawnOnly && layoutSwapped ? 0 : BASE[ALIAS[ch] ?? ch] * k * lv(ch); a.visible = shown(ch); }
+  M.tube.emissive.copy(c); M.tube.emissiveIntensity = lv('cor') > 0.1 ? 1.6 * (0.3 + 0.7 * lv('cor')) : 0;
   for (const ch of ['spot', 'kdown', 'pantry', 'cor', 'terspot']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['ring', 'island', 'curtain', 'ucab', 'niche', 'wash', 'tvwash', 'step', 'terled']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   E.skan.emissive.copy(c);

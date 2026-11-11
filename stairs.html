@@ -239,6 +239,8 @@ const NICHE = { x0: 53.83, x1: 55.83, y0: 14.795, y1: 15.6, deep: 0.6, clad: 0.0
 // the landing room's light: one large flat LED ceiling light, surface-mounted, opal underside, at the midpoint of the
 // two downlights it replaced (r radius, h depth); the landing's downlight (between the niche and the stairs' foot)
 const LPANEL = { x: 55.15, y: 11.75, r: 0.3, h: 0.05 };
+// round it a raised field in the lowered ceiling (2.8 x 2.1 m, centred on the light; its top at h, the rest at HC)
+const LFIELD = { x0: 53.75, x1: 56.55, y0: 10.70, y1: 12.80, h: 2.65 };
 const SDOWN = [[55.7, 13.975]];
 // the lounge in the landing room (LANDINGS; the model has the room empty): a low three-seat sofa with its back to the
 // landing, facing the window (x0..x1; y0 its front, y1 its back; the base's top, the seat, the back's frame and its
@@ -280,6 +282,9 @@ const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, core:
 // apart, as the Kitchen & living page's fittings) on the end of the wall between the niche and the last arm (its face
 // 18.5 cm wide, at y, facing the landing; x its middle), its middle h high; gangs top to bottom (CIRCUITS)
 const SWITCH = { x: (NICHE.x1 + STAIR.x3) / 2, y: NICHE.y1 - NICHE.deep, h: 1.0, gangs: ['stairs', 'hall'], pitch: 0.071, s: 0.08, d: 0.0095 };
+// the landing room's own switch (its flat light): on the inner face of the hallway wall's stub, between the cupboard and
+// the stub's end (75 mm from it)
+const SWITCH2 = { x: LH.x1 - 0.075, y: LH.ye[0], h: 0.95, gangs: ['nook'], pitch: 0.071, s: 0.08, d: 0.0095 };
 // the power sockets (the user asked for them; placed here: the permit's electro drawing shows an older lower floor without
 // the landing room): Czech 230 V, type E (the earth pin up), in black frames like the switch's. Each on a wall face (at x
 // or y; nrm its normal into the room) at u along it, h high to its middle; gangs side by side 71 mm apart, or v: two
@@ -294,6 +299,12 @@ const SOCKETS = [
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
 // pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
 const WW = { x0: 56.085, x1: 57.085, y0: 16.88, y1: 17.03, glass: 16.955, f: 0.076, sill: 0.07, head: 2.52, h: 2.6 };
+// the chandelier (the user's): in the well of the last arm, on the window's axis (x), across from it, in the middle of the
+// well between the balustrade and the window's wall (y); n opal glass tubes (d across, len long, a black cap on each, cap
+// long) round a circle of r on fine black cables from a slim black canopy (canopy: its radius) at the upper ceiling, the
+// tubes stepping down one turn like the stairs: the first one's top top under the ceiling, the last one's foot at foot (in
+// the upper floor's height, over the landing); the turn's seam (its top tube beside its lowest) on the window's side
+const CHAND = { x: (WW.x0 + WW.x1) / 2, y: 15.65, n: 18, r: 0.18, d: 0.035, len: 0.55, cap: 0.04, top: 0.3, foot: 3.45, canopy: 0.22 };
 // the recess in the lowered ceiling along the wooden wall (w wide off the wood's face, d deep), an LED line in it washing
 // the wood (the wood runs up into it); the poster over the sofa (2 x 1.4 m, on the north wall, y0..y1, z0..z1)
 const COVE = { w: 0.07, d: 0.08 };
@@ -494,6 +505,7 @@ const outdoorLights = THREE.ShaderChunk.lights_fragment_begin
       if ( UNROLLED_LOOP_INDEX == 1 ) directLight.color = vec3( 0.0 );
     #endif`)
   .replace('getPointLightInfo( pointLight, geometryPosition, directLight );', `getPointLightInfo( pointLight, geometryPosition, directLight );
+    directLight.color *= reaches( zoneOf( lightWorld( pointLight.position ) ), fragZone );
     #ifdef OUTDOOR
       directLight.color = vec3( 0.0 );
     #endif`)
@@ -1807,10 +1819,17 @@ function buildCeiling() {
   put(M.ceiling, box(xc - 0.01, xc, yc, wc, HC, zc, { faces: 'X' }));
   put(M.ceiling, box(LH.x1, LH.x1 + 0.01, yc, wc, HC, zc, { faces: 'x' }));
   put(E.cove, box(xc + 0.02, LH.x1 - 0.02, yc + 0.008, yc + 0.02, zc - 0.002, zc - 0.001, { faces: 'z' }));
-  for (const [a, b, c, d] of [[LH.x0 - 0.03, xc, e1, w0], [xc, LH.x1, e1, yc], [LR.x0, LR.x1, LR.y0 + POCKET, e0], [LH.x1, LR.x1, e0, w0], [N.x0, N.x1, w0, N.y1], [N.x1, STAIR.x3, w0, N.y1 - N.deep], [LR.x1, NW.x0, NW.y0, NW.y1]]) {
+  for (const [a, b, c, d] of [[LH.x0 - 0.03, xc, e1, w0], [xc, LH.x1, e1, yc], [LR.x0, LFIELD.x0, LR.y0 + POCKET, e0], [LFIELD.x1, LR.x1, LR.y0 + POCKET, e0], [LFIELD.x0, LFIELD.x1, LR.y0 + POCKET, LFIELD.y0], [LFIELD.x0, LFIELD.x1, LFIELD.y1, e0], [LH.x1, LR.x1, e0, w0], [N.x0, N.x1, w0, N.y1], [N.x1, STAIR.x3, w0, N.y1 - N.deep], [LR.x1, NW.x0, NW.y0, NW.y1]]) {
     put(M.ceiling, box(a, b, c, d, HC, HC + 0.01, { faces: 'z' }));
   }
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0 + POCKET, LR.y0 + POCKET + 0.01, HC, HL, { faces: 'y' }));
+  // the landing room's raised field: its top, its four sides
+  { const F = LFIELD;
+    put(M.ceiling, box(F.x0, F.x1, F.y0, F.y1, F.h, F.h + 0.01, { faces: 'z' }));
+    put(M.ceiling, box(F.x0 - 0.01, F.x0, F.y0, F.y1, HC, F.h, { faces: 'X' }));
+    put(M.ceiling, box(F.x1, F.x1 + 0.01, F.y0, F.y1, HC, F.h, { faces: 'x' }));
+    put(M.ceiling, box(F.x0, F.x1, F.y0 - 0.01, F.y0, HC, F.h, { faces: 'Y' }));
+    put(M.ceiling, box(F.x0, F.x1, F.y1, F.y1 + 0.01, HC, F.h, { faces: 'y' })); }
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0, LR.y0 + POCKET, HL, HL + 0.01, { faces: 'z' }));
   put(M.ceiling, box(STAIR.x3, COR.x1, w0 - 0.01, w0, HC, HL, { faces: 'Y' }));
   // the downlights: round, recessed, a black trim round the lens
@@ -1822,9 +1841,9 @@ function buildCeiling() {
   // the landing room's flat LED light: a white drum on the ceiling, its opal underside glowing (M.panel, by the mood)
   {
     const P = LPANEL;
-    put(M.white, new THREE.CylinderGeometry(P.r, P.r, P.h, 96, 1, true).rotateX(Math.PI / 2).translate(P.x, P.y, HC - P.h / 2));
-    put(M.white, new THREE.RingGeometry(P.r - 0.012, P.r, 96).rotateX(Math.PI).translate(P.x, P.y, HC - P.h));
-    put(M.panel, new THREE.CircleGeometry(P.r - 0.012, 96).rotateX(Math.PI).translate(P.x, P.y, HC - P.h + 0.003));
+    put(M.white, new THREE.CylinderGeometry(P.r, P.r, P.h, 96, 1, true).rotateX(Math.PI / 2).translate(P.x, P.y, LFIELD.h - P.h / 2));
+    put(M.white, new THREE.RingGeometry(P.r - 0.012, P.r, 96).rotateX(Math.PI).translate(P.x, P.y, LFIELD.h - P.h));
+    put(M.panel, new THREE.CircleGeometry(P.r - 0.012, 96).rotateX(Math.PI).translate(P.x, P.y, LFIELD.h - P.h + 0.003));
   }
   // for the sun's shadows only: the upper floor's overhang over the east facade, the slab over the lower floor (all but
   // the stairwell), the house west of the stairwell, the upper floor's rooms east of its hallway, the lobby, the roof
@@ -2016,6 +2035,23 @@ function buildStairs() {
 }
 M.glassEdge = physical({ color: 0x9fb5ad, roughness: 0.2 });      // the balustrade's polished edge
 
+// ---------------------------------------------------------------- the chandelier
+// CHAND: the canopy, the cables, the tubes' caps and the opal tubes (their glow: applyMood); hidden with the ceiling in the
+// plan view
+M.tube = physical({ color: 0xf4f1ea, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 0 });
+function buildChandelier() {
+  const C = CHAND, ns = { shadow: false }, zc = H - 0.025;
+  add(M.blackMetal, cyl(C.canopy, 0.025, 'z', [C.x, C.y, H - 0.0125], 64), ns);
+  const z0 = H - C.top, z1 = C.foot + C.len, dz = (z0 - z1) / (C.n - 1);
+  for (let i = 0; i < C.n; i++) {
+    const a = Math.PI / 2 + (i + 0.5) * 2 * Math.PI / C.n, x = C.x + C.r * Math.cos(a), y = C.y + C.r * Math.sin(a), zt = z0 - i * dz;
+    add(M.blackMetal, cyl(0.0012, zc - zt, 'z', [x, y, (zc + zt) / 2], 6), ns);
+    add(M.blackMetal, cyl(C.d / 2 + 0.002, C.cap, 'z', [x, y, zt - C.cap / 2], 24), ns);
+    add(M.tube, cyl(C.d / 2, C.len - C.cap, 'z', [x, y, zt - C.cap - (C.len - C.cap) / 2], 24), ns);
+  }
+  flush(groups.ceiling);
+}
+
 // ---------------------------------------------------------------- the niche
 // The open niche in the powder room's base, facing the landing (as in the model). NI.cupboard: four flush doors floor to
 // ceiling across its mouth, lacquered like the doors, shadow gaps between them; NI.step: buildStepCupboard
@@ -2037,29 +2073,32 @@ function buildNiche() {
 M.dev = physical({ color: 0x1e1e20, roughness: 0.42, clearcoat: 0.25, clearcoatRoughness: 0.4 });
 const SW = { group: new THREE.Group(), meshes: [], rockers: [] };
 function buildSwitches() {
-  const S = SWITCH, FD = S.d, n = S.gangs.length, fh = S.s + (n - 1) * S.pitch;
-  const gz = (g) => ((n - 1) / 2 - g) * S.pitch;        // gang g's middle, the first at the top
-  // the frame: x along the wall to the right as seen from the landing (north), y into the wall, z up
-  SW.group.matrixAutoUpdate = false;
-  SW.group.matrix.makeBasis(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)).setPosition(S.x, S.y, S.h);
-  R.add(SW.group);
-  const plate = new THREE.Mesh(rbox(S.s, FD, fh, 0.003, [0, -FD / 2, 0]), M.dev);
-  plate.receiveShadow = true;
-  plate.userData.plate = true;
-  SW.group.add(plate);
-  SW.meshes.push(plate);
-  S.gangs.forEach((circ, g) => {
-    const pivot = new THREE.Group();
-    pivot.position.set(0, -FD, gz(g));
-    pivot.rotation.x = 0.05;
-    const m = new THREE.Mesh(rbox(0.054, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
-    m.receiveShadow = true;
-    m.userData.rocker = circ;
-    pivot.add(m);
-    SW.group.add(pivot);
-    SW.meshes.push(m);
-    SW.rockers.push({ pivot, circ, a: 0.05, target: 0.05 });
-  });
+  for (const S of [SWITCH, SWITCH2]) {
+    const FD = S.d, n = S.gangs.length, fh = S.s + (n - 1) * S.pitch;
+    const gz = (g) => ((n - 1) / 2 - g) * S.pitch;        // gang g's middle, the first at the top
+    // the frame: x along the wall (house x), y into the wall (both faces look east), z up
+    const group = new THREE.Group();
+    group.matrixAutoUpdate = false;
+    group.matrix.makeBasis(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)).setPosition(S.x, S.y, S.h);
+    R.add(group);
+    const plate = new THREE.Mesh(rbox(S.s, FD, fh, 0.003, [0, -FD / 2, 0]), M.dev);
+    plate.receiveShadow = true;
+    plate.userData.plate = S;
+    group.add(plate);
+    SW.meshes.push(plate);
+    S.gangs.forEach((circ, g) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(0, -FD, gz(g));
+      pivot.rotation.x = 0.05;
+      const m = new THREE.Mesh(rbox(0.054, 0.004, 0.054, 0.0015, [0, -0.002, 0]), M.dev);
+      m.receiveShadow = true;
+      m.userData.rocker = circ;
+      pivot.add(m);
+      group.add(pivot);
+      SW.meshes.push(m);
+      SW.rockers.push({ pivot, circ, a: 0.05, target: 0.05 });
+    });
+  }
 }
 // the rockers follow their circuits (applyMood, flip)
 function showSwitches() {
@@ -2569,7 +2608,7 @@ async function loadView() {
 // shaders' texture units): the hallway's last downlight (by the landing room's wall), the landing room's flat light, the floor
 // lamp, the one over the stairwell. Eight area lights (more slows the shaders' compile): the niche's two, the sideboard's,
 // the four step lights, the sky's through the east window
-const L = { hall: [], land: [], cor: [], area: [], sky: [] };
+const L = { hall: [], land: [], nook: [], cor: [], area: [], sky: [] };
 function buildLights() {
   const spot = (p, t, angle, pen, shadow, list, far = 4) => {
     const s = new THREE.SpotLight(0xffffff, 1, 0, THREE.MathUtils.degToRad(angle), pen, 2);
@@ -2590,12 +2629,19 @@ function buildLights() {
   LH.lamps.forEach((x, i) => spot(V3(x, LH.ly, HC - 0.012), V3(x, LH.ly, 0), 36, 0.75, i === LH.lamps.length - 1, L.hall));
   // the flat light: a wide spot (78 deg, penumbra 1: about a cosine spread), with shadows; k: about twice the light of the
   // two downlights it replaced
-  L.panel = spot(V3(LPANEL.x, LPANEL.y, HC - LPANEL.h - 0.01), V3(LPANEL.x, LPANEL.y, 0), 78, 1, true, L.land);
+  L.panel = spot(V3(LPANEL.x, LPANEL.y, LFIELD.h - LPANEL.h - 0.01), V3(LPANEL.x, LPANEL.y, 0), 78, 1, true, L.nook);
   L.panel.userData.k = 0.8;
   for (const [x, y] of SDOWN) spot(V3(x, y, HC - 0.008), V3(x, y, 0), 34, 0.7, false, L.land);
   L.lamp = spot(V3(FLAMP.x, FLAMP.y, FLAMP.h - 0.2), V3(FLAMP.x - 0.12, FLAMP.y - 0.1, 0), 56, 0.85, true);
   L.stair = spot(V3(...STAIR.lamp, H - 0.012), V3(...STAIR.lamp, 0), 44, 0.8, true, null, 7);
   for (const x of COR.lamps) spot(V3(x, COR.ly, H - 0.012), V3(x, COR.ly, TOP), 36, 0.75, false, L.cor);
+  // the chandelier's: three point lights up its spiral, inside it (no shadows; zoned)
+  L.chand = [0.2, 0.5, 0.8].map((t) => {
+    const p = new THREE.PointLight(0xffffff, 0, 0, 2);
+    p.position.copy(SU(CHAND.x, CHAND.y, CHAND.foot + t * (H - CHAND.top - CHAND.foot)));
+    scene.add(p);
+    return p;
+  });
   // the LED lines as area lights (each with its mood channel and a factor on the channel's base): aimed with lookAt (from
   // c towards at), or facing straight down (width along x, height along SketchUp y); all a few cm clear of every surface
   // (an area light touching one lights it with invalid values)
@@ -2660,8 +2706,9 @@ function buildLights() {
 // what the switch's rockers work: lamp channels (applyMood); a rocker flipped since the mood was picked holds its lamps
 // on or off (SWITCHED; setMood clears it)
 const CIRCUITS = {
-  stairs: { label: 'Stairs: the step lights and the downlight over the stairwell', short: 'Stairs', ch: ['step', 'stair'] },
-  hall: { label: 'Lower hallway: the downlights and the LED line along the wooden wall', short: 'Hallway', ch: ['hall', 'cove'] },
+  stairs: { label: 'Stairs: the step lights, the downlight over the stairwell and the chandelier', short: 'Stairs', ch: ['step', 'stair', 'chand'] },
+  hall: { label: 'Lower hallway: the downlights and the LED line along the wooden wall', short: 'Hallway', ch: ['hall', 'land', 'cove'] },
+  nook: { label: 'Landing room: the flat LED ceiling light', short: 'Landing room', ch: ['nook'] },
 };
 const CIRCUIT_OF = {}, SWITCHED = {};
 for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch) CIRCUIT_OF[k] = c;
@@ -2748,18 +2795,18 @@ function kelvinRaw(k) {
   return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
 }
 
-// Four moods. The lamps: hall: the lower hallway's downlights; land: the landing room's and the landing's; lamp: the floor
+// Four moods. The lamps: hall: the lower hallway's downlights; land: the landing's; nook: the landing room's flat light; lamp: the floor
 // lamp; stair: the one over the stairwell; cor: the upper hallway's; the LED lines: niche (under the step cupboard's
 // plinth), glow (under the sideboard), step (the step lights); study: the study's lamp, seen through its satin glass door.
 // tint: the lamps' colour as the eye sees it; sky: the sun's place, under the horizon, for the dusk outside. Day: daylight
 // (the sun in through the east window in the morning), the windowless hallway's downlights on
 const MOODS = {
-  evening: { label: 'Evening', hall: 0.5, land: 0.35, lamp: 1, niche: 1, cove: 1, glow: 0.8, step: 1, stair: 0.5, cor: 0.3, study: 0.35, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
-  bright: { label: 'Bright', hall: 1, land: 1, lamp: 0.6, niche: 0.8, cove: 0.7, glow: 0.5, step: 1, stair: 1, cor: 1, study: 0.6, tint: '#fff4ea', exposure: 1.65, sky: [-10, 300], bloom: 1.6 },
-  night: { label: 'Night', hall: 0.06, land: 0, lamp: 0.35, niche: 0.4, cove: 0.5, glow: 0.5, step: 1, stair: 0.06, cor: 0.04, study: 0, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, hall: 0.6, land: 0, lamp: 0, niche: 0, cove: 0, glow: 0, step: 0, stair: 0, cor: 0, study: 0, tint: '#fff4ea', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', hall: 0.5, land: 0.35, nook: 0.35, lamp: 1, niche: 1, cove: 1, glow: 0.8, step: 1, stair: 0.5, chand: 0.7, cor: 0.3, study: 0.35, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
+  bright: { label: 'Bright', hall: 1, land: 1, nook: 1, lamp: 0.6, niche: 0.8, cove: 0.7, glow: 0.5, step: 1, stair: 1, chand: 1, cor: 1, study: 0.6, tint: '#fff4ea', exposure: 1.65, sky: [-10, 300], bloom: 1.6 },
+  night: { label: 'Night', hall: 0.06, land: 0, nook: 0, lamp: 0.35, niche: 0.4, cove: 0.5, glow: 0.5, step: 1, stair: 0.06, chand: 0, cor: 0.04, study: 0, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, hall: 0.6, land: 0, nook: 0, lamp: 0, niche: 0, cove: 0, glow: 0, step: 0, stair: 0, chand: 0, cor: 0, study: 0, tint: '#fff4ea', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, hall: 10, land: 12, lamp: 7, stair: 12, cor: 8, niche: 4, cove: 30, glow: 2.5, step: 60, lens: 30, strip: 7, shade: 1.6, panel: 1.5, sky: 1.0, north: 4, study: 1.2 };
+const BASE = { sun: 28, hall: 10, land: 12, nook: 12, lamp: 7, stair: 12, chand: 0.4, tube: 1.6, cor: 8, niche: 4, cove: 30, glow: 2.5, step: 60, lens: 30, strip: 7, shade: 1.6, panel: 1.5, sky: 1.0, north: 4, study: 1.2 };
 const LENS = { hall: 'hall', land: 'land', cor: 'cor', stair: 'stair' };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
@@ -2767,14 +2814,15 @@ function applyMood(key) {
   // the niche's lines are off without them)
   const shown = (ch) => lv(ch) > 0 || !m.day;
   const lounge = landingKey === 'lounge' ? 1 : 0, lit = nicheKey === 'step' ? 1 : 0, has = { lamp: lounge, glow: lounge, niche: lit };
-  for (const [lights, ch] of [[L.hall, 'hall'], [L.land, 'land'], [L.cor, 'cor'], [[L.lamp], 'lamp'], [[L.stair], 'stair']]) {
+  for (const [lights, ch] of [[L.hall, 'hall'], [L.land, 'land'], [L.nook, 'nook'], [L.cor, 'cor'], [[L.lamp], 'lamp'], [[L.stair], 'stair'], [L.chand, 'chand']]) {
     for (const s of lights) { s.color.copy(c); s.intensity = BASE[ch] * (s.userData.k ?? 1) * lv(ch) * (has[ch] ?? 1); s.visible = shown(ch); }
   }
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch) * (has[ch] ?? 1); a.visible = shown(ch); }
   for (const [e, ch] of Object.entries(LENS)) E[e].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['niche', 'glow', 'step', 'cove']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   M.shade.emissive.copy(c).multiply(M.shade.color).multiplyScalar(lv('lamp') > 0 ? BASE.shade * lv('lamp') : 0);
-  M.panel.emissive.copy(c); M.panel.emissiveIntensity = lv('land') > 0 ? BASE.panel * (0.3 + 0.7 * lv('land')) : 0;
+  M.panel.emissive.copy(c); M.panel.emissiveIntensity = lv('nook') > 0 ? BASE.panel * (0.3 + 0.7 * lv('nook')) : 0;
+  M.tube.emissive.copy(c); M.tube.emissiveIntensity = lv('chand') > 0 ? BASE.tube * (0.3 + 0.7 * lv('chand')) : 0;
   renderer.toneMappingExposure = m.exposure * roomEv();
   bloom.threshold = m.bloom;
   // by day only the sun itself (and its reflection) clears the threshold, so it can flare
@@ -2954,7 +3002,7 @@ function renderLegend() {
   const epoxy = epoxyKey ? EPOXIES[epoxyKey].label.toLowerCase() : 'your colour (' + epoxyColor + ')';
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white', paintColor],
-    ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights (in the landing room one large flat LED light); along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
+    ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights (in the landing room one large flat LED light, in a raised field of the ceiling, 2.8 x 2.1 m, up to 2.65 m); along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
     ['Floor', 'seamless poured epoxy, satin, ' + epoxy + ', through the hallway, the landing room, the landing and the niche; the stairs in ' + wn + '; upstairs ' + fw + ' planks', epoxyColor],
     ['Landing room', landingKey === 'lounge'
       ? 'the room at the foot of the stairs, empty in the model, as a lounge (this page\'s): an IKEA ÄPPLARYD sofa as in the Kitchen & living page, three seats and a chaise longue (290 cm), in ' + fab.desc + ' with ' + fab.cushionLabel + ' cushions, against the north wall with the chaise by the window, under a poster 2 × 1.4 m of a bridge\'s towers rising out of a sea of clouds in a slim black frame; facing it on the bathroom\'s wall a 65" TV over a floating ' + wn + ' unit with an LED line under it and, to their right, a cupboard floor to ceiling, 1 m wide and 60 cm deep, behind two handleless doors lacquered a shade lighter than the walls; a round ' + wn + ' coffee table, a wool rug, a floor lamp in ' + metal.label + ' with a linen drum shade by the sofa\'s arm, a fig tree in the corner by the window'
@@ -2974,9 +3022,10 @@ function renderLegend() {
     ['Study door', 'the model\'s glass across the hallway\'s end, drawn as a door of satin glass in a slim black frame: the study\'s daylight, or its lamp after dark, shows through it', '#e6e4df'],
     ['Glazing', 'anthracite aluminium (RAL 7016): the landing room\'s east window floor to ceiling (a turn sash and a fixed pane) under the upper floor\'s overhang; fixed windows floor to ceiling in the north facade, at the landing and upstairs; over the stairs\' corner landing a fixed window 1 m wide in the west facade, the upper floor\'s full height (2.6 m; in the model an opening, glazed here), its daylight down the stairwell', '#383b3e'],
     ['Upstairs', 'the upper hallway\'s north end round the stairs, as in the Kitchen & living and the Master bedroom pages: three ' + wn + ' panels on the bedroom\'s wall; the bedroom\'s, the powder room\'s and the hall\'s doors, shut', wood.swatch],
-    ['Switches', 'at the foot of the stairs, on the end of the wall between the niche and the stairs (18.5 cm wide, in line with the cupboard\'s doors) over the second step: two switches in one black frame, one over the other, ' + Math.round(SWITCH.h * 100) + ' cm to their middle: the upper for the stairs (the step lights and the downlight over the stairwell), the lower for the lower hallway (its downlights and the LED line along the wooden wall). Click a rocker to work it (a new mood resets them)', '#1e1e20'],
+    ['Switches', 'at the foot of the stairs, on the end of the wall between the niche and the stairs (18.5 cm wide, in line with the cupboard\'s doors) over the second step: two switches in one black frame, one over the other, ' + Math.round(SWITCH.h * 100) + ' cm to their middle: the upper for the stairs (the step lights and the downlight over the stairwell), the lower for the lower hallway (its downlights and the LED line along the wooden wall). In the landing room, on the inner face of the short wall by the hallway (beside the cupboard): its own switch for the flat ceiling light, 95 cm to its middle. Click a rocker to work it (a new mood resets them)', '#1e1e20'],
     ['Sockets', 'Czech 230 V sockets (the earth pin up) in black frames like the switch\'s (this page\'s: the permit\'s electro drawing shows an older lower floor): 30 cm high, a double by the sofa\'s arm for the floor lamp, one in the corner by the window behind the fig; a double behind the TV (1.15 m) and another behind the TV unit (37 cm); none in the hallway (for cleaning from the rooms). Click one to see what it is for', '#1e1e20'],
-    ['Light', 'small round downlights (three in the hallway, one over the landing, one over the stairwell, three upstairs), a large flat LED ceiling light (60 cm) in the middle of the landing room, the floor lamp; LED lines under the step cupboard\'s plinth and under the TV unit; the step lights', '#ffe2c2'],
+    ['Chandelier', 'over the stairs, in the well by the 1 m window, on its axis: ' + CHAND.n + ' opal glass tubes (' + Math.round(CHAND.d * 1000) + ' mm across, ' + Math.round(CHAND.len * 100) + ' cm long, black caps) on fine black cables from a slim black canopy (' + Math.round(CHAND.canopy * 200) + ' cm), round a circle of ' + Math.round(CHAND.r * 200) + ' cm, stepping down one turn like the stairs: from ' + Math.round(CHAND.top * 100) + ' cm under the ceiling to ' + Math.round((CHAND.foot - TOP) * 100) + ' cm over the upper floor (' + (CHAND.foot - zk(13)).toFixed(2) + ' m over the landing below); on the stairs\' switches', '#f4f1ea'],
+    ['Light', 'small round downlights (three in the hallway, one over the landing, one over the stairwell, three upstairs), the chandelier over the stairs (on the stairs\' switches), a large flat LED ceiling light (60 cm) in the middle of the landing room, the floor lamp; LED lines under the step cupboard\'s plinth and under the TV unit; the step lights', '#ffe2c2'],
     ['Outside', 'paving along the east facade, box balls, a lawn and a clipped hedge (this page\'s); the view from the plot beyond', '#4d6a35'],
   ];
   $('legend').innerHTML = rows.map(([k, v, c]) => `<li><i style="background:${c}"></i><span><b>${k}</b> · ${v}</span></li>`).join('');
@@ -3209,6 +3258,7 @@ const VIEWS = [
   { key: 'hallway', label: 'Hallway', pos: [53.6, 14.05, 1.6], tgt: [45.8, 14.05, 1.15], fov: 62 },
   { key: 'hallnorth', label: 'Hallway north', pos: [46.25, 14.05, 1.6], tgt: [55.5, 13.6, 1.1], fov: 62 },
   { key: 'top', label: 'Top of the stairs', pos: [53.2, 14.25, TOP + 1.6], tgt: [53.15, 16.4, TOP - 1.2], fov: 72 },
+  { key: 'chandelier', label: 'Chandelier', pos: [56.7, 13.8, TOP + 1.6], tgt: [56.58, 16.9, TOP + 1.35], fov: 74 },
   { key: 'plan', label: 'Plan', pos: [53.1, 13.3, 18], tgt: [53.1, 13.32, 0], fov: 36, plan: true },      // (the lower floor and the stairs)
 ];
 let current = VIEWS[0], tween = null;
@@ -3276,7 +3326,7 @@ function setReflections(on) {
   dirty = true;
 }
 function buildUI() {
-  $('views').innerHTML = VIEWS.map((v, i) => `<button data-key="${v.key}">${v.label}<kbd>${i + 1}</kbd></button>`).join('');
+  $('views').innerHTML = VIEWS.map((v, i) => `<button data-key="${v.key}">${v.label}<kbd>${(i + 1) % 10}</kbd></button>`).join('');
   $('views').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b) pickView(VIEWS.find((v) => v.key === b.dataset.key));
@@ -3354,7 +3404,7 @@ function buildUI() {
     if (k === 'n') { const n = next(Object.keys(NICHES), nicheKey); withBusy(async () => { setNiche(n); captureEnv(); }); return; }
     if (k === 'w') { const n = next(Object.keys(PAINTS), paintKey); withBusy(async () => { applyPaint(PAINTS[n].color, n); captureEnv(); }); return; }
     if (k === 'f') { const n = next(Object.keys(EPOXIES), epoxyKey); withBusy(async () => { await applyEpoxy(EPOXIES[n].color, n); captureEnv(); }); return; }
-    const i = parseInt(e.key, 10);
+    const i = e.key === '0' ? 10 : parseInt(e.key, 10);
     if (i >= 1 && i <= VIEWS.length) pickView(VIEWS[i - 1]);
   });
   // a double-click focuses on what is under the pointer: the first thing shown, not glass, not an occluder
@@ -3372,7 +3422,7 @@ function buildUI() {
     const hit = ray.intersectObjects(R.children, true).find((h) => shown(h.object) && !h.object.userData.occluder && !NO_AO.has(h.object.material));
     for (let o = hit?.object; o; o = o.parent) {
       if (o.userData.rocker) { const c = o.userData.rocker; return () => flip(c); }
-      if (o.userData.plate) { const c = SWITCH.gangs[R.worldToLocal(hit.point.clone()).z > SWITCH.h ? 0 : SWITCH.gangs.length - 1]; return () => flip(c); }
+      if (o.userData.plate) { const S = o.userData.plate, c = S.gangs[R.worldToLocal(hit.point.clone()).z > S.h ? 0 : S.gangs.length - 1]; return () => flip(c); }
       if (o.userData.open !== undefined) { const i = o.userData.open; return () => toggleOpen(i); }
       if (SOCK.meshes.includes(o)) return () => socketCard(hit);
     }
@@ -3516,6 +3566,7 @@ try {
   buildGlazing();
   buildCeiling();
   buildUpper();
+  buildChandelier();
   buildStairs();
   buildNiche();
   buildSwitches();

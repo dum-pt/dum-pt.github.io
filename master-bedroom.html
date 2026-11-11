@@ -275,7 +275,7 @@ const PIPE = { x0: WX0, x1: WX0 + 0.15, y0: 13.28 };
 // hinged at its south jamb on the room's face and opening into the room (open, rad: short of the pouf); the door from the
 // wardrobe to the en-suite (in its east wall), hinged at its north jamb, opening into the bathroom
 const CDOOR = { x0: 51.435, x1: 52.335, y0: Y1, y1: 13.545, leaf: 13.504, gap: 0.004, head: 2.15, t: 0.04, open: 1.4 };
-const EDOOR = { x0: 54.635, x1: 55.335, y0: 11.055, y1: WY0, head: 2.15, t: 0.04, open: 1.5 };
+const EDOOR = { x0: 54.635, x1: 55.335, y0: 11.055, y1: WY0, head: 2.1, t: 0.04, open: 1.5 };
 // the wardrobe's window in the north facade (x WX1..57.385): fixed, floor to ceiling, its frame (x0..x1, y0..y1; the reveal
 // on to WX1 plastered), the glass at glass (g0..g1), sill and head
 const WW = { x0: 57.235, x1: 57.385, y0: 11.73, y1: 12.604, glass: 57.31, g0: 11.806, g1: 12.522, sill: 0.07, head: 2.52 };
@@ -335,6 +335,10 @@ const STAIR = { r: 0.175, g: 0.275, hall: 52.685, y0: 14.805, west: 16.73, lower
 // the window over the stairs' corner landing: in the model an opening in the west facade, 1 m wide (x0..x1), the upper
 // floor's full height (2.6 m, its floor to its ceiling), unglazed; glazed here like the facades' other windows, a fixed
 // pane in an anthracite frame (f wide) in the wall's outer half (y0..y1, the glass at glass), sill and head bars
+// the chandelier over the stairs (the user's, as on the Stairs & lower hallway page): in the well of the last arm, on the
+// 1 m window's axis, across from it; 18 opal glass tubes stepping down one turn from a slim black canopy, its foot
+// (foot) 30 cm over this floor
+const CHAND = { x: 56.585, y: 15.65, n: 18, r: 0.18, d: 0.035, len: 0.55, cap: 0.04, top: 0.3, foot: 0.3, canopy: 0.22 };
 const SWW = { x0: 56.085, x1: 57.085, y0: 16.88, y1: 17.03, glass: 16.955, f: 0.076, sill: 0.07, head: 2.52, h: 2.6 };
 // the two sides of the wall between the bedroom and the hallway (y: inside the door's leaf, which stands at the hallway's
 // face of the wall, so that each of its faces has its own side's lamps). The lamps that cast no shadows would shine through
@@ -1161,6 +1165,7 @@ const M = {
   trim: physical({ color: 0x141414, roughness: 0.6 }),
   metal: physical({ metalness: 1, roughness: 0.32 }),                  // the rails, the glass doors' frames (the style's)
   blackMetal: physical({ color: 0x19191a, metalness: 0.5, roughness: 0.45 }),
+  tube: physical({ color: 0xf4f1ea, roughness: 0.45, emissive: 0xffffff, emissiveIntensity: 0 }),   // the chandelier's opal glass
   lamp: physical({ color: 0x161617, metalness: 0.3, roughness: 0.55 }),   // the reading lights: matte black
   stainless: physical({ color: 0xc8c8c5, metalness: 1, roughness: 0.28 }),
   fabric: physical({ color: 0xd3ccc0, roughness: 1, sheen: 0.8, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.6 }),   // the upholstered headboard
@@ -1807,6 +1812,19 @@ function buildHallway() {
   for (const [x, y] of [...C.lamps.map((x) => [x, C.ly]), S.lamp]) {
     ceil(M.trim, cyl(0.036, 0.002, 'z', [x, y, H - 0.001], 32));
     ceil(E.cor, cyl(0.029, 0.002, 'z', [x, y, H - 0.003], 32));
+  }
+  // the chandelier over the stairs (as on the Stairs & lower hallway page: CHAND), its tubes glowing with the hallway's
+  // lights (applyMood)
+  {
+    const K = CHAND, ns = { shadow: false }, zc = H - 0.025, z0 = H - K.top, z1 = K.foot + K.len, dz = (z0 - z1) / (K.n - 1);
+    add(M.blackMetal, cyl(K.canopy, 0.025, 'z', [K.x, K.y, H - 0.0125], 64), ns);
+    for (let i = 0; i < K.n; i++) {
+      const a = Math.PI / 2 + (i + 0.5) * 2 * Math.PI / K.n, x = K.x + K.r * Math.cos(a), y = K.y + K.r * Math.sin(a), zt = z0 - i * dz;
+      add(M.blackMetal, cyl(0.0012, zc - zt, 'z', [x, y, (zc + zt) / 2], 6), ns);
+      add(M.blackMetal, cyl(K.d / 2 + 0.002, K.cap, 'z', [x, y, zt - K.cap / 2], 24), ns);
+      add(M.tube, cyl(K.d / 2, K.len - K.cap, 'z', [x, y, zt - K.cap - (K.len - K.cap) / 2], 24), ns);
+    }
+    flush(groups.ceiling);
   }
 }
 
@@ -3407,6 +3425,7 @@ function applyMood(key) {
   // (the wardrobe's LED lines behind its fronts: some of their light gets out through glass, none through flush doors)
   const wk = WFRONTS[wfrontKey].k;
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch) * (ch === 'wled' ? wk : 1); a.visible = shown(ch); }
+  M.tube.emissive.copy(c); M.tube.emissiveIntensity = lv('cor') > 0.1 ? 1.6 * (0.3 + 0.7 * lv('cor')) : 0;
   for (const [e, ch] of Object.entries(LENS)) E[e].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['pocket', 'glow', 'cove', 'niche', 'wled', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   M.curtain.emissive.copy(c).multiply(M.curtain.color).multiplyScalar(lv('pocket') > 0 ? BASE.pocket * lv('pocket') : 0);

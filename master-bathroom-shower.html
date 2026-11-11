@@ -114,7 +114,8 @@
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.25" max="13" step="0.05" value="5.5" aria-label="Time of day"><span id="sunlabel">6:34</span></div>
   </div>
-  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches by the door (lights; blinds and the PDLC film) and the sockets from the electro plan: black or white plates. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
+  <div class="group"><h2>Cabinets</h2><div class="seg" id="cabs" title="The fronts of the cabinets over the WC and the vanity: two pairs of doors (wood over the WC, mirror over the vanity), or from the window a fixed wooden panel of 20 cm, two mirror doors of 40 cm, a fixed wooden panel of 40 cm and two wooden doors of 40 cm"></div></div>
+  <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches by the door (the downlights | the ambient LED, the blinds, the PDLC film) and by the mirror (its LED), and the sockets from the electro plan: black or white plates. Click a rocker to switch its lights, a socket to see what it is for (E)"></div></div>
   <div class="group"><h2>Open &amp; close</h2>
     <div class="chips"><button class="chip" id="t-door" aria-pressed="false" title="Open or close the door (D)">Open door</button></div>
     <div class="winrow"><span>Window</span><div class="seg" id="win" title="Window: closed, tilted or open (W)"></div></div>
@@ -198,9 +199,12 @@ const WC_Y1 = 3.596;                   // the WC pre-wall and its cabinet end he
 // to WT), the LED strip in it close to the wall at x led (user, 2026-10-24; the cove along the window wall is gone)
 const HCOVE = { x1: X0 + 0.215, y0: 2.966, top: WT, led: X0 + 0.06 };
 const DOOR_S = [11.953, 12.652];       // door from the wardrobe in the west wall (hinge on the shower side)
-// hidden toilet-brush box in the door wall, 8 cm further from the door than the light switches (user, 2026-10-24),
-// the toilet-roll holder over it: centre x, width, bottom, top, depth
-const BRUSH = { x: DOOR_S[1] + 0.18, w: 0.15, z0: 0.2, z1: 0.65, d: 0.1 };
+const DOOR_H = 2.1;                    // the door's height (its opening's head; the user, 2026-11-11)
+// hidden toilet-brush box in the WC's pre-wall, beside the WC on the door's side (user, 2026-11-11): centre y, width,
+// bottom, top, depth into the pre-wall
+const BRUSH = { y: 2.76, w: 0.15, z0: 0.2, z1: 0.65, d: 0.1 };
+// the toilet-roll holder on the door wall beside the WC: its arm's x
+const ROLL_X = DOOR_S[1] + 0.163;
 const DOOR_LEAF = { y0: Y0 - 0.09, y1: Y0 + 0.6 };                   // the leaf drawn open, from its hinge into the room
 const DOOR_N = [11.595, 13.095];       // full-height window opening in the east wall
 const BASIN_RIM = 0.898;               // top of the integrated basin, as in the model
@@ -1220,11 +1224,19 @@ let floorMesh, mirrorMesh;
 
 // ---------------------------------------------------------------- things that open with a click
 // The cabinet doors over the WC and the vanity swing open on their hinges (a pair over each, opening from the
-// middle) and the hidden toilet-brush box in the door wall tilts out (user, 2026-10-24), the vanity's drawers slide
+// middle) and the hidden toilet-brush box in the WC's pre-wall tilts out (user, 2026-10-24), the vanity's drawers slide
 // out (user, 2026-10-25): a click on one (not a drag) opens or closes it. Each is a group pivoting on its hinge
 // line (slide: moving along the axis instead, by max metres); its meshes are built in room coordinates, then
 // shifted onto the pivot. step(), if given, follows each animation step.
 const OPENERS = [];
+// the cabinets' fronts (CABINETS, the user's): pair, a pair of wooden doors over the WC and a pair of mirror doors over
+// the vanity; split, from the window a fixed wooden panel (20 cm), two mirror doors (40 cm each) over the basin, a fixed
+// wooden panel (40 cm) and two wooden doors (40 cm each) over the WC. Each in its own group (CABV: what differs, the
+// partitions, the shelves, what is in them, the fronts), shown by setCabinets
+const CABINETS = { pair: { label: 'Mirror 2 × 60' }, split: { label: 'Mirror 2 × 40' } };
+const CABV = { pair: new THREE.Group(), split: new THREE.Group() };
+R.add(CABV.pair, CABV.split);
+let cabKey = 'pair';
 function opener(pivot, axis, max, dur, slide = false) {
   const g = new THREE.Group();
   g.position.set(...pivot);
@@ -1258,30 +1270,75 @@ function animateOpeners(dt) {
   return moved;
 }
 
-// the toilet brush in a hidden box in the door wall under the light switches: a flap faced in the wall's own
-// plaster (drawn on with it, so only its 2 mm shadow gap shows) tilts out on its bottom edge, with the brush in
-// a cup on a bracket behind it; the box is lined dark
+// the toilet brush in a hidden box in the WC's pre-wall (beside the Geberit frame): a flap faced in the pre-wall's own
+// finish (drawn on with it, so only its 2 mm shadow gap shows) tilts out on its bottom edge, with the brush in a cup on
+// a bracket behind it; the box is lined dark
 function buildBrushBox() {
-  const { x, w, z0, z1, d } = BRUSH, x0 = x - w / 2, x1 = x + w / 2, yb = Y0 - d, ns = { shadow: false };
-  add(M.dark, box(x0, x1, yb - 0.01, yb, z0, z1, { faces: 'Y' }), ns);
-  add(M.dark, box(x0 - 0.01, x0, yb, Y0, z0, z1, { faces: 'X' }), ns);
-  add(M.dark, box(x1, x1 + 0.01, yb, Y0, z0, z1, { faces: 'x' }), ns);
-  add(M.dark, box(x0, x1, yb, Y0, z0 - 0.01, z0, { faces: 'Z' }), ns);
-  add(M.dark, box(x0, x1, yb, Y0, z1, z1 + 0.01, { faces: 'z' }), ns);
-  const o = opener([x, Y0, z0], 'x', -THREE.MathUtils.degToRad(24), 0.6), t = 0.016, j = 0.002;
-  o.put(M.plaster, box(x0 + j, x1 - j, Y0 - t, Y0, z0 + j, z1 - j, { faces: 'YxXzZ' }));
-  o.put(M.dark, box(x0 + j, x1 - j, Y0 - t, Y0, z0 + j, z1 - j, { faces: 'y' }), false);
-  const cy = Y0 - t - 0.042, cb = z0 + 0.03;
-  o.put(M.metal, box(x - 0.018, x + 0.018, Y0 - t - 0.006, Y0 - t, cb + 0.02, cb + 0.11), false);
-  o.put(M.metal, lathe([[0, 0], [0.035, 0], [0.035, 0.12], [0.032, 0.12], [0.032, 0.005], [0, 0.005]], [x, cy, cb]), false);
-  o.put(M.dark, cyl(0.028, 0.07, 'z', [x, cy, cb + 0.045], 20), false);
-  o.put(M.metal, cyl(0.0055, 0.3, 'z', [x, cy, cb + 0.22], 16), false);
-  o.put(M.metal, sphere(0.01, [x, cy, cb + 0.375], 16), false);
+  const { y, w, z0, z1, d } = BRUSH, y0 = y - w / 2, y1 = y + w / 2, xb = FIX + d, ns = { shadow: false };
+  add(M.dark, box(xb, xb + 0.01, y0, y1, z0, z1, { faces: 'x' }), ns);
+  add(M.dark, box(FIX, xb, y0 - 0.01, y0, z0, z1, { faces: 'Y' }), ns);
+  add(M.dark, box(FIX, xb, y1, y1 + 0.01, z0, z1, { faces: 'y' }), ns);
+  add(M.dark, box(FIX, xb, y0, y1, z0 - 0.01, z0, { faces: 'Z' }), ns);
+  add(M.dark, box(FIX, xb, y0, y1, z1, z1 + 0.01, { faces: 'z' }), ns);
+  const o = opener([FIX, y, z0], 'y', -THREE.MathUtils.degToRad(24), 0.6), t = 0.016, j = 0.002;
+  o.put(M.lower, box(FIX, FIX + t, y0 + j, y1 - j, z0 + j, z1 - j, { faces: 'xyYzZ' }));
+  o.put(M.dark, box(FIX, FIX + t, y0 + j, y1 - j, z0 + j, z1 - j, { faces: 'X' }), false);
+  const cx = FIX + t + 0.042, cb = z0 + 0.03;
+  o.put(M.metal, box(FIX + t, FIX + t + 0.006, y - 0.018, y + 0.018, cb + 0.02, cb + 0.11), false);
+  o.put(M.metal, lathe([[0, 0], [0.035, 0], [0.035, 0.12], [0.032, 0.12], [0.032, 0.005], [0, 0.005]], [cx, y, cb]), false);
+  o.put(M.dark, cyl(0.028, 0.07, 'z', [cx, y, cb + 0.045], 20), false);
+  o.put(M.metal, cyl(0.0055, 0.3, 'z', [cx, y, cb + 0.22], 16), false);
+  o.put(M.metal, sphere(0.01, [cx, y, cb + 0.375], 16), false);
 }
 
 // what is kept in the cabinets over the WC (towels, toilet rolls) and over the vanity (toiletries), standing on
 // their bottoms and shelves (CAB_SHELVES: shelf tops); none of it casts shadows
 const CAB_SHELVES = [1.583, 1.921, 2.259];
+function buildCabinetContentsSplit() {
+  const ns = { shadow: false }, xc = (FIX + 0.02 + X1 - 0.01) / 2, [z1, z2, z3] = CAB_SHELVES, z0 = CAB_Z + 0.018;
+  const bottle = (mat, x, y, z, r, h, cap = M.metal) => {
+    add(mat, cyl(r, h, 'z', [x, y, z + h / 2], 28), ns);
+    add(cap, cyl(r * 0.45, 0.026, 'z', [x, y, z + h + 0.013], 20), ns);
+  };
+  // over the WC (y 2.612 to 3.387): folded bath towels, rolled hand towels, toilet rolls and a linen box, linen boxes on top
+  [[2.80, M.towel], [3.21, M.towel2]].forEach(([y, mat], k) => {
+    for (let i = 0; i < 5; i++) add(mat, rbox(0.13, 0.3, 0.045, 0.017, [xc + (i % 2 ? 0.004 : -0.003), y + (i % 3 - 1) * 0.004 + k * 0.003, z0 + 0.0225 + i * 0.045]), ns);
+  });
+  for (let i = 0; i < 6; i++) add(M.towel, cyl(0.045, 0.13, 'x', [xc, 2.705 + i * 0.092, z1 + 0.045], 24), ns);
+  for (let i = 0; i < 5; i++) add(M.towel2, cyl(0.045, 0.13, 'x', [xc, 2.751 + i * 0.092, z1 + 0.123], 24), ns);
+  for (const [y, z] of [[2.69, z2], [2.805, z2], [2.92, z2], [3.035, z2], [2.7475, z2 + 0.1], [2.8625, z2 + 0.1]]) {
+    add(M.paper, cyl(0.055, 0.1, 'z', [xc, y, z + 0.05], 28), ns);
+    add(M.dark, cyl(0.02, 0.1006, 'z', [xc, y, z + 0.05], 16), ns);
+  }
+  add(M.linen, box(xc - 0.065, xc + 0.065, 3.12, 3.37, z2, z2 + 0.16), ns);
+  for (const [a, b] of [[2.63, 2.99], [3.03, 3.37]]) add(M.linen, box(xc - 0.06, xc + 0.06, a, b, z3, z3 + 0.2), ns);
+  // over the basin (y 3.805 to 4.587): the everyday things on the bottom, bottles and jars on the shelves, spares on top
+  add(M.pottery, lathe([[0, 0], [0.034, 0], [0.036, 0.1], [0.032, 0.1], [0.031, 0.006], [0, 0.006]], [xc, 3.88, z0]), ns);
+  for (const [dx, dy, mat] of [[-0.008, -0.006, M.bottleWhite], [0.007, 0.008, M.towel2]]) {
+    add(mat, cyl(0.0055, 0.19, 'z', [xc + dx, 3.88 + dy, z0 + 0.095], 12), ns);
+    add(mat, box(xc + dx - 0.006, xc + dx + 0.006, 3.88 + dy - 0.004, 3.88 + dy + 0.004, z0 + 0.17, z0 + 0.2), ns);
+  }
+  bottle(M.bottleWhite, xc + 0.01, 3.99, z0, 0.032, 0.16);
+  add(M.metal, cyl(0.004, 0.04, 'y', [xc + 0.01, 3.975, z0 + 0.19], 8), ns);
+  add(M.pottery, cyl(0.045, 0.065, 'z', [xc - 0.01, 4.11, z0 + 0.0325], 32), ns);
+  add(M.metal, cyl(0.046, 0.012, 'z', [xc - 0.01, 4.11, z0 + 0.071], 32), ns);
+  bottle(M.dark, xc + 0.015, 4.22, z0, 0.024, 0.13);
+  bottle(M.bottleWhite, xc - 0.02, 4.29, z0, 0.02, 0.11);
+  for (let i = 0; i < 3; i++) add(M.towel, rbox(0.12, 0.22, 0.032, 0.012, [xc, 4.46, z0 + 0.016 + i * 0.032]), ns);
+  for (const [y, r, h] of [[3.86, 0.03, 0.2], [3.94, 0.03, 0.2], [4.03, 0.026, 0.15]]) bottle(M.bottleWhite, xc - 0.01, y, z1, r, h);
+  add(M.pottery, cyl(0.05, 0.09, 'z', [xc, 4.16, z1 + 0.045], 32), ns);
+  add(M.veneer, cyl(0.051, 0.015, 'z', [xc, 4.16, z1 + 0.0975], 32), ns);
+  bottle(M.dark, xc + 0.02, 4.28, z1, 0.022, 0.15);
+  bottle(M.dark, xc - 0.025, 4.34, z1, 0.022, 0.12);
+  for (let i = 0; i < 3; i++) add(M.soap, rbox(0.09, 0.06, 0.025, 0.011, [xc, 4.47, z1 + 0.0125 + i * 0.026]), ns);
+  for (const y of [3.87, 3.99]) {
+    add(M.pottery, cyl(0.045, 0.12, 'z', [xc, y, z2 + 0.06], 32), ns);
+    add(M.veneer, cyl(0.046, 0.014, 'z', [xc, y, z2 + 0.127], 32), ns);
+  }
+  add(M.linen, box(xc - 0.06, xc + 0.06, 4.06, 4.30, z2, z2 + 0.14), ns);
+  add(M.bottleWhite, rbox(0.12, 0.26, 0.11, 0.008, [xc, 4.45, z2 + 0.055]), ns);
+  for (const [a, b] of [[3.82, 4.18], [4.22, 4.57]]) add(M.linen, box(xc - 0.06, xc + 0.06, a, b, z3, z3 + 0.2), ns);
+}
 function buildCabinetContents() {
   const ns = { shadow: false }, xc = (FIX + 0.02 + X1 - 0.01) / 2, [z1, z2, z3] = CAB_SHELVES, z0 = CAB_Z + 0.018;
   const bottle = (mat, x, y, z, r, h, cap = M.metal) => {
@@ -1336,15 +1393,8 @@ function buildArchitecture() {
   // the fixtures wall casts no shadows: sunlight bounced off the mirror doors is modelled as a light behind it
   wall(X1, 14.045, YW0, YW1, 0, WT, false);
   wall(X0, DOOR_S[0], YW0, Y0);
-  // the door wall beside the latch: its face drawn round the hidden brush box
-  {
-    const bx0 = BRUSH.x - BRUSH.w / 2, bx1 = BRUSH.x + BRUSH.w / 2;
-    add(M.plaster, box(DOOR_S[1], X1, YW0, Y0, 0, WT, { faces: 'xXyz' }));
-    add(M.poche, box(DOOR_S[1], X1, YW0, Y0, 0, WT, { faces: 'Z' }), { shadow: false });
-    for (const [a, b, c, d] of [[DOOR_S[1], bx0, 0, WT], [bx1, X1, 0, WT], [bx0, bx1, 0, BRUSH.z0], [bx0, bx1, BRUSH.z1, WT]]) add(M.plaster, box(a, b, YW0, Y0, c, d, { faces: 'Y' }));
-    buildBrushBox();
-  }
-  wall(DOOR_S[0], DOOR_S[1], YW0, Y0, H, WT);
+  wall(DOOR_S[1], X1, YW0, Y0);
+  wall(DOOR_S[0], DOOR_S[1], YW0, Y0, DOOR_H, WT);
   wall(X0, DOOR_N[0], Y1, YW1);
   wall(DOOR_N[1], X1, Y1, YW1);
   wall(DOOR_N[0], DOOR_N[1], Y1, YW1, H, WT);
@@ -1372,44 +1422,47 @@ function buildArchitecture() {
 
   // south wall: the WC on an 18 cm stone pre-wall up to the cabinets; beside it the vanity against stone
   // cladding, fluted from the basin top up to the cabinets
-  add(M.lower, box(FIX, X1, Y0, WC_Y1, 0, CAB_Z, { faces: 'xY' }));
+  // (the pre-wall's face drawn round the hidden brush box)
+  {
+    const b0 = BRUSH.y - BRUSH.w / 2, b1 = BRUSH.y + BRUSH.w / 2;
+    add(M.lower, box(FIX, X1, Y0, WC_Y1, 0, CAB_Z, { faces: 'Y' }));
+    for (const [a, b, c, d] of [[Y0, b0, 0, CAB_Z], [b1, WC_Y1, 0, CAB_Z], [b0, b1, 0, BRUSH.z0], [b0, b1, BRUSH.z1, CAB_Z]]) add(M.lower, box(FIX, X1, a, b, c, d, { faces: 'x' }));
+    buildBrushBox();
+  }
   add(M.lower, box(SPLASH, X1, WC_Y1, Y1, 0, BASIN_RIM - 0.01, { faces: 'x' }));
   add(M.backsplash, box(SPLASH, X1, WC_Y1, Y1, BASIN_RIM - 0.01, CAB_Z, { faces: 'x' }));
-  // cabinets along the whole wall from 1.23 m to the ceiling, flush with the pre-wall: a pair of walnut doors
-  // over the WC (towels), a pair of mirror doors over the vanity (push to open, 3 mm gaps) with an LED strip
-  // under their front edge. Every door opens with a click (OPENERS); inside, walnut with three shelves. The
+  // cabinets along the whole wall from 1.23 m to the ceiling, flush with the pre-wall, their fronts (CABINETS) wooden
+  // over the WC (towels) and mirror over the vanity (push to open, 3 mm gaps), an LED strip under the vanity's part's
+  // front edge. Every door opens with a click (OPENERS); inside, walnut with three shelves. The
   // carcass and what is in it cast no shadows, so the sun bounced off the mirror doors can pass.
   {
     const g = 0.0015, cz = CAB_Z, mid0 = (Y0 + WC_Y1) / 2, mid1 = (WC_Y1 + Y1) / 2, ix = FIX + 0.02, ib = X1 - 0.01, ns = { shadow: false };
     add(M.veneer, box(FIX, X1 - 0.03, Y0, Y1, cz, cz + 0.018, { faces: 'z', swap: true }), ns);   // underside
-    // the carcass: bottom, top, back, ends, the partition between the two cabinets and the shelves
+    // the carcass: bottom, top, back, ends (the partitions and the shelves: per set of fronts)
     add(M.veneer, box(ix, ib, Y0, Y1, cz, cz + 0.018, { faces: 'Z' }), ns);
     add(M.veneer, box(ix, ib, Y0, Y1, H - 0.02, H, { faces: 'zZ' }), ns);
     add(M.veneer, box(ib, X1, Y0, Y1, cz, H, { faces: 'x' }), ns);
     add(M.veneer, box(ix, ib, Y0, Y0 + 0.016, cz, H, { faces: 'Y' }), ns);
     add(M.veneer, box(ix, ib, Y1 - 0.016, Y1, cz, H, { faces: 'y' }), ns);
-    add(M.veneer, box(ix, ib, WC_Y1 - 0.009, WC_Y1 + 0.009, cz, H, { faces: 'xyY' }), ns);
-    for (const [a, b] of [[Y0 + 0.016, WC_Y1 - 0.009], [WC_Y1 + 0.009, Y1 - 0.016]]) {
-      for (const z of CAB_SHELVES) add(M.veneer, box(ix + 0.004, ib, a, b, z - 0.018, z, { faces: 'xzZ' }), ns);
-    }
-    buildCabinetContents();
-    // while a cabinet is shut, a dark backing behind its doors is all that shows in the gaps
-    const gap = (y0, y1) => { const m = new THREE.Mesh(box(ix, ix + 0.001, y0, y1, cz, H, { faces: 'x' }), M.dark); groups.room.add(m); return m; };
-    const cabs = [{ gap: gap(Y0, WC_Y1), doors: [] }, { gap: gap(WC_Y1, Y1), doors: [] }];
+    // what differs between the fronts, each set in its group (CABV)
+    flush(groups.room);
+    const part = (y) => add(M.veneer, box(ix, ib, y - 0.009, y + 0.009, cz, H, { faces: 'xyY' }), ns);
+    const shelves = (a, b) => { for (const z of CAB_SHELVES) add(M.veneer, box(ix + 0.004, ib, a, b, z - 0.018, z, { faces: 'xzZ' }), ns); };
+    // while a cabinet is shut, a dark backing behind its doors is all that shows in the gaps (always, behind a fixed panel)
+    const gap = (G, y0, y1) => { const m = new THREE.Mesh(box(ix, ix + 0.001, y0, y1, cz, H, { faces: 'x' }), M.dark); G.add(m); return m; };
     // a door from a to b, hinged on its a or b edge at its front face xf, opening 90 degrees
-    const door = (cab, a, b, hingeA, xf) => {
+    const door = (G, cab, a, b, hingeA, xf) => {
       const o = opener([xf, hingeA ? a : b, 0], 'z', (hingeA ? 1 : -1) * Math.PI / 2, 0.8);
+      G.add(o.g);
       cab.doors.push(o);
       o.step = () => { cab.gap.visible = cab.doors.every((d) => d.t === 0); };
       return o;
     };
-    for (const [a, b, h] of [[Y0 + 0.003, mid0 - g, true], [mid0 + g, WC_Y1 - g, false]]) {
-      const o = door(cabs[0], a, b, h, FIX);
+    const woodFront = (o, a, b) => {
       o.put(M.fluted, box(FIX, FIX + 0.02, a, b, cz + 0.002, H - 0.003, { faces: 'xyYzZ' }));
       o.put(M.veneer, box(FIX, FIX + 0.02, a, b, cz + 0.002, H - 0.003, { faces: 'X' }));
-    }
-    for (const [a, b, h] of [[WC_Y1 + g, mid1 - g, true], [mid1 + g, Y1 - 0.003, false]]) {
-      const o = door(cabs[1], a, b, h, MIRROR.x);
+    };
+    const mirrorFront = (o, a, b) => {
       o.put(M.veneer, box(MIRROR.x + 0.006, FIX + 0.02, a, b, cz + 0.002, H - 0.003, { faces: 'XyYzZ' }), false);
       o.put(M.mirrorEdge, box(MIRROR.x, MIRROR.x + 0.006, a, b, cz + 0.002, H - 0.003, { faces: 'yYzZ' }), false);
       const m = o.put(M.mirror, box(MIRROR.x, MIRROR.x + 0.006, a, b, cz + 0.002, H - 0.003, { faces: 'x' }), false);
@@ -1423,7 +1476,37 @@ function buildArchitecture() {
         if (loose && i >= 0) mirrorRefl.meshes.splice(i, 1);
         if (!loose && i < 0) mirrorRefl.meshes.push(m);
       };
+    };
+    // pair: the WC's doors open from the middle; the mirror doors both hinged on their edge towards the WC (the one by
+    // the window would hit the towel bar on the window wall)
+    {
+      const G = CABV.pair;
+      part(WC_Y1);
+      shelves(Y0 + 0.016, WC_Y1 - 0.009);
+      shelves(WC_Y1 + 0.009, Y1 - 0.016);
+      buildCabinetContents();
+      flush(G);
+      const cabs = [{ gap: gap(G, Y0, WC_Y1), doors: [] }, { gap: gap(G, WC_Y1, Y1), doors: [] }];
+      for (const [a, b, h] of [[Y0 + 0.003, mid0 - g, true], [mid0 + g, WC_Y1 - g, false]]) woodFront(door(G, cabs[0], a, b, h, FIX), a, b);
+      for (const [a, b] of [[WC_Y1 + g, mid1 - g], [mid1 + g, Y1 - 0.003]]) mirrorFront(door(G, cabs[1], a, b, true, MIRROR.x), a, b);
     }
+    // split, from the window: a fixed wooden panel (f1..Y1), two mirror doors (m0..f1) opening from the middle, a fixed
+    // wooden panel (f2..m0), two wooden doors (Y0..f2) opening from the middle; shut boxes behind the fixed panels
+    {
+      const G = CABV.split, f1 = Y1 - 0.2, m0 = Y1 - 1.0, f2 = Y1 - 1.4, mm = (m0 + f1) / 2, wm = (Y0 + f2) / 2;
+      for (const y of [f1, m0, f2]) part(y);
+      shelves(Y0 + 0.016, f2 - 0.009);
+      shelves(m0 + 0.009, f1 - 0.009);
+      buildCabinetContentsSplit();
+      for (const [a, b] of [[f1 + g, Y1 - 0.003], [f2 + g, m0 - g]]) add(M.fluted, box(FIX, FIX + 0.02, a, b, cz + 0.002, H - 0.003, { faces: 'xyYzZ' }));
+      flush(G);
+      gap(G, f1, Y1);
+      gap(G, f2, m0);
+      const cabs = [{ gap: gap(G, Y0, f2), doors: [] }, { gap: gap(G, m0, f1), doors: [] }];
+      for (const [a, b, h] of [[Y0 + 0.003, wm - g, true], [wm + g, f2 - g, false]]) woodFront(door(G, cabs[0], a, b, h, FIX), a, b);
+      for (const [a, b, h] of [[m0 + g, mm - g, true], [mm + g, f1 - g, false]]) mirrorFront(door(G, cabs[1], a, b, h, MIRROR.x), a, b);
+    }
+    for (const [k, G] of Object.entries(CABV)) G.visible = k === cabKey;
     add(E.led, box(FIX + 0.03, FIX + 0.045, WC_Y1 + 0.02, Y1 - 0.02, cz - 0.003, cz, { faces: 'z' }), ns);
   }
 
@@ -1590,7 +1673,7 @@ const WINDOW_MODES = {
 const WINDOW = { mode: 'closed', cur: { turn: 0, tilt: 0, lever: 0 }, turnG: null, tiltG: null, leverG: null };
 function buildDoor() {
   const dy0 = DOOR_LEAF.y0, dy1 = DOOR_LEAF.y1, hx = DOOR_S[0] + 0.002;
-  add(M.door, box(hx, hx + 0.04, dy0, dy1, 0.006, H - 0.004));
+  add(M.door, box(hx, hx + 0.04, dy0, dy1, 0.006, DOOR_H - 0.004));
   for (const [x, s] of [[DOOR_S[0] + 0.042, 1], [DOOR_S[0] + 0.002, -1]]) {
     add(M.metal, cyl(0.026, 0.008, 'x', [x + s * 0.004, dy1 - 0.07, 1.02]));
     add(M.metal, cyl(0.009, 0.05, 'x', [x + s * 0.03, dy1 - 0.07, 1.02]));
@@ -1884,17 +1967,16 @@ function buildFittings(skp) {
   add(M.metal, box(FIX - 0.006, FIX, 2.978, 3.218, 0.985, 1.15));
   add(M.metal, box(FIX - 0.009, FIX - 0.006, 2.984, 3.095, 0.991, 1.144));
   add(M.metal, box(FIX - 0.009, FIX - 0.006, 3.101, 3.212, 0.991, 1.144));
-  // toilet-roll holder on the door wall beside the WC, just above the hidden brush box (user, 2026-10-24): its arm
-  // on the door's side, the roll's middle 4 cm further from the door than the box's (user, 2026-10-25)
+  // toilet-roll holder on the door wall beside the WC (user, 2026-10-24/25): its arm on the door's side
   {
-    const ax = BRUSH.x + 0.04 - 0.057, hz = 0.76;
+    const ax = ROLL_X, hz = 0.76;
     add(M.metal, cyl(0.024, 0.008, 'y', [ax, Y0 + 0.004, hz]));
     add(M.metal, cyl(0.006, 0.07, 'y', [ax, Y0 + 0.04, hz]));
     add(M.metal, cyl(0.006, 0.11, 'x', [ax + 0.05, Y0 + 0.073, hz]));
     add(M.paper, cyl(0.055, 0.098, 'x', [ax + 0.057, Y0 + 0.073, hz], 32));
     add(M.dark, cyl(0.02, 0.1, 'x', [ax + 0.057, Y0 + 0.073, hz], 16));
   }
-  // bidet hand shower on the pre-wall between the WC and the vanity, under the hand towel (user, 2026-10-24): the
+  // bidet hand shower on the pre-wall between the WC and the vanity (user, 2026-10-24): the
   // spray standing in a wall holder, its metal hose hanging in a loop down to a stop valve on a round rosette
   {
     const ys = 3.44, yv = 3.5, xs = FIX - 0.05, zh = 0.66, zv = 0.4, z0 = zh - 0.08;
@@ -1911,19 +1993,19 @@ function buildFittings(skp) {
       [FIX - 0.05, yv, 0.3], [FIX - 0.04, yv, zv - 0.035]].map((p) => new THREE.Vector3(...p)));
     add(M.metal, new THREE.TubeGeometry(hose, 64, 0.0055, 10, false));
   }
-  // a hand towel by the basin: folded over a slim bar on the pre-wall between the WC and the vanity, under the
-  // cabinet (user, 2026-10-24)
+  // a hand towel by the basin: folded over a slim bar on the window wall beside the mirror cabinet, over the vanity's
+  // end (the user's), the mirror's switch S4 above it
   {
-    const xc = FIX - 0.06, zc = 1.15, ya = 3.33, yb = 3.56;
-    add(M.metal, cyl(0.006, yb - ya, 'y', [xc, (ya + yb) / 2, zc], 20));
-    for (const y of [ya, yb]) {
-      add(M.metal, sphere(0.0065, [xc, y, zc], 16));
-      add(M.metal, cyl(0.006, FIX - xc, 'x', [(xc + FIX) / 2, y, zc], 16));
-      add(M.metal, cyl(0.016, 0.006, 'x', [FIX - 0.003, y, zc], 24));
+    const yc = Y1 - 0.06, zc = 1.22, xa = DOOR_N[1] + 0.03, xb = FIX - 0.03;
+    add(M.metal, cyl(0.006, xb - xa, 'x', [(xa + xb) / 2, yc, zc], 20));
+    for (const x of [xa, xb]) {
+      add(M.metal, sphere(0.0065, [x, yc, zc], 16));
+      add(M.metal, cyl(0.006, Y1 - yc, 'y', [x, (yc + Y1) / 2, zc], 16));
+      add(M.metal, cyl(0.016, 0.006, 'y', [x, Y1 - 0.003, zc], 24));
     }
-    drapeTowel(M.towel2, { x: xc, z: zc, y0: 3.345, w: 0.2, back: 0.2, front: 0.27, phase: 0.4 });
+    drapeTowel(M.towel2, { x: yc, z: zc, y0: xa + 0.012, w: xb - xa - 0.024, back: 0.18, front: 0.23, phase: 0.4, alongX: true });
   }
-  // (the toilet brush is in a hidden box in the door wall: buildBrushBox)
+  // (the toilet brush is in a hidden box in the WC's pre-wall: buildBrushBox)
   // (the light switches on the door wall, latch side: DEVICES, S1-3)
 }
 
@@ -1963,7 +2045,8 @@ function vBoxBasin(mat, v0, v1, z0) {
 // along the bar from y0 for w, then given soft waves that grow towards the hem (wave: their depth). Over a post
 // (a vertical tube at y = post) it is held at one point only: away from it the cloth sags (sag: the drop per metre
 // squared) and its halves close together
-function drapeTowel(mat, { x, z, y0, w, back, front, ri = 0.0075, phase = 0, wave = 1, post, sag = 0 }) {
+// (alongX: the bar runs along x instead, its axis at y = x, the towel from x = y0 for w; its back towards +y)
+function drapeTowel(mat, { x, z, y0, w, back, front, ri = 0.0075, phase = 0, wave = 1, post, sag = 0, alongX = false }) {
   const t = 0.007, ro = ri + t, flare = 0.008, sh = new THREE.Shape();
   sh.moveTo(ro, -back);
   sh.lineTo(ro, 0);
@@ -1986,7 +2069,9 @@ function drapeTowel(mat, { x, z, y0, w, back, front, ri = 0.0075, phase = 0, wav
   g.deleteAttribute('normal');
   g = mergeVertices(g, 1e-5);
   g.computeVertexNormals();
-  add(mat, g.rotateX(Math.PI / 2).translate(x, y0 + w, z));
+  g.rotateX(Math.PI / 2).translate(0, w, 0);
+  if (alongX) add(mat, g.rotateZ(Math.PI / 2).translate(y0 + w, x, z));
+  else add(mat, g.translate(x, y0, z));
 }
 
 // counter-top things: soap dispenser, a tray of the stone with candle and bottle, folded towels, the vase
@@ -2286,14 +2371,15 @@ async function loadView() {
 
 // ---------------------------------------------------------------- the switches and the sockets
 // From the electro plan (stena_elektro_displej.dxf, view KOUPELNA - CELNI, the vanity's wall): the sockets in the window
-// reveal and in the mirror cabinet; by the door, on its latch side (view W1, 2026-11-07), S1-3 (the lights) and beyond it
-// S4-5 (top: the exterior blinds, up | down; bottom: the PDLC film), both at h950. Each fitting is on a wall face (at x or y, n its normal into the room, u: where along it, from the
+// reveal and in the mirror cabinet; by the door, on its latch side (view W1), S1-3 at h950 (top: the downlights | the
+// ambient LED; middle: the exterior blinds, up | down; bottom: the PDLC film); by the mirror, on the window wall's pier
+// beside the mirror cabinet (view W3), S4 at h1400 over the towel bar (the LED under the cabinet and the vanity). Each fitting is on a wall face (at x or y, n its normal into the room, u: where along it, from the
 // view's X, mm from the window wall's face) at the view's height h (mm, to its centre). Frames 80 x 80 (70 in the
 // cabinet, as drawn), gangs at 71 mm; Czech sockets (type E, the earth pin up). A rocker works its lamps (CIRCUITS: the
 // moods' channels; or act, a circuit that does something else: the blinds, the film); the rest say what they are (devCard). (P-L3, the 24 V outlet of the LED under the vanity, is inside it: one driver in the mirror cabinet feeds both.)
 const WALLS = {
   W1: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.1 },               // the door wall, 10 cm from the door on its latch side
-  W1b: { y: Y0, n: [0, 1], u: () => DOOR_S[1] + 0.19 },             // (the next frame beyond it)
+  Wp: { y: Y1, n: [0, -1], u: () => (DOOR_N[1] + FIX) / 2 },        // the window wall's pier between the window and the mirror cabinet
   K: { x: X1 - 0.01, n: [-1, 0], u: (X) => Y1 - X / 1000 },          // the back of the mirror cabinet over the vanity
   Kr: { x: DOOR_N[1], n: [-1, 0], u: (X) => Y1 - X / 1000 },         // the window's reveal on the vanity's side
 };
@@ -2310,8 +2396,8 @@ for (const [c, { ch }] of Object.entries(CIRCUITS)) for (const k of ch ?? []) CI
 // kinds: sw (gangs: [circuit] a whole rocker, [left, right] split; vert: stacked, the first on top), sock (n in a row),
 // outlet (a cable's way out)
 const DEVICES = [
-  { id: 'S1-3', w: 'W1', h: 950, kind: 'sw', vert: true, gangs: [['down'], ['led'], ['cove']], names: ['top', 'middle', 'bottom'] },
-  { id: 'S4-5', w: 'W1b', h: 950, kind: 'sw', vert: true, gangs: [['blindsUp', 'blindsDown'], ['film']], names: ['top', 'bottom'] },
+  { id: 'S1-3', w: 'W1', h: 950, kind: 'sw', vert: true, gangs: [['down', 'cove'], ['blindsUp', 'blindsDown'], ['film']], names: ['top', 'middle', 'bottom'] },
+  { id: 'S4', w: 'Wp', h: 1400, kind: 'sw', gangs: [['led']], names: [''] },
   { id: 'K-Z1', w: 'Kr', X: -108, h: 500, kind: 'sock', info: 'in the window reveal' },
   { id: 'K-P1', w: 'Kr', X: -108, h: 50, s: 0.05, kind: 'outlet', info: 'PDLC film: the low-voltage cable from its driver in the mirror cabinet (230 V in), in the window reveal' },
   { id: 'K-Z2', w: 'K', X: 300, h: 1400, s: 0.07, n: 2, kind: 'sock', info: 'double, in the mirror cabinet, behind its door by the window' },
@@ -2409,6 +2495,20 @@ function buildDevices() {
   for (const m of flush(DEV.group)) { m.userData.dev = true; DEV.meshes.push(m); }
   setDeviceColor(devColor);
   showSwitches();
+}
+// the cabinets' fronts (CABINETS): the other set hidden, every cabinet door shut
+function setCabinets(k) {
+  cabKey = k;
+  for (const [key, G] of Object.entries(CABV)) G.visible = key === k;
+  for (const o of OPENERS) {
+    if (!Object.values(CABV).includes(o.g.parent) || (!o.open && o.t === 0)) continue;
+    o.open = false; o.t = 0; o.g.rotation[o.axis] = 0;
+    if (o.step) o.step();
+  }
+  document.querySelectorAll('#cabs button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderLegend();
+  envSoon();
+  dirty = true;
 }
 function setDeviceColor(k) {
   devColor = k;
@@ -2848,9 +2948,9 @@ function renderLegend() {
     ['Bench', WOODS[woodKey].short + ', solid, oiled, under the window', WOODS[woodKey].swatch],
     ['Vanity', VANITIES[vanityKey].desc.replace('walnut', wn), wood.swatch],
     ['Basin', VANITIES[vanityKey].basin(p), '#f3f2ef'],
-    ['Cabinets', wood.short + ' veneer, oiled; mirror doors over the vanity, LED under them', wood.swatch],
-    ['Fittings', METALS[p.metal].label + '; a bidet hand shower beside the WC', METALS[p.metal].swatch],
-    ['Switches', DEVCOLORS[devColor].label + ' plates: the switches by the door (lights; blinds and the PDLC film), sockets in the window reveal and in the mirror cabinet', DEVCOLORS[devColor].swatch],
+    ['Cabinets', wood.short + ' veneer, oiled, the wooden fronts fluted; ' + (cabKey === 'split' ? 'from the window a fixed panel of 20 cm, two mirror doors of 40 cm over the basin, a fixed panel of 40 cm, two doors of 40 cm over the WC' : 'two doors over the WC, two mirror doors over the vanity') + ', LED under them', wood.swatch],
+    ['Fittings', METALS[p.metal].label + '; a bidet hand shower beside the WC, a hand towel bar on the window wall beside the mirror cabinet', METALS[p.metal].swatch],
+    ['Switches', DEVCOLORS[devColor].label + ' plates: by the door one frame of three (the downlights | the ambient LED, the blinds, the PDLC film), by the mirror the switch of its LED; sockets in the window reveal and in the mirror cabinet', DEVCOLORS[devColor].swatch],
     layoutKey === 'enclosed' ? ['Shower', 'enclosed by a tiled wall where the glass would be: a 70 cm opening by the door wall between rounded stone jambs', tileColor]
       : ['Shower glass', 'bronze tinted, 1.4 m from the window wall', '#8c7059'],
     ['Door', 'flush, white lacquer', '#f2f0eb'],
@@ -3055,6 +3155,7 @@ function buildUI() {
   seg($('win'), WINDOW_MODES, (k) => setWindow(k), WINDOW.mode);
   seg($('film'), { on: { label: 'On · clear' }, off: { label: 'Off · frosted' } }, (k) => setFilm(k === 'off'), 'on');
   seg($('devcolors'), DEVCOLORS, (k) => setDeviceColor(k), devColor);
+  seg($('cabs'), CABINETS, (k) => setCabinets(k), cabKey);
   {
     // a click (not a drag) on a cabinet door or the brush box opens or closes it, on a switch's rocker works it, on a
     // socket says what it is (devAction); a double-click only acts once. Over them the pointer turns into a hand.
