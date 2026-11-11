@@ -279,18 +279,28 @@ const EDOOR = { x0: 54.635, x1: 55.335, y0: 11.055, y1: WY0, head: 2.1, t: 0.04,
 // the wardrobe's window in the north facade (x WX1..57.385): fixed, floor to ceiling, its frame (x0..x1, y0..y1; the reveal
 // on to WX1 plastered), the glass at glass (g0..g1), sill and head
 const WW = { x0: 57.235, x1: 57.385, y0: 11.73, y1: 12.604, glass: 57.31, g0: 11.806, g1: 12.522, sill: 0.07, head: 2.52 };
-// The wardrobe's runs, in the wood: along the corridor wall 60 cm deep (W), along the east wall 50 cm deep either side of
-// the en-suite's door (E1, E2; E2 clear of the switch by the door), both clear of the window's reveal; y0..y1, the front
-// facing -y or +y (front), the sides (2 cm) at xs, a bay between each two: hang (a rail at rails[0]), double (rails at
-// both), drawers (n, up to top, shelves over them), shoes (sloping shelves, shelves over them); a shelf at shelf over all,
-// the plinth set back; LED lines under the shelves' front edges. Their fronts (WFRONTS): none, glass doors in a slim metal
-// frame or flush lacquered doors, one to a bay (two to a wide one)
+// The wardrobe's runs, in the wood: along the corridor wall 60 cm deep (W), along the east wall either side of the
+// en-suite's door (E1, E2; E2 clear of the socket by the door), both clear of the window's reveal; y0..y1, the front
+// facing -y or +y (front), the sides (2 cm) at xs, a bay between each two. The corridor wall's (buildRun): hang (a rail at
+// rails[0]), double (rails at both), drawers (n, up to top, shelves over them), shoes (sloping shelves, shelves over them);
+// a shelf at shelf over all, the plinth set back; LED lines under the shelves' front edges; its fronts (WFRONTS): none,
+// glass doors in a slim metal frame or flush lacquered doors, one to a bay (two to a wide one). The east wall's: open,
+// boutique style, 35 cm deep (buildBoutique, BTQ), drawers or shoes under a rail
 const WRUN = {
   W: { y0: 12.805, y1: Y1, front: -1, xs: [WX0, 54.395, 55.065, 55.735, 56.405, WX1], bays: ['hang', 'double', 'drawers', 'double', 'shoes'], pipe: PIPE },
-  E1: { y0: WY0, y1: 11.695, front: 1, xs: [WX0, 54.585], bays: ['drawers'] },
-  E2: { y0: WY0, y1: 11.695, front: 1, xs: [55.62, 56.355, WX1], bays: ['hang', 'double'] },
+  E1: { y0: WY0, y1: WY0 + 0.35, front: 1, xs: [WX0, 54.585], bays: ['drawers'] },
+  E2: { y0: WY0, y1: WY0 + 0.35, front: 1, xs: [55.62, 56.355, WX1], bays: ['drawers', 'shoes'] },
 };
 const WBAY = { plinth: 0.08, bottom: 0.1, shelf: 2.2, rails: [2.12, 1.1], drawers: 4, top: 0.9, shelves: [1.27, 1.64, 2.0], shoes: [0.14, 0.4, 0.66, 0.92], high: [1.3, 1.72] };
+// the east wall's open runs (the user's: "more open, boutique; a rail on top, only shelves or drawers under it, at most
+// 35 cm deep"): an open frame in the wood, its sides floor to ceiling only at the run's ends, its back panelled; a canopy
+// (its underside at canopy, t thick) with linen boxes on it and an LED line under its front edge; one rail along the run
+// in the style's metal at rail, held off the back on arms (its axis railBack from the wall: the hangers stand across it,
+// the clothes some 10 cm proud of the frame, as in a shop; across: their width; lens: their lengths, clear of the low
+// unit; spread: more room between them than on a closed run's rail); under it a low unit on the plinth set back, up to
+// top, topped with a slab of the stone (stone thick), divided at the inner xs (only so high): drawers (n of them) or open
+// shelves (at shelves) with shoes on them and on its bottom
+const BTQ = { canopy: 2.2, t: 0.04, rail: 2.0, railBack: 0.25, top: 0.84, stone: 0.02, n: 3, shelves: [0.46], across: 0.42, lens: [0.65, 0.92], spread: 0.04 };
 // a round pouf in the wardrobe before its window; the rugs: under the bed and along the wardrobe's aisle (x0, x1, y0, y1)
 const WPOUF = { x: 56.55, y: 12.17, r: 0.24, h: 0.42 };
 const RUGS = [[50.95, 53.1, 9.12, 11.72], [54.0, 56.25, 11.93, 12.57]];
@@ -2127,14 +2137,14 @@ function garment(x, y, z, t, w, len, yaw = 0) {
 }
 // the clothes on a rail (x0..x1 along it, at y, the rail at z): shirts, jackets, dresses, each on a hanger, w across, its
 // length within lens, a colour of its own
-function clothes(x0, x1, y, z, w, lens, seed) {
+function clothes(x0, x1, y, z, w, lens, seed, spread = 0) {
   const rnd = mulberry(seed);
   for (let x = x0 + 0.03; x < x1 - 0.05;) {
     const t = 0.012 + rnd() * 0.035, len = lens[0] + rnd() * (lens[1] - lens[0]), mat = M.clothes[Math.floor(rnd() * M.clothes.length)], c = x + t / 2;
     add(mat, garment(c, y, z - 0.045, t, w * (0.84 + rnd() * 0.16), len, (rnd() - 0.5) * 0.14));
     add(M.hanger, cyl(0.005, w * 0.8, 'y', [c, y, z - 0.04], 8));
     add(M.hanger, cyl(0.0016, 0.045, 'z', [c, y, z - 0.015], 6));
-    x += t + 0.012 + rnd() * 0.03;
+    x += t + 0.012 + rnd() * 0.03 + spread;
   }
 }
 // folded clothes in a stack (x, y its middle, on z): n of them, w x d, each a colour of its own
@@ -2253,10 +2263,73 @@ function buildRun(R, seed) {
     } else WDOOR_SPECS.push(j % 2 ? { a: ga, b: gb, hx: gb, e: -1, f, yd } : { a: ga, b: gb, hx: ga, e: 1, f, yd });
   });
 }
+// an open run of the east wall: see BTQ
+function buildBoutique(R, seed) {
+  const { y0, y1, front: f, xs, bays } = R, B = BTQ, depth = y1 - y0, back = depth - 0.012, yf = f < 0 ? y0 : y1;
+  const yd = (d) => yf - f * d, Y = (d0, d1) => { const a = yd(d0), b = yd(d1); return [Math.min(a, b), Math.max(a, b)]; };
+  const ff = f < 0 ? 'y' : 'Y', N = xs.length - 1, x0 = xs[0], x1 = xs[N], a0 = x0 + 0.02, b0 = x1 - 0.02, rnd = mulberry(seed);
+  const c0 = B.canopy, c1 = B.canopy + B.t, top = B.top + B.stone;
+  // the frame: the back, the ends' sides floor to ceiling, the plinth, the low unit's bottom, its dividers and its stone
+  // top, the canopy with the LED line under its front edge and the linen boxes on it
+  add(M.veneer, box(x0, x1, ...Y(back, depth), 0, H, { faces: ff }));
+  for (const [a, b] of [[x0, a0], [b0, x1]]) add(M.veneer, box(a, b, ...Y(0, back), 0, H, { faces: 'xX' + ff }));
+  add(M.dark, box(a0, b0, ...Y(0.05, back), 0, WBAY.plinth, { faces: ff }));
+  add(M.veneer, box(a0, b0, ...Y(0, back), WBAY.plinth, WBAY.bottom, { faces: ff + 'Z' }));
+  for (let i = 1; i < N; i++) add(M.veneer, box(xs[i] - 0.01, xs[i] + 0.01, ...Y(0, back), WBAY.bottom, B.top, { faces: 'xX' + ff }));
+  add(M.marble, box(a0, b0, ...Y(0, back), B.top, top, { faces: ff + 'zZ' }));
+  add(M.veneer, box(a0, b0, ...Y(0, back), c0, c1, { faces: ff + 'zZ' }));
+  add(E.wled, box(a0 + 0.015, b0 - 0.015, ...Y(0.025, 0.033), c0 - 0.0008, c0, { faces: 'z' }), { shadow: false });
+  {
+    const w = b0 - a0, n = Math.max(1, Math.floor(w / 0.3)), bw = w / n - 0.03, bd = Math.min(0.34, back - 0.1);
+    for (let k = 0; k < n; k++) add(M.box, projectUV(rbox(bw, bd, 0.24, 0.01, [a0 + (k + 0.5) * (w / n), yd(back - 0.04 - bd / 2), c1 + 0.12])));
+  }
+  // the rail on its arms (one at each end, one over each divider), the clothes between the arms
+  const yr = yd(depth - B.railBack), r0 = a0 + 0.03, r1 = b0 - 0.03, arms = [a0 + 0.1, ...xs.slice(1, N), b0 - 0.1];
+  add(M.metal, cyl(0.0125, r1 - r0, 'x', [(r0 + r1) / 2, yr, B.rail], 20));
+  for (const ax of arms) {
+    add(M.metal, cyl(0.008, B.railBack - 0.012, 'y', [ax, (yd(back) + yr) / 2, B.rail], 12));
+    add(M.metal, cyl(0.022, 0.006, 'y', [ax, yd(back - 0.003), B.rail], 24));
+  }
+  for (let i = 0; i + 1 < arms.length; i++) clothes(arms[i] + 0.01, arms[i + 1] - 0.01, yr, B.rail, B.across, B.lens, seed * 13 + i, B.spread);
+  // the low unit's bays
+  bays.forEach((kind, j) => {
+    const a = xs[j] + (j ? 0.01 : 0.02), b = xs[j + 1] - (j + 1 === N ? 0.02 : 0.01), w = b - a;
+    if (kind === 'drawers') {
+      // drawers up to the stone top (a click opens one), folded clothes in them; on the top a folded pair
+      const hgt = (B.top - WBAY.bottom) / B.n, travel = back - 0.06;
+      for (let k = 0; k < B.n; k++) {
+        const z0 = WBAY.bottom + k * hgt + 0.0015, z1 = WBAY.bottom + (k + 1) * hgt - 0.0015, s = seed * 10 + j * 4 + k;
+        DRAWER_SPECS.push({ axis: 'y', dir: f, travel, build: () => {
+          const d0 = 0.02, d1 = d0 + travel + 0.02, fl = z0 + 0.016;
+          add(M.veneer, box(a + 0.002, b - 0.002, ...Y(0, d0), z0, z1));
+          add(M.joint, box(a + 0.03, b - 0.03, ...Y(-0.0008, 0), z1 - 0.016, z1 - 0.006, { faces: ff }), { shadow: false });
+          add(M.veneer, box(a + 0.015, b - 0.015, ...Y(d0, d1), z0 + 0.004, fl, { faces: 'Z' }));
+          add(M.veneer, box(a + 0.015, a + 0.027, ...Y(d0, d1), z0 + 0.004, z1 - 0.03, { faces: 'xXZ' }));
+          add(M.veneer, box(b - 0.027, b - 0.015, ...Y(d0, d1), z0 + 0.004, z1 - 0.03, { faces: 'xXZ' }));
+          add(M.veneer, box(a + 0.027, b - 0.027, ...Y(d1 - 0.012, d1), z0 + 0.004, z1 - 0.03, { faces: ff + 'Z' }));
+          const m = Math.max(2, Math.floor((b - a - 0.06) / 0.28)), ww = (b - a - 0.06) / m;
+          for (let q = 0; q < m; q++) stack(a + 0.03 + (q + 0.5) * ww, yd(d0 + travel / 2 + 0.01), fl, 2, ww - 0.03, travel - 0.05, s * 7 + q);
+        } });
+      }
+      stack(a + 0.2, yd(back / 2), top, 2, 0.28, 0.24, seed * 17 + j);
+    } else if (kind === 'shoes') {
+      // open shelves, a row of pairs on each and on the bottom; a clutch on the top
+      for (const z of B.shelves) add(M.veneer, box(a, b, ...Y(0, back), z, z + 0.02, { faces: ff + 'zZ' }));
+      const pairs = Math.floor(w / 0.22);
+      for (const z of [WBAY.bottom, ...B.shelves.map((z) => z + 0.02)]) {
+        for (let k = 0; k < pairs; k++) {
+          const px = a + (k + 0.5) * (w / pairs), mat = M.leather[Math.floor(rnd() * M.leather.length)];
+          for (const s of [-0.05, 0.05]) add(mat, projectUV(rbox(0.085, 0.27, 0.075, 0.03, [px + s, yd(back / 2), z + 0.0375])));
+        }
+      }
+      add(M.leather[Math.floor(rnd() * M.leather.length)], projectUV(rbox(0.26, 0.12, 0.07, 0.025, [b - 0.2, yd(back / 2), top + 0.035])));
+    }
+  });
+}
 function buildWardrobe() {
   buildRun(WRUN.W, 3);
-  buildRun(WRUN.E1, 5);
-  buildRun(WRUN.E2, 7);
+  buildBoutique(WRUN.E1, 5);
+  buildBoutique(WRUN.E2, 7);
   // the round pouf before the window
   {
     const { x, y, r, h } = WPOUF;
@@ -2942,11 +3015,12 @@ function buildLights() {
     area('niche', 1, 0.02, n1 - n0 - 0.05, SU(D.front - 0.03, (n0 + n1) / 2, D.nz1 - 0.015));
   }
   // the wardrobe's shelves: one line along each side, just in front of the runs under their top shelf (out of the
-  // partitions: an area light through a surface lights it with invalid values; the fronts let some or none of it out)
+  // partitions: an area light through a surface lights it with invalid values; the corridor wall's fronts let some or none
+  // of it out, the east wall's runs are open: userData.open)
   {
     const W = WRUN.W, E1 = WRUN.E1, s = WBAY.shelf - 0.03;
     area('wled', 1, WX1 - WX0 - 0.06, 0.02, SU((WX0 + WX1) / 2, W.y0 - 0.03, s));
-    area('wled', 1, WX1 - WX0 - 0.3, 0.02, SU((WX0 + WX1) / 2 - 0.05, E1.y1 + 0.03, s));
+    area('wled', 1, WX1 - WX0 - 0.3, 0.02, SU((WX0 + WX1) / 2 - 0.05, E1.y1 + 0.03, s)).userData.open = true;
   }
   // daylight: the sun, with shadows over the rooms and the terrace; the sky's light coming in through each glazing as a
   // soft area light facing in (the east glazing's and the terrace door's behind the curtains; setSun, applySky)
@@ -3422,9 +3496,9 @@ function applyMood(key) {
     for (const s of lights) { s.color.copy(c); s.intensity = base * lv(ch); s.visible = shown(ch); }
   }
   for (const [s, ch] of L.read) { s.color.copy(c); s.intensity = BASE.read * lv(ch); s.visible = shown(ch); }
-  // (the wardrobe's LED lines behind its fronts: some of their light gets out through glass, none through flush doors)
+  // (the corridor wall's LED line behind its fronts: some of its light gets out through glass, none through flush doors)
   const wk = WFRONTS[wfrontKey].k;
-  for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch) * (ch === 'wled' ? wk : 1); a.visible = shown(ch); }
+  for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch) * (ch === 'wled' && !a.userData.open ? wk : 1); a.visible = shown(ch); }
   M.tube.emissive.copy(c); M.tube.emissiveIntensity = lv('cor') > 0.1 ? 1.6 * (0.3 + 0.7 * lv('cor')) : 0;
   for (const [e, ch] of Object.entries(LENS)) E[e].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['pocket', 'glow', 'cove', 'niche', 'wled', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
@@ -3608,7 +3682,7 @@ function renderLegend() {
     ['Dressing', 'as in the model, by the corridor door: a floating ' + wn + ' top before a tall organic mirror; a ' + wn + ' column of open shelves (a lit niche of Carrara shelves over the top, a Carrara shelf under it), a tall cabinet in the corner, its door opening (a click), shelves of towels and boxes in it; the Firkant pouf (Icons of Denmark), a Gessi diffuser', '#e3e1dd'],
     ['Chest', 'a chest of drawers in the corner by the wardrobe\'s opening, against the corridor wall: ' + wn + ', 90 × 42 cm, 76 cm high, its edges rounded, on a dark grey plinth set back; three drawers with fluted fronts (round reeds floor to top) and round knobs in ' + metal.label + ' (a click opens one); on it a framed print leaning on the wall (50 × 70 cm, layered hills under a low sun on a white mat, a slim black frame), a dark vase of bare branches, books', wood.swatch],
     ['TV', 'a 55-inch TV on the south wall, facing the bed', '#1b1b1c'],
-    ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall with a pocket door: ' + wn + ' runs ' + fronts + ' along the corridor wall (60 cm deep: hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + ') and the east wall either side of the bathroom door (50 cm: drawers, hanging); rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
+    ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall with a pocket door: ' + wn + ' runs: along the corridor wall ' + fronts + ', 60 cm deep (hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + '); along the east wall either side of the bathroom door open, boutique style, 35 cm deep: a rail on arms from the back, the clothes hanging across it, under it a low unit topped with Carrara, drawers or open shelves of shoes; rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
     ['Floor', floor + ', on into the wardrobe; wool rugs under the bed and along the wardrobe', floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, lit by an LED line in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
