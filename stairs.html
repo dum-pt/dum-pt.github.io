@@ -239,8 +239,14 @@ const NICHE = { x0: 53.83, x1: 55.83, y0: 14.795, y1: 15.6, deep: 0.6, clad: 0.0
 // the landing room's light: one large flat LED ceiling light, surface-mounted, opal underside, at the midpoint of the
 // two downlights it replaced (r radius, h depth); the landing's downlight (between the niche and the stairs' foot)
 const LPANEL = { x: 55.15, y: 11.75, r: 0.3, h: 0.05 };
-// round it a raised field in the lowered ceiling (2.8 x 2.1 m, centred on the light; its top at h, the rest at HC)
-const LFIELD = { x0: 53.75, x1: 56.55, y0: 10.70, y1: 12.80, h: 2.65 };
+// round it a raised field in the lowered ceiling (1.8 x 2.1 m, centred on the light; its top at h, lined in wood boards w
+// wide running east-west; the rest at HC), held off the north wall clear of the recuperation's supply duct (DUCT)
+const LFIELD = { x0: 54.25, x1: 56.05, y0: 10.70, y1: 12.80, h: 2.65, w: 0.12 };
+// the recuperation's supply duct above the lowered ceiling (the user's route; about DN 180-200, r; its axis at z): in
+// through the north facade on the axis of the upper floor's wardrobe window (WW in the bedroom page), at once 45 deg
+// south-west across the landing room and the landing to the niche, there 45 deg again and straight south through the
+// niche's south wall into the technical room. Hidden by the ceilings; shown in the plan view (DUCTG)
+const DUCT = { r: 0.1, z: HC + 0.12, pts: [[57.085, 12.167], [56.985, 12.167], [54.052, 15.1], [53.70, 15.1]] };
 const SDOWN = [[55.7, 13.975]];
 // the lounge in the landing room (LANDINGS; the model has the room empty): a low three-seat sofa with its back to the
 // landing, facing the window (x0..x1; y0 its front, y1 its back; the base's top, the seat, the back's frame and its
@@ -1638,6 +1644,8 @@ function mulberry(a) {
 
 // ---------------------------------------------------------------- build the rooms
 const groups = { ceiling: new THREE.Group(), pendants: new THREE.Group(), room: new THREE.Group(), upper: new THREE.Group() };
+const DUCTG = new THREE.Group();
+R.add(DUCTG);
 for (const g of Object.values(groups)) R.add(g);
 // the options: the landing room (LA: the lounge, or empty as drawn), the niche (NI: the step cupboard, or the cupboard)
 const LA = { lounge: new THREE.Group(), empty: new THREE.Group() };
@@ -1823,15 +1831,30 @@ function buildCeiling() {
     put(M.ceiling, box(a, b, c, d, HC, HC + 0.01, { faces: 'z' }));
   }
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0 + POCKET, LR.y0 + POCKET + 0.01, HC, HL, { faces: 'y' }));
-  // the landing room's raised field: its top, its four sides
-  { const F = LFIELD;
-    put(M.ceiling, box(F.x0, F.x1, F.y0, F.y1, F.h, F.h + 0.01, { faces: 'z' }));
+  // the landing room's raised field: its top lined in wood boards (the hallway's wood) over a dark backing showing in
+  // their 3 mm joints, its four sides plastered
+  { const F = LFIELD, n = Math.round((F.x1 - F.x0) / F.w), w = (F.x1 - F.x0) / n;
+    put(M.joint, box(F.x0, F.x1, F.y0, F.y1, F.h + 0.006, F.h + 0.01, { faces: 'z' }));
+    for (let i = 0; i < n; i++) put(M.veneer, box(F.x0 + i * w + (i ? 0.0015 : 0), F.x0 + (i + 1) * w - (i < n - 1 ? 0.0015 : 0), F.y0, F.y1, F.h, F.h + 0.012, { faces: 'z' }));
     put(M.ceiling, box(F.x0 - 0.01, F.x0, F.y0, F.y1, HC, F.h, { faces: 'X' }));
     put(M.ceiling, box(F.x1, F.x1 + 0.01, F.y0, F.y1, HC, F.h, { faces: 'x' }));
     put(M.ceiling, box(F.x0, F.x1, F.y0 - 0.01, F.y0, HC, F.h, { faces: 'Y' }));
     put(M.ceiling, box(F.x0, F.x1, F.y1, F.y1 + 0.01, HC, F.h, { faces: 'y' })); }
   put(M.ceiling, box(LR.x0, LR.x1, LR.y0, LR.y0 + POCKET, HL, HL + 0.01, { faces: 'z' }));
   put(M.ceiling, box(STAIR.x3, COR.x1, w0 - 0.01, w0, HC, HL, { faces: 'Y' }));
+  // the recuperation's supply duct (DUCT): straight runs, a ball at each bend; seen only from above (the plan view)
+  {
+    const mat = physical({ color: 0x86a9cc, roughness: 0.5, emissive: 0x1f3247 }), r = DUCT.r;
+    const P = DUCT.pts.map(([x, y]) => V3(x, y, DUCT.z));
+    const mesh = (geo) => { const m = new THREE.Mesh(geo, mat); m.userData.noAO = true; DUCTG.add(m); };
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], g = new THREE.CylinderGeometry(r, r, a.distanceTo(b), 32, 1, true);
+      g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), b.clone().sub(a).normalize()));
+      g.translate(...a.clone().add(b).multiplyScalar(0.5).toArray());
+      mesh(g);
+    }
+    for (const p of P.slice(1, -1)) mesh(new THREE.SphereGeometry(r, 32, 16).translate(p.x, p.y, p.z));
+  }
   // the downlights: round, recessed, a black trim round the lens
   for (const [list, lens] of [[LH.lamps.map((x) => [x, LH.ly]), E.hall], [SDOWN, E.land]]) for (const [x, y] of list) {
     put(M.trim, new THREE.RingGeometry(0.03, 0.042, 40).rotateX(Math.PI).translate(x, y, HC - 0.0008));
@@ -3002,7 +3025,7 @@ function renderLegend() {
   const epoxy = epoxyKey ? EPOXIES[epoxyKey].label.toLowerCase() : 'your colour (' + epoxyColor + ')';
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white', paintColor],
-    ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights (in the landing room one large flat LED light, in a raised field of the ceiling, 2.8 x 2.1 m, up to 2.65 m); along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
+    ['Ceiling', 'lowered 25 cm for the installations, to 2.50 m, through the hallway, the landing room, the landing and the niche, with recessed downlights (in the landing room one large flat LED light, in a raised field of the ceiling, 1.8 x 2.1 m, up to 2.65 m, lined in wood boards, held off the north wall clear of the recuperation\'s supply duct; the duct runs above the lowered ceiling, seen in the Plan view: in through the north facade under the wardrobe\'s window, at 45° across the landing room and the landing to the niche, at 45° again south into the technical room); along the landing room\'s east wall it steps back up to the slab (2.75 m) in a 20 cm pocket so the window, 2.52 m high, keeps its full height (room for a curtain or a blind too); the study\'s glass door runs up to it (2.56 m in the model)', '#f2efea'],
     ['Floor', 'seamless poured epoxy, satin, ' + epoxy + ', through the hallway, the landing room, the landing and the niche; the stairs in ' + wn + '; upstairs ' + fw + ' planks', epoxyColor],
     ['Landing room', landingKey === 'lounge'
       ? 'the room at the foot of the stairs, empty in the model, as a lounge (this page\'s): an IKEA ÄPPLARYD sofa as in the Kitchen & living page, three seats and a chaise longue (290 cm), in ' + fab.desc + ' with ' + fab.cushionLabel + ' cushions, against the north wall with the chaise by the window, under a poster 2 × 1.4 m of a bridge\'s towers rising out of a sea of clouds in a slim black frame; facing it on the bathroom\'s wall a 65" TV over a floating ' + wn + ' unit with an LED line under it and, to their right, a cupboard floor to ceiling, 1 m wide and 60 cm deep, behind two handleless doors lacquered a shade lighter than the walls; a round ' + wn + ' coffee table, a wool rug, a floor lamp in ' + metal.label + ' with a linen drum shade by the sofa\'s arm, a fig tree in the corner by the window'
@@ -3532,6 +3555,7 @@ function renderFrame() {
   const above = camera.position.y > H + 0.1;
   groups.ceiling.visible = groups.upper.visible = !above;
   OUT.outside.visible = OUT.roof.visible = sky.visible = !above;
+  DUCTG.visible = above;
   if (reflectionsOn) floorRefl.update(renderer, scene, camera, []);
   if (postOn) composer.render();
   else { gtao.enabled = bloom.enabled = false; composer.render(); }
