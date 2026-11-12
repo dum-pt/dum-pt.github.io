@@ -136,6 +136,7 @@
   <div class="group"><h2>Wall paint</h2><div id="paints" title="The colour of the walls, and a shade lighter of the dining wall's tall cabinets (and of lacquered kitchen fronts); each style starts with its own (W)"><label id="paint-pick" title="Any colour"><input type="color" id="paint-custom" aria-label="Any wall colour"></label></div><div id="paint-name"></div></div>
   <div class="group"><h2>Floor</h2><div class="seg" id="floors" title="Wide planks (as drawn) or herringbone (F)"></div>
     <div id="floortones" title="The floor's colour: oiled woods, two stains on oak, or any colour (the boards keep their grain); each style starts with its own"><label id="floor-pick" title="Any colour"><input type="color" id="floor-custom" aria-label="Any floor colour"></label></div><div id="floor-name"></div></div>
+  <div class="group"><h2>Terrace soffit</h2><div class="seg" id="soffits" title="The underside of the roof's overhang over the terrace and the balcony: larch boards (as drawn) or white render, as on the facade (U)"></div></div>
   <div class="group"><h2>Light</h2><div class="seg" id="moods"></div>
     <div id="sunrow" hidden><span>21 Jun</span><input type="range" id="sun" min="4.5" max="20.1" step="0.05" value="7.5" aria-label="Time of day"><span id="sunlabel">8:34</span></div>
   </div>
@@ -3846,6 +3847,25 @@ function setPantryDoor(open) {
   PDOOR.open = open;
   dirty = true;
 }
+// the underside of the roof's overhang over the terrace and the balcony: larch boards (as drawn; their texture kept for
+// the way back) or white render, as on the facade; its sky glow (OUTDOOR, 0.22) follows the new colour
+const SOFFITS = { larch: { label: 'Larch' }, render: { label: 'White render' } };
+const SOFFIT_LARCH = { map: null, color: new THREE.Color(0xffffff), roughness: 0.75 };
+let soffitKey = 'larch';
+function setSoffit(k) {
+  soffitKey = k;
+  SOFFIT_LARCH.map ??= M.soffit.map;
+  const white = k === 'render';
+  M.soffit.map = M.soffit.emissiveMap = white ? null : SOFFIT_LARCH.map;
+  M.soffit.color.copy(white ? M.render.color : SOFFIT_LARCH.color);
+  M.soffit.roughness = white ? M.render.roughness : SOFFIT_LARCH.roughness;
+  M.soffit.needsUpdate = true;
+  if (OUT.glow) M.soffit.emissive.copy(OUT.glow).multiply(M.soffit.color).multiplyScalar(0.22);
+  document.querySelectorAll('#soffits button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  envSoon();
+  renderLegend();
+  dirty = true;
+}
 // what the pantry's door is: a plain panel in the wood (the first one built), a pane of dark smoked glass, or a
 // white lacquered slab
 const PDOORS = { wood: { label: 'Wood' }, glass: { label: 'Glass' }, white: { label: 'White' } };
@@ -4991,6 +5011,7 @@ function setSun(alt, az, day) {
   const dusk = THREE.MathUtils.clamp((U + 0.12) / 0.11, 0.02, 1);
   const glow = up ? new THREE.Color().setScalar(1.6 + 2.4 * strength) : new THREE.Color(1.3 * dusk * (0.7 + 0.3 * dusk), 1.3 * dusk * (0.8 + 0.2 * dusk), 1.3 * dusk);
   for (const [mat, k] of OUTDOOR) mat.emissive.copy(glow).multiply(mat.color).multiplyScalar(k);
+  OUT.glow = glow;
   OUT.view.color.copy(glow);
   OUT.sun.visible = day && up;
   OUT.sun.position.copy(VIEW.centre).addScaledVector(dir, VIEW.r * 0.92);
@@ -5357,6 +5378,7 @@ function renderLegend() {
     ['Floor', floor, floorColor ?? WOODS[floorWood].swatch],
     ['Curtains', 'sheer linen wave curtains on tracks in a pocket recessed into the ceiling along the east and south glazing, lit by LED lines in the pocket', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016), floor to ceiling on the east and the south, a lift-and-slide door to the terrace in each (the east one sliding north, the south one, 2.2 m wide, east); ' + (hallKey === 'pivot' ? 'a glass pivot door to the hall in a slim anthracite steel frame, turning on a pivot 18 cm from its ' + (pivotSide === 'left' ? 'left jamb (seen from the room; by the hall\'s mirror)' : 'right jamb (seen from the room; by the coat hooks)') + ', its longer part opening into the ' + (swingKey === 'hall' ? 'hall' : 'living room') : 'a frameless glass door to the hall, sliding along the lobby\'s side of the wall'), '#383b3e'],
+    ['Terrace & balcony', 'round the glazing on the south and the east: decking of thermo-treated ash, 14.5 cm boards, level with the floor; a glass balustrade, 1 m high; the roof\'s overhang over them lined ' + (soffitKey === 'render' ? 'in white render, as on the facade' : 'with larch boards, 9.6 cm'), soffitKey === 'render' ? '#e9e7e2' : '#b0916b'],
     ['Garden', 'outside the kitchen window: a lawn, a bed of box balls edged with a low box hedge, multi-stem serviceberries before the window and past the path to the front door, a clipped hornbeam hedge along the plot (1.8 m) with a slatted gate, birches beyond', '#4f6b2f'],
     ['Hallway', 'from the lobby north past the bedroom to a fixed window floor to ceiling (anthracite): three ' + wn + ' panels on the bedroom\'s wall, flush doors lacquered a shade lighter than the walls with black levers, both flush with the wall (the bedroom\'s in a reverse concealed frame, opening into the bedroom; the powder room\'s opening out), three small round downlights' + (gapsOn ? ', shadow gaps in black profiles: 20 mm between the walls and the ceiling, the stairwell\'s too, 15 mm at the walls\' foot' : '') + '; before the window a large white bird of paradise (Strelitzia nicolai) in a dark clay pot; off it the stairs down to the lower floor, round the powder room in three arms: clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side round the powder room, LED step lights low in the walls, a light over the stairwell and a frameless glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
     ['Light', 'two rows of four spots in line with the terrace\'s two, square by the TV, small and round like the hallway\'s along the kitchen\'s side, a black ring over the sofa, a black linear pendant over the island, three spots over the worktop; LED lines in the curtains\' pocket, under the wall units, in the niche, under the floating units; on the terrace an LED strip in an L round the soffit and two spots (switch R2)', '#ffe2c2'],
@@ -5514,6 +5536,7 @@ function buildUI() {
   seg($('windows'), WINDOWS, (k) => setWindow(k), windowKey);
   seg($('halldoors'), HDOORS, (k) => setHallDoor(k), hallKey);
   seg($('pantrydoors'), PDOORS, (k) => setPantryKind(k), pantryKey);
+  seg($('soffits'), SOFFITS, (k) => setSoffit(k), soffitKey);
   seg($('swings'), SWINGS, (k) => setPivot(k), swingKey);
   seg($('pivots'), PIVOTS, (k) => setPivot(swingKey, k), pivotSide);
   // the paints: a swatch each, then the picker for any colour (it repaints as you drag; the reflections follow when it
@@ -5579,6 +5602,7 @@ function buildUI() {
     if (k === 'k') { setWindow(windowKey === 'tilt' ? 'fixed' : 'tilt'); return; }
     if (k === 'v') { setHallDoor(hallKey === 'slide' ? 'pivot' : 'slide'); return; }
     if (k === 'n') { setPantryKind(next(Object.keys(PDOORS), pantryKey)); return; }
+    if (k === 'u') { setSoffit(soffitKey === 'larch' ? 'render' : 'larch'); return; }
     if (k === 'i' && hallKey === 'pivot') { setPivot(swingKey === 'hall' ? 'room' : 'hall'); return; }
     if (k === 'j' && hallKey === 'pivot') { setPivot(swingKey, pivotSide === 'left' ? 'right' : 'left'); return; }
     if (k === 'b') { setBlinds(BLINDS.target > 0.5 ? 0 : 1, BLINDS.tilt, true); return; }
@@ -5810,7 +5834,7 @@ try {
   buildUI();
   goTo(VIEWS[0], true);
   renderFrame();
-  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, HINGED, toggleSwing, toggleOven, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setPantryDoor, setPantryKind, PDOOR, PDOORS, setCurtains, setLayout, setFire, setGaps, GAP, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
+  window.__bath = { THREE, scene, camera, controls, renderer, M, E, L, VIEWS, HINGED, toggleSwing, toggleOven, PALETTES, FABRICS, FRONTS, FLOORS, applyFronts, applyFabric, setFloor, setDoor, setGlass, setPantryDoor, setPantryKind, PDOOR, PDOORS, setSoffit, SOFFITS, setCurtains, setLayout, setFire, setGaps, GAP, setWindow, KWIN, setHallDoor, setPivot, HDOOR, GARDEN, setBlinds, BLINDS, DEV, DEVICES, CIRCUITS, SWITCHED, flip, setDeviceColor, setFloorTone, toggleDrawer, DRAWERS, toggleSash, DOORS, TDOOR, GLASS, CURT, OUT, zones, LAYOUT,
     applyStoneChoice, PAINTS, WOODS, applyPaint, applyWoodChoice, roomEv, STONES, texCache, bakeSet, captureImage, saveImage, goTo, pickView, setMood, setSunHour, BASE, MOODS,
     applyFloor, R, SU, renderFrame, applyPalette, applyMood, captureEnv, gtao, bloom, setReflections, BP, cubeRT, reflectors, mirrorRefl, floorRefl, solar, setSun, groups,
     shot(pos, tgt, fov = 60) { camera.position.copy(SU(...pos)); controls.target.copy(SU(...tgt)); camera.fov = fov; camera.updateProjectionMatrix(); controls.update(); renderFrame(); } };
