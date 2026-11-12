@@ -225,7 +225,7 @@ const EG = { x0: 50.49, x1: 52.085, fy0: YO, fy1: 8.705, glass: 8.63, g0: 50.574
 const SD = { x0: 50.41, x1: 50.56, y0: 8.63, y1: 9.629, sx0: 50.435, sx1: 50.485, sy0: 8.712, sy1: 9.553, sill: 0.08, head: 2.52, open: 1.45, pier: 9.605 };
 // the curtains: an L-shaped pocket in the ceiling, 15 cm wide, along the east wall (y Y0..pe) and the south wall (x X0..ps,
 // on to end, the dressing corner), recessed up to pk, its inner corner rounded (r); a black track at its middle, an LED
-// line along its room-side edge. Wave curtains hang from top: the east run gathers, open, in front of the solid wall north
+// line along the east run's room-side edge (none along the south wall, the living room's). Wave curtains hang from top: the east run gathers, open, in front of the solid wall north
 // of the glazing (short of the nightstand), the south one in front of the pier (short of the TV); each run goes from the
 // end it gathers at (a) to its far end (b). Wave folds every 12 cm closed, 1.8 times fullness; gathered, 1.2 cm a fold
 const CURTAIN = { pk: 2.72, top: 2.70, wave: 0.12, full: 1.8, fold: 0.012, pe: 9.005, ps: 50.86, r: 0.1, end: 12.753, runs: [
@@ -1216,8 +1216,7 @@ const E = {
   wspot: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the wardrobe's
   readE: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // the reading lights' lenses
   readW: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-  pocket: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the LED lines: in the curtains' pocket,
-  glow: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // under the bed and the nightstands,
+  pocket: new THREE.MeshBasicMaterial({ color: 0xffffff }),   // the LED lines: in the curtains' pocket (its east run),
   cove: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // on the bed wall (the panel's top or the ceiling's slot),
   niche: new THREE.MeshBasicMaterial({ color: 0xffffff }),    // under the niche's shelves,
   wled: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // under the wardrobe's shelves
@@ -1340,6 +1339,10 @@ M.curtain.map = canvasTex(256, 0.12, (g, n, rnd) => {
     g.fillRect(i, 0, w, n);
   }
 });
+// the south run's curtain (by the terrace door): the same cloth, but no LED line over it (no wash: its emissive stays black;
+// setCurtainKind, applyPalette keep it in step)
+M.curtainS = M.curtain.clone();
+M.curtainS.onBeforeCompile = patchShader;
 const LINEN = canvasTex(512, 0.3, (g, n, rnd, wrap) => {
   g.fillStyle = '#ececec';
   g.fillRect(0, 0, n, n);
@@ -1909,7 +1912,6 @@ function buildCeiling() {
       else put(M.trim, box(a[0] - 0.006, a[0] + 0.006, lo(1) - 0.03, hi(1) + 0.03, pk - 0.012, pk, { faces: 'xXyYz' }));
     }
     put(E.pocket, box(ps + r, X1 - 0.02, pe - 0.022, pe - 0.012, pk - 0.002, pk, { faces: 'z' }));
-    put(E.pocket, box(ps - 0.022, ps - 0.012, pe + r, end - 0.02, pk - 0.002, pk, { faces: 'z' }));
   }
   put(M.ceiling, box(WX0, WX1, WY0, Y1, H, WT, { faces: 'z' }));
   // the tracks (TRACKS): the profile flush in the ceiling, the slot down its middle; each spot a black cylinder turned to its
@@ -1939,11 +1941,8 @@ function buildCeiling() {
 // a cushion: soft, its edges and corners thinner than its middle (pillow(w, t, h): w along x, t along y, h along z)
 function buildBed() {
   const B = BED, i = B.inset, s = B.side, cx = (B.x0 + B.x1) / 2, cy = (B.y0 + B.y1) / 2, t = B.top;
-  // the plinth, set in under the frame; the LED line under the frame's edge, round the foot and the sides
+  // the plinth, set in under the frame
   add(M.plinth, box(B.x0 + i, B.x1 - i, B.y0 + i, B.y1 - i, 0, B.z0, { faces: 'xXyY' }));
-  for (const g of [box(B.x0 + 0.012, B.x0 + 0.02, B.y0 + 0.012, B.y1 - 0.012, B.z0 - 0.002, B.z0 - 0.001, { faces: 'z' }),
-    box(B.x0 + 0.012, B.x1 - 0.06, B.y0 + 0.012, B.y0 + 0.02, B.z0 - 0.002, B.z0 - 0.001, { faces: 'z' }),
-    box(B.x0 + 0.012, B.x1 - 0.06, B.y1 - 0.02, B.y1 - 0.012, B.z0 - 0.002, B.z0 - 0.001, { faces: 'z' })]) add(E.glow, g, { shadow: false });
   // the frame: its sides outside, their tops and undersides (the plinth set in); the mattress in it, in its fitted sheet
   add(M.veneer, box(B.x0, B.x1, B.y0, B.y1, B.z0, B.z1, { faces: 'xXyY' }));
   for (const [a, b, c, d] of [[B.x0, B.x1, B.y0, B.y0 + s], [B.x0, B.x1, B.y1 - s, B.y1], [B.x0, B.x0 + s, B.y0 + s, B.y1 - s], [B.x1 - s, B.x1, B.y0 + s, B.y1 - s]]) {
@@ -2011,12 +2010,11 @@ function toggleDrawer(i) {
   dirty = true;
 }
 // the nightstands: floating boxes in the wood, their vertical edges rounded; a drawer in each (its front 1.5 mm proud, the
-// opening behind it dark, a groove under the top to pull it by); an LED line under each, by its front
+// opening behind it dark, a groove under the top to pull it by)
 function buildNightstands() {
   const N = NIGHT;
   for (const [ya, yb] of N.ys) {
     add(M.veneer, prism(N.x0, N.x1, ya, yb, N.z0, N.z1, N.r));
-    add(E.glow, box(N.x0 + 0.03, N.x0 + 0.038, ya + 0.04, yb - 0.04, N.z0 - 0.002, N.z0 - 0.001, { faces: 'z' }), { shadow: false });
     add(M.dark, box(N.x0 - 0.0004, N.x0, ya + 0.03, yb - 0.03, N.z0 + 0.03, N.z1 - 0.058, { faces: 'x' }), { shadow: false });
     add(M.joint, box(N.x0 - 0.0006, N.x0, ya + 0.03, yb - 0.03, N.z1 - 0.058, N.z1 - 0.03, { faces: 'x' }), { shadow: false });
     const a = ya + 0.032, b = yb - 0.032, z0 = N.z0 + 0.032, z1 = N.z1 - 0.06, xf = N.x0 + 0.018, xb = N.x0 + 0.38;
@@ -2757,7 +2755,7 @@ function buildCurtains() {
     }
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     geo.setIndex(idx);
-    const mesh = new THREE.Mesh(geo, M.curtain);
+    const mesh = new THREE.Mesh(geo, r.a[0] === r.b[0] ? M.curtainS : M.curtain);
     mesh.castShadow = mesh.receiveShadow = true;
     R.add(mesh);
     CURT.runs.push({ ...r, len, n, cols, dir: [dx / len, dy / len], mesh });
@@ -2799,7 +2797,7 @@ function applySky() {
 let curtainKey = 'sheer';
 function setCurtainKind(k, refresh = true) {
   curtainKey = k;
-  M.curtain.opacity = CURTAINS[k].opacity;
+  M.curtain.opacity = M.curtainS.opacity = CURTAINS[k].opacity;
   document.querySelectorAll('#curtains button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
   if (L.sky.length) applySky();
   if (!refresh) return;
@@ -3001,12 +2999,6 @@ function buildLights() {
     if (ch) L.area.push([a, ch, k]);
     return a;
   };
-  // under the bed (its whole footprint, a halo on the floor round it) and under the nightstands
-  {
-    const B = BED;
-    area('glow', 1, B.x1 - B.x0 - 0.12, B.y1 - B.y0 - 0.12, SU((B.x0 + B.x1) / 2, (B.y0 + B.y1) / 2, B.z0 - 0.015));
-    for (const [a, b] of NIGHT.ys) area('glow', 1, NIGHT.x1 - NIGHT.x0 - 0.06, b - a - 0.06, SU((NIGHT.x0 + NIGHT.x1) / 2, (a + b) / 2, NIGHT.z0 - 0.01));
-  }
   // the bed wall's wash: the panel's top, tilted at the wall (the slats: from the ceiling's slot, setBedWall)
   L.cove = area('cove', 1, PANEL.y1 - PANEL.y0 - 0.04, 0.02, V3(), null);
   // the niche: under its top, lighting the shelves down to the dressing top
@@ -3079,7 +3071,7 @@ const G_PIER = 10.105, G_COL = Y1 - 0.5;
 // what the rockers work: lamp channels (applyMood), or (none) something not in this model
 const CIRCUITS = {
   down: { label: 'Track (bedroom)', ch: ['down'] },
-  leds: { label: 'LED lines: the curtain pocket, the bed wall, the niche and the mirror, under the bed', ch: ['pocket', 'glow', 'cove', 'niche'] },
+  leds: { label: 'LED lines: the curtain pocket by the east glazing, the bed wall, the niche and the mirror', ch: ['pocket', 'cove', 'niche'] },
   readE: { label: 'Reading light, east side', ch: ['readE'] },
   readW: { label: 'Reading light, west side', ch: ['readW'] },
   wdown: { label: 'Track (wardrobe)', ch: ['wdown'] },
@@ -3474,18 +3466,18 @@ function kelvinRaw(k) {
 }
 
 // Four moods. The lamps: down: the bedroom's track; wdown: the wardrobe's; readE, readW: the reading lights; the LED
-// lines: pocket (in the curtains' pocket), glow (under the bed and the nightstands), cove (the bed wall's), niche (the
+// lines: pocket (in the curtains' pocket by the east glazing), cove (the bed wall's), niche (the
 // dressing niche's), wled (the wardrobe's shelves); hall: the bathroom's lamps, seen through its door; cor: the hallway's
 // downlights and the one over the stairs, step: the stairs' step lights.
 // tint: the lamps' colour as the eye sees it; sky: the sun's place, under the horizon, for the dusk outside. Day:
 // daylight only, the sun coming in through the east glazing in the morning, through the terrace door at midday
 const MOODS = {
-  evening: { label: 'Evening', down: 0.3, pocket: 0.8, glow: 0.8, cove: 1, niche: 1, readE: 1, readW: 0, wdown: 0.6, wled: 1, hall: 0.25, cor: 0.45, step: 1, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
-  bright: { label: 'Bright', down: 1, pocket: 0.6, glow: 0.5, cove: 0.8, niche: 0.8, readE: 0, readW: 0, wdown: 1, wled: 1, hall: 0.3, cor: 1, step: 1, tint: '#fff4ea', exposure: 1.45, sky: [-10, 300], bloom: 1.6 },
-  night: { label: 'Night', down: 0, pocket: 0.35, glow: 0.6, cove: 0, niche: 0.4, readE: 0.6, readW: 0, wdown: 0, wled: 0.3, hall: 0.02, cor: 0.06, step: 1, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, down: 0, pocket: 0, glow: 0, cove: 0, niche: 0, readE: 0, readW: 0, wdown: 0, wled: 0, hall: 0, cor: 0, step: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', down: 0.3, pocket: 0.8, cove: 1, niche: 1, readE: 1, readW: 0, wdown: 0.6, wled: 1, hall: 0.25, cor: 0.45, step: 1, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
+  bright: { label: 'Bright', down: 1, pocket: 0.6, cove: 0.8, niche: 0.8, readE: 0, readW: 0, wdown: 1, wled: 1, hall: 0.3, cor: 1, step: 1, tint: '#fff4ea', exposure: 1.45, sky: [-10, 300], bloom: 1.6 },
+  night: { label: 'Night', down: 0, pocket: 0.35, cove: 0, niche: 0.4, readE: 0.6, readW: 0, wdown: 0, wled: 0.3, hall: 0.02, cor: 0.06, step: 1, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, down: 0, pocket: 0, cove: 0, niche: 0, readE: 0, readW: 0, wdown: 0, wled: 0, hall: 0, cor: 0, step: 0, tint: '#ffffff', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, down: 8, wdown: 8, read: 10, glow: 2.5, cove: 150, niche: 300, wled: 150, pocket: 1.4, lens: 30, strip: 7, sky: 1.0, cor: 8, north: 4 };
+const BASE = { sun: 28, down: 8, wdown: 8, read: 10, cove: 150, niche: 300, wled: 150, pocket: 1.4, lens: 30, strip: 7, sky: 1.0, cor: 8, north: 4 };
 const LENS = { spot: 'down', wspot: 'wdown', readE: 'readE', readW: 'readW', cor: 'cor' };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
@@ -3501,7 +3493,7 @@ function applyMood(key) {
   for (const [a, ch, k] of L.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch) * (ch === 'wled' && !a.userData.open ? wk : 1); a.visible = shown(ch); }
   M.tube.emissive.copy(c); M.tube.emissiveIntensity = lv('cor') > 0.1 ? 1.6 * (0.3 + 0.7 * lv('cor')) : 0;
   for (const [e, ch] of Object.entries(LENS)) E[e].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
-  for (const ch of ['pocket', 'glow', 'cove', 'niche', 'wled', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
+  for (const ch of ['pocket', 'cove', 'niche', 'wled', 'step']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
   M.curtain.emissive.copy(c).multiply(M.curtain.color).multiplyScalar(lv('pocket') > 0 ? BASE.pocket * lv('pocket') : 0);
   renderer.toneMappingExposure = m.exposure * roomEv();
   bloom.threshold = m.bloom;
@@ -3546,6 +3538,7 @@ async function applyPalette(key) {
   for (const [m, c] of [[M.fabric, p.uph], [M.pouf, p.pouf]]) { m.color.set(c); tintSheen(m); }
   M.rug.color.set(p.rug);
   M.curtain.color.set(p.curtain);
+  M.curtainS.color.set(p.curtain);
   const metal = METALS[p.metal];
   M.metal.color.set(metal.color);
   M.metal.roughness = metal.roughness;
@@ -3677,14 +3670,14 @@ function renderLegend() {
   const rows = [
     ['Walls', (paintKey ? PAINTS[paintKey].label.toLowerCase() : 'your colour (' + paintColor + ')') + ' ' + p.plaster + '; the ceilings white', paintColor],
     ['Bed wall', bedWall, bedWallKey === 'uph' ? p.uph : p.accent],
-    ['Bed', 'the model\'s: a ' + wn + ' frame, 206 × 186 cm, floating on a dark grey plinth set back, an LED line under it; the 180 × 200 mattress in ' + bed.desc + ', two square pillows and two to sleep on, a cushion, ' + bed.throwLabel + ' across the foot', bed.duvet],
-    ['Nightstands', 'floating ' + wn + ' boxes either side, their edges rounded, a drawer in each (a click opens it), an LED line under; black reading lights on the wall over them', wood.swatch],
+    ['Bed', 'the model\'s: a ' + wn + ' frame, 206 × 186 cm, floating on a dark grey plinth set back; the 180 × 200 mattress in ' + bed.desc + ', two square pillows and two to sleep on, a cushion, ' + bed.throwLabel + ' across the foot', bed.duvet],
+    ['Nightstands', 'floating ' + wn + ' boxes either side, their edges rounded, a drawer in each (a click opens it); black reading lights on the wall over them', wood.swatch],
     ['Dressing', 'as in the model, by the corridor door: a floating ' + wn + ' top before a tall organic mirror; a ' + wn + ' column of open shelves (a lit niche of Carrara shelves over the top, a Carrara shelf under it), a tall cabinet in the corner, its door opening (a click), shelves of towels and boxes in it; the Firkant pouf (Icons of Denmark), a Gessi diffuser', '#e3e1dd'],
     ['Chest', 'a chest of drawers in the corner by the wardrobe\'s opening, against the corridor wall: ' + wn + ', 90 × 42 cm, 76 cm high, its edges rounded, on a dark grey plinth set back; three drawers with fluted fronts (round reeds floor to top) and round knobs in ' + metal.label + ' (a click opens one); on it a framed print leaning on the wall (50 × 70 cm, layered hills under a low sun on a white mat, a slim black frame), a dark vase of bare branches, books', wood.swatch],
     ['TV', 'a 55-inch TV on the south wall, facing the bed', '#1b1b1c'],
     ['Wardrobe', 'walk-in, through a 70 cm opening in the bed wall with a pocket door: ' + wn + ' runs: along the corridor wall ' + fronts + ', 60 cm deep (hanging, double hanging, drawers, shoes; in its corner by the opening the pipe, boxed in and clad in ' + wn + '); along the east wall either side of the bathroom door open, boutique style, 35 cm deep: a rail on arms from the back, the clothes hanging across it, under it a low unit topped with Carrara, drawers or open shelves of shoes; rails in ' + metal.label + ', LED lines under the shelves, linen boxes on top (a click opens a door or a drawer); a round pouf before the window', wfrontKey === 'flush' ? M.lacquer.color.getStyle() : wood.swatch],
     ['Floor', floor + ', on into the wardrobe; wool rugs under the bed and along the wardrobe', floorColor ?? WOODS[floorWood].swatch],
-    ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, lit by an LED line in the pocket', p.curtain],
+    ['Curtains', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtains on tracks in a pocket recessed into the ceiling along the east glazing and the terrace door, an LED line in the pocket along the east glazing', p.curtain],
     ['Glazing', 'anthracite aluminium (RAL 7016): a fixed pane floor to ceiling on the east, a turn door to the terrace on the south (a click opens it; drawn curtains open first), a fixed window floor to ceiling at the wardrobe\'s north end', '#383b3e'],
     ['Doors', 'flush leaves lacquered a shade lighter than the walls, black levers: from the corridor, in a reverse concealed frame (flush with the hallway, set back in the wall on this side, opening into the room), and from the wardrobe into the master bathroom; into the wardrobe a pocket door, sliding into the bed wall towards the corridor (no casing, the reveals plastered): ' + PDOORS[pdoorKey].legend + ' (a click slides it)', M.lacquer.color.getStyle()],
     ['Hallway', 'outside the bedroom\'s door, as in the Kitchen & living page: from the lobby north to a fixed window floor to ceiling, three ' + wn + ' panels on the bedroom\'s wall, the powder room\'s flush door, three small downlights; off it the stairs down to the lower floor round the powder room in three arms, clad in ' + wn + ' as solid blocks (treads flush with wooden risers, no nosings), a black steel handrail on the inner side, LED step lights, a glass balustrade over the last arm; over the corner landing a fixed window 1 m wide in the west facade, the full height of the floor (in the model an opening, glazed here)', wood.swatch],
