@@ -1178,11 +1178,11 @@ const E = {
   step: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   cove: new THREE.MeshBasicMaterial({ color: 0xffffff }),     // the LED line in the recess over the wooden wall     // the stairs' step lights
 };
-// outside (lit as OUTDOOR: the sun and the sky's glow, setSun): white render, anthracite metal, the soffit's larch boards,
+// outside (lit as OUTDOOR: the sun and the sky's glow, setSun): white render, anthracite metal, the soffit (white render),
 // the paving, the lawn, the hedge
 M.render = physical({ color: 0xe9e7e2, roughness: 0.85 });
 M.anthOut = physical({ color: 0x383b3e, roughness: 0.55, clearcoat: 0.2 });
-M.soffit = physical({ color: 0xffffff, roughness: 0.75 });
+M.soffit = physical({ color: 0xe9e7e2, roughness: 0.85 });   // white render as on the facade (never wood on this floor)
 M.paving = physical({ color: 0xffffff, roughness: 0.9 });
 M.lawn = physical({ color: 0xffffff, roughness: 1 });
 M.hedge = physical({ color: 0xffffff, roughness: 0.9 });
@@ -1243,8 +1243,6 @@ function boardsTex(px, len, n, w, base, seed) {
   tex.anisotropy = maxAniso;
   return tex;
 }
-// the soffit under the upper floor's overhang: larch, 9.6 cm boards
-M.soffit.map = M.soffit.emissiveMap = boardsTex(1024, 2.4, 10, 0.096, '#b0916b', 12);
 // the paving along the east facade: 60 cm concrete slabs, each a shade of its own, a fine speckle, dark joints
 M.paving.map = M.paving.emissiveMap = canvasTex(512, 1.2, (g, n, rnd) => {
   const s = n / 2;
@@ -2548,7 +2546,7 @@ function clipped(x0, x1, y0, y1, z0, z1, r, seed, lump = 0.03) {
 
 // ---------------------------------------------------------------- surroundings
 // Outside the east window and the north ones (OUTDOOR materials, OUT.garden): the window's outer reveal in white render,
-// the upper floor's overhang over the facade (its soffit lined in larch, an anthracite fascia: OUT.roof, hidden for the
+// the upper floor's overhang over the facade (its soffit in white render, an anthracite fascia: OUT.roof, hidden for the
 // plan view); concrete paving along the facade, three clipped box balls at its edge, a lawn, a clipped hedge round the
 // garden; then the sky, the sun and the panorama
 const OUT = {};

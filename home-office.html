@@ -1060,7 +1060,7 @@ const E = {
 // paving, the lawn, the hedge
 M.render = physical({ color: 0xe9e7e2, roughness: 0.85 });
 M.anthOut = physical({ color: 0x383b3e, roughness: 0.55, clearcoat: 0.2 });
-M.soffit = physical({ color: 0xffffff, roughness: 0.75 });
+M.soffit = physical({ color: 0xe9e7e2, roughness: 0.85 });   // white render as on the facade (never wood on this floor)
 M.paving = physical({ color: 0xffffff, roughness: 0.9 });
 M.lawn = physical({ color: 0xa6ae98, roughness: 1 });
 M.hedge = physical({ color: 0xffffff, roughness: 0.9 });
@@ -1121,7 +1121,11 @@ function boardsTex(px, len, n, w, base, seed) {
   tex.anisotropy = maxAniso;
   return tex;
 }
-M.soffit.map = M.soffit.emissiveMap = boardsTex(1024, 2.4, 10, 0.096, '#b0916b', 12);
+// the store's wall beside the garden door: larch, 9.6 cm boards (as in the model; the overhang's soffit is white render)
+M.boards = physical({ color: 0xffffff, roughness: 0.75 });
+M.boards.defines = { OUTDOOR: '' };
+OUTDOOR.push([M.boards, 0.22]);
+M.boards.map = M.boards.emissiveMap = boardsTex(1024, 2.4, 10, 0.096, '#b0916b', 12);
 // the paving along the east facade: 60 cm concrete slabs, each a shade of its own, a fine speckle, dark joints
 M.paving.map = M.paving.emissiveMap = canvasTex(512, 1.2, (g, n, rnd) => {
   const s = n / 2;
@@ -2234,9 +2238,9 @@ const VIEW = { r: 60, hfov: 180, top: 27.6, bottom: -32.5, centre: SU(52.2, 11.2
 let sky;
 function buildSurroundings(viewTex) {
   // outside (OUTDOOR materials), as in the model: the garden door's outer reveal in white render; the upper floor's overhang and
-  // the terrace over the south side, their soffit lined in wood (OUT.roof: hidden for the plan view) with an anthracite
+  // the terrace over the south side, their soffit in white render (OUT.roof: hidden for the plan view) with an anthracite
   // fascia, the terrace's square column at its corner; paving round the house, the lawn, the clipped hedges; the exterior
-  // store's wall beside the garden door, boarded in the soffit's wood
+  // store's wall beside the garden door, boarded in larch (M.boards)
   const X = OUT.garden = new THREE.Group(), RF = OUT.roof = new THREE.Group();
   R.add(X, RF);
   const o = (mat, geo, cast = true, parent = X) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; m.castShadow = cast; parent.add(m); return m; };
@@ -2249,7 +2253,7 @@ function buildSurroundings(viewTex) {
   o(M.anthOut, box(40.49, 40.63, 8.63, 8.77, -0.04, SO, { faces: 'xXyY' }));
   o(M.paving, box(38.0, 57.385, 7.2, YO, -0.06, -0.04, { faces: 'Z' }), false);
   o(M.paving, box(38.0, XO, YO, 14.6, -0.06, -0.04, { faces: 'Z' }), false);
-  o(M.soffit, box(38.5, XO, 14.605, 14.625, -0.04, SO - 0.01, { faces: 'y' }));
+  o(M.boards, box(38.5, XO, 14.605, 14.625, -0.04, SO - 0.01, { faces: 'y' }));
   o(M.lawn, box(26.0, 66.0, 3.2, 7.2, -0.08, -0.06, { faces: 'Z' }), false);
   o(M.lawn, box(26.0, 38.0, 7.2, 24.0, -0.08, -0.06, { faces: 'Z' }), false);
   o(M.lawn, box(57.385, 66.0, 7.2, 24.0, -0.08, -0.06, { faces: 'Z' }), false);

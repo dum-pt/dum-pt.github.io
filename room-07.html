@@ -1169,7 +1169,7 @@ const E = {
 // paving, the lawn, the hedge
 M.render = physical({ color: 0xe9e7e2, roughness: 0.85 });
 M.anthOut = physical({ color: 0x383b3e, roughness: 0.55, clearcoat: 0.2 });
-M.soffit = physical({ color: 0xffffff, roughness: 0.75 });
+M.soffit = physical({ color: 0xe9e7e2, roughness: 0.85 });   // white render as on the facade (never wood on this floor)
 M.paving = physical({ color: 0xffffff, roughness: 0.9 });
 M.lawn = physical({ color: 0xa6ae98, roughness: 1 });
 M.hedge = physical({ color: 0xffffff, roughness: 0.9 });
@@ -1230,7 +1230,6 @@ function boardsTex(px, len, n, w, base, seed) {
   tex.anisotropy = maxAniso;
   return tex;
 }
-M.soffit.map = M.soffit.emissiveMap = boardsTex(1024, 2.4, 10, 0.096, '#b0916b', 12);
 // the paving along the east facade: 60 cm concrete slabs, each a shade of its own, a fine speckle, dark joints
 M.paving.map = M.paving.emissiveMap = canvasTex(512, 1.2, (g, n, rnd) => {
   const s = n / 2;
@@ -2639,7 +2638,7 @@ const VIEW = { r: 60, hfov: 180, top: 27.6, bottom: -32.5, centre: SU(52.2, 11.2
 let sky;
 function buildSurroundings(viewTex) {
   // outside (OUTDOOR materials), as in the model: the window's outer reveal in white render; the upper floor's overhang and
-  // the terrace over the south side, their soffit lined in wood (OUT.roof: hidden for the plan view) with an anthracite
+  // the terrace over the south side, their soffit in white render (OUT.roof: hidden for the plan view) with an anthracite
   // fascia, the terrace's square column at its corner; paving round the house, the lawn, the clipped hedges; the fence
   const X = OUT.garden = new THREE.Group(), RF = OUT.roof = new THREE.Group();
   R.add(X, RF);
