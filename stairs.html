@@ -124,7 +124,7 @@
 
 <div id="title" class="panel">
   <h1>Stairs, hallway &amp; home office</h1>
-  <p>Dům Pt · lower floor · the landing room at the foot of the stairs, the stairs up to the hallway, the hallway to the home office through its satin glass door</p>
+  <p>Dům Pt · lower floor · the landing room at the foot of the stairs, the stairs up to the hallway, the hallway to the home office through its glass door</p>
 </div>
 
 <div id="side" class="panel">
@@ -145,7 +145,8 @@
   </div>
   <div class="group"><h2>Switches &amp; sockets</h2><div class="seg" id="devcolors" title="The switches' and the sockets' plates: black or white. Click a rocker to switch its lights, a socket to see what it is for (V)"></div></div>
   <div class="group"><h2>Home office · open &amp; close</h2>
-    <div class="chips"><button class="chip" id="t-win" aria-pressed="false" title="Open or shut the study's glazed door to the terrace, or click it; a drawn curtain opens with it (D)">Open garden door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtain (C)">Close curtain</button><button class="chip" id="t-door" aria-pressed="false" title="Open or shut the satin glass door between the hallway and the study, or click it (G)">Open hallway door</button><button class="chip" id="t-cab" aria-pressed="false" title="Open or shut the wall unit's cupboards, or click a door (R)">Open cupboards</button></div>
+    <div class="winrow" title="The glass door between the hallway and the study: hinged by the east wall, or sliding into a pocket in the wooden wall (J)"><span>Hallway door</span><div class="seg" id="halldoors"></div></div>
+    <div class="chips"><button class="chip" id="t-win" aria-pressed="false" title="Open or shut the study's glazed door to the terrace, or click it; a drawn curtain opens with it (D)">Open garden door</button><button class="chip" id="t-curt" aria-pressed="false" title="Draw or open the curtain (C)">Close curtain</button><button class="chip" id="t-door" aria-pressed="false" title="Open or shut the glass door between the hallway and the study, or click it (G)">Open hallway door</button><button class="chip" id="t-cab" aria-pressed="false" title="Open or shut the wall unit's cupboards, or click a door (R)">Open cupboards</button></div>
   </div>
   <div class="group"><h2>Render</h2>
     <div class="chips">
@@ -227,8 +228,8 @@ const BACK_X = 0;                        // (no backlit mirror here: the shared 
 const LH = { x0: 45.806, x1: 53.83, ye: [13.405, 13.545], yw: [14.545, 14.795], head: 2.15, t: 0.04,
   doors: [{ x: [46.006, 46.906], e: true }, { x: [47.806, 48.706], e: true }, { x: [50.93, 51.73], e: true }, { x: [47.88, 48.68], e: false }, { x: [50.93, 51.83], e: false }],
   lamps: [46.85, 49.775, 52.7], ly: 14.045 };
-// the study's door at the hallway's south end (the model's glass across it): satin glass in a slim black frame (f) up to
-// z1, plaster over it to the ceiling; the study's light shows through it
+// the study's door at the hallway's south end (the model's glass across it): clear glass in a slim black frame (f) up to
+// z1, plaster over it to the ceiling (or sliding into a pocket in the wooden wall: OFFICE)
 const GDOOR = { x: 45.801, z1: HC, f: 0.035 };      // (2.56 in the model: now up to the lowered ceiling)
 // the landing room: its south wall (the bathroom's, x0), the north facade (x1), the east wall (y0), the hallway's east
 // wall's line (y1); open on the west, from the hallway's end (LH.x1) north, to the landing at the stairs' foot. Its east
@@ -1153,8 +1154,6 @@ const M = {
   lacquer: physical({ color: 0xf0ede7, roughness: 0.38, clearcoat: 0.3, clearcoatRoughness: 0.3 }),   // the doors, the risers, the niche's cupboard
   // the windows' glass only adds its reflection to what is behind it
   windowGlass: physical({ color: 0x000000, roughness: 0.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
-  // the study's door: satin (acid-etched) glass, its glow the study's light (setSun)
-  satin: physical({ color: 0xe6e4df, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.05 }),
   frame: physical({ color: 0x383b3e, roughness: 0.5, clearcoat: 0.25, clearcoatRoughness: 0.45 }),   // RAL 7016, powder-coated aluminium
   trim: physical({ color: 0x141414, roughness: 0.6 }),
   metal: physical({ metalness: 1, roughness: 0.32 }),                  // the floor lamp (the style's metal)
@@ -2554,7 +2553,7 @@ function clipped(x0, x1, y0, y1, z0, z1, r, seed, lump = 0.03) {
 // plan view); concrete paving along the facade, three clipped box balls at its edge, a lawn, a clipped hedge round the
 // garden; then the sky, the sun and the panorama
 // ---------------------------------------------------------------- the home office (room 0.05)
-// The study at the lower hallway's south end, through its satin glass door, as its own page drew it (room05_template.html,
+// The study at the lower hallway's south end, through its glass door, as its own page drew it (room05_template.html,
 // the Home office page, copied in here: its code keeps its own names; X0 .. H below are the room's, not this page's): room
 // 0.05 ('PRACOVNA'), the user's home office, the floor this page's poured epoxy. Its lamps light only it (light zone 8);
 // the environment is captured in it while the camera is there (ENV, captureEnv). OFFICE: what the rest of the page calls.
@@ -2566,13 +2565,19 @@ const H = 2.55, HS = 2.75, WT = 2.95;            // the lowered ceiling; the sla
 const YO = 9.625, XO = 42.73;                    // the east facade's outer face (the kids room's), the south facade's
 const SO = 2.55;                                 // the soffit outside, under the upper floor and the terrace
 // the garden door in the south wall, the model's: an anthracite frame 15 cm deep (x0..x1) round the opening y0..y1, f wide,
-// the threshold th high, its top at top; a fully glazed leaf (its stiles and rails s wide) hinged at its west stile as the plan
-// draws it, opening into the room (open: rad); the glass at gx0..gx1
+// the threshold th high, its top at top; a fully glazed leaf (its stiles and rails s wide) hinged at its east stile (the user's:
+// not as the plan draws it), opening into the room against the east wall (open: rad); the glass at gx0..gx1
 const GD = { x0: 42.915, x1: 43.065, y0: 13.605, y1: 14.604, f: 0.08, th: 0.08, top: 2.55, s: 0.07, gx0: 42.94, gx1: 42.99, open: 1.45 };
-// the door from the hallway at its south end, as the Stairs & lower hallway page draws it: satin glass (the leaf, t thick, its
-// room face at x - t) in a slim black frame (f) up to z1 (the hallway's lowered ceiling), plaster over it; hinged by the east
-// wall, the pull by its west edge, opening into the room against the east wall (open: rad)
-const HD = { x: 45.801, y0: Y0, y1: 14.545, z1: 2.5, f: 0.035, t: 0.012, open: 1.45 };
+// the door from the hallway at its south end: clear glass (the leaf, t thick). Hinged (its room face at x - t): in a slim
+// black frame (f) up to z1 (the hallway's lowered ceiling), plaster over it; hinged by the east wall, the pull by its west
+// edge, opening into the room against the east wall (open: rad). Or sliding (the user's option; PKT: the leaf's middle at x,
+// in the partition to the store's thickness): no frame, a black track in the hallway's ceiling, the leaf running west into
+// a pocket in that partition through a slot (slot wide) in the wooden wall's end, slide far, a flat round pull (r) by its
+// east edge staying out of the slot
+const HD = { x: 45.801, y0: Y0, y1: 14.545, z1: 2.5, f: 0.035, t: 0.012, open: 1.45, frame: new THREE.Group() };
+const PKT = { x: 45.885, slot: 0.034, slide: 0.88, r: 0.028, g: new THREE.Group(), leaf: null };
+const HALLDOORS = { hinged: { label: 'Hinged' }, pocket: { label: 'Pocket' } };
+let hallDoor = 'hinged';
 // the desk where the model has it: IKEA BEKANT, 160 x 80 cm, standing out from the north wall (x0..x1 along it, y0..y1 across);
 // you sit on its west side, facing east. Built in a frame of its own (DESK.g; DESK.m: x, y there -> y, -x here) so it is the
 // other pages' BEKANT (local: the top x0..x1 across, y0..y1 along, its corners rounded, r; two T legs at legs, a column
@@ -2632,9 +2637,10 @@ const OM = {
   keys: physical({ color: 0x232426, roughness: 0.62 }),
   alu: physical({ color: 0xb8babd, metalness: 1, roughness: 0.38 }),
   plastic: physical({ color: 0xe9e8e4, roughness: 0.45 }),
-  satinRoom: physical({ color: 0xe6e4df, roughness: 0.5 }),       // its door's satin glass on the room's side (its glow: applyMoodOffice)
+  doorGlass: physical({ color: 0xe9efed, roughness: 0.03, clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0.16, depthWrite: false }),   // the hallway's door: clear glass
 };
 for (const [k, v] of Object.entries(OM)) if (!(k in M)) M[k] = v;
+NO_AO.add(M.doorGlass);
 E.desk = new THREE.MeshBasicMaterial({ color: 0xffffff });     // the desk lamp's
 E.shelf = new THREE.MeshBasicMaterial({ color: 0xffffff });    // under the lowest shelf
 E.track = new THREE.MeshBasicMaterial({ color: 0xffffff });    // the track's spots' lenses
@@ -3118,7 +3124,8 @@ function buildMeshes({ meta, buf }) {
 }
 
 // ---------------------------------------------------------------- doors: open / close
-// The garden door's leaf (SASH), hinged at its west stile, swinging into the room; the satin glass door from the hallway (LEAF);
+// The garden door's leaf (SASH), hinged at its east stile, swinging into the room against the east wall; the glass door from the
+// hallway (LEAF: hinged, or sliding into its pocket, setHallDoor);
 // the wall unit's cupboard doors (CDOORS: a pair to each section). Each turns in a group at its hinge (the leaf built in place
 // in an inner group set back by it). DOORS: their meshes, glass and all (a click on one opens or shuts it: userData.door on its
 // group: 'sash', 'door', or 'c' and the cupboard door's index)
@@ -3138,10 +3145,10 @@ function hinged(key, px, py, build) {
 }
 function buildDoors() {
   // the garden door's leaf: anthracite stiles and rails a little proud of the frame into the room, the glass in them; the
-  // handle, anthracite, on a rose, pointing down, by the east stile on the room's side
+  // handle, anthracite, on a rose, pointing down, by the west stile on the room's side
   {
-    const { y0, y1, f, th, top, s, gx0, gx1 } = GD, a = y0 + f, b = y1 - f, z0 = th, z1 = top - f, xa = GD.x0 + 0.015, xb = GD.x1 + 0.01, F = M.frame, hy = a + 0.035;
-    SASH.g = hinged('sash', xb, b, () => {
+    const { y0, y1, f, th, top, s, gx0, gx1 } = GD, a = y0 + f, b = y1 - f, z0 = th, z1 = top - f, xa = GD.x0 + 0.015, xb = GD.x1 + 0.01, F = M.frame, hy = b - 0.035;
+    SASH.g = hinged('sash', xb, a, () => {
       add(F, box(xa, xb, a, a + s, z0, z1));
       add(F, box(xa, xb, b - s, b, z0, z1));
       add(F, box(xa, xb, a + s, b - s, z0, z0 + s, { faces: 'xXZ' }));
@@ -3153,23 +3160,42 @@ function buildDoors() {
     });
     R.add(SASH.g);
   }
-  // the hallway's door: the black frame stays (its jambs and head), the satin glass leaf turns at the east jamb; a long black
-  // pull on the hallway's side by its west edge, a short one on the room's
+  // the hallway's door, hinged: the black frame (its jambs and head: HD.frame), the clear glass leaf turning at the east
+  // jamb; a long black pull on the hallway's side by its west edge, a short one on the room's
   {
     const { x, y0, y1, z1, f, t } = HD, a = y0 + f, b = y1 - f, xg = x - t, py = b - 0.1;
+    flush(groups.room);
     add(M.trim, box(x - 0.025, x + 0.015, y0, a, 0, z1, { faces: 'xXY' }));
     add(M.trim, box(x - 0.025, x + 0.015, b, y1, 0, z1, { faces: 'xXy' }));
     add(M.trim, box(x - 0.025, x + 0.015, a, b, z1 - f, z1, { faces: 'xXz' }));
-    flush(groups.room);
+    flush(HD.frame);
+    groups.room.add(HD.frame);
     LEAF.g = hinged('door', xg, a + 0.002, () => {
-      add(M.satin, box(xg, x, a + 0.002, b - 0.002, 0.008, z1 - f - 0.002, { faces: 'X' }));          // (the hallway's face: its glow, setSun)
-      add(M.satinRoom, box(xg, x, a + 0.002, b - 0.002, 0.008, z1 - f - 0.002, { faces: 'xyYzZ' }));
+      add(M.doorGlass, box(xg, x, a + 0.002, b - 0.002, 0.008, z1 - f - 0.002));
       add(M.blackMetal, cyl(0.011, 0.95, 'z', [x + 0.055, py, 1.05], 16));
       for (const z of [0.7, 1.4]) add(M.blackMetal, cyl(0.006, 0.055, 'x', [x + 0.0275, py, z], 10));
       add(M.blackMetal, cyl(0.009, 0.3, 'z', [xg - 0.03, py, 1.05], 16));
       for (const z of [0.95, 1.15]) add(M.blackMetal, cyl(0.005, 0.03, 'x', [xg - 0.015, py, z], 10));
     });
     R.add(LEAF.g);
+  }
+  // the hallway's door, sliding (PKT): the slot in the wooden wall's end, floor to the recess over it (a dark strip on the
+  // cladding's face), the track in the hallway's ceiling, the cladding's end returned to the partition's face; the leaf, the
+  // hallway's width and into the slot, a flat pull on each face, in a group of its own (it slides along y: animate)
+  {
+    const { x, slot, r } = PKT, tt = HD.t, wc = LH.yw[0] - 0.02, e1 = LH.ye[1], xa = x - slot / 2, xb = x + slot / 2;
+    add(M.joint, box(xa, xb, wc - 0.0012, wc - 0.0002, 0, HC + COVE.d, { faces: 'y' }), { shadow: false });
+    add(M.trim, box(xa, xb, e1, wc - COVE.w, HC - 0.003, HC + 0.002, { faces: 'zxX' }), { shadow: false });
+    add(M.veneer, box(X1 - 0.0005, HD.x + 0.015, wc, HD.y1, 0, HC, { faces: 'xy', swap: true }));
+    flush(PKT.g);
+    groups.room.add(PKT.g);
+    PKT.leaf = new THREE.Group();
+    PKT.leaf.userData.door = 'door';
+    add(M.doorGlass, box(x - tt / 2, x + tt / 2, e1 + 0.004, wc + 0.02, 0.008, HC - 0.004));
+    for (const s of [-1, 1]) add(M.blackMetal, cyl(r, 0.003, 'x', [x + s * (tt / 2 + 0.0015), e1 + 0.004 + 0.022 + r, 1.05], 28));
+    DOORS.push(...flush(PKT.leaf));
+    R.add(PKT.leaf);
+    PKT.g.visible = PKT.leaf.visible = false;
   }
   // the wall unit's cupboards: a pair of flush oak doors to each section, push to open (no handles), each hinged at its section's
   // side, opening into the room
@@ -3199,6 +3225,17 @@ function setWindow(open) {
 function setDoor(open = !LEAF.open) {
   LEAF.open = open;
   chip('t-door', open, open ? 'Close hallway door' : 'Open hallway door');
+  dirty = true;
+}
+// the hallway's door: hinged in its black frame, or sliding into the pocket in the wooden wall (the picker, J)
+function setHallDoor(k) {
+  hallDoor = k;
+  HD.frame.visible = LEAF.g.visible = k === 'hinged';
+  PKT.g.visible = PKT.leaf.visible = k === 'pocket';
+  document.querySelectorAll('#halldoors button').forEach((b) => b.classList.toggle('on', b.dataset.key === k));
+  renderer.shadowMap.needsUpdate = true;
+  envSoon();
+  renderLegend();
   dirty = true;
 }
 // the wall unit's cupboards: their doors one by one, or all together
@@ -3291,8 +3328,8 @@ function animate(dt) {
     if (d.t === 0 || d.t === 1) envSoon();
     moved = true;
   };
-  run(SASH, 1.5, (k) => { SASH.g.rotation.z = GD.open * k; });
-  run(LEAF, 1.5, (k) => { LEAF.g.rotation.z = HD.open * k; });
+  run(SASH, 1.5, (k) => { SASH.g.rotation.z = -GD.open * k; });
+  run(LEAF, 1.5, (k) => { LEAF.g.rotation.z = HD.open * k; PKT.leaf.position.y = PKT.slide * k; });
   for (const d of CDOORS) run(d, 1.0, (k) => { d.g.rotation.z = d.sign * d.max * k; });
   if (CURT.runs.length && CURT.t !== (CURT.closed ? 1 : 0)) {
     CURT.t = THREE.MathUtils.clamp(CURT.t + (CURT.closed ? dt : -dt) / 2.4, 0, 1);
@@ -3562,14 +3599,12 @@ function buildLights() {
   }
   placeLights();
 }
-// the mood's light (applyMood: c its colour, lv a channel's level, shown: kept in the scene); the door's satin glass on the
-// room's side glows with the hallway's light
+// the mood's light (applyMood: c its colour, lv a channel's level, shown: kept in the scene)
 function applyMoodOffice(c, lv, shown) {
   for (const [s, ch] of OL.read) { s.color.copy(c); s.intensity = BASE[ch] * lv(ch); s.visible = shown(ch); }
   for (const [a, ch, k] of OL.area) { a.color.copy(c); a.intensity = BASE[ch] * k * lv(ch); a.visible = shown(ch); }
   for (const ch of ['track', 'desk']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.lens * (0.4 + 0.6 * lv(ch)) : 0.02);
   for (const ch of ['shelf', 'line']) E[ch].color.copy(c).multiplyScalar(lv(ch) > 0 ? BASE.strip * (0.4 + 0.6 * lv(ch)) : 0.03);
-  M.satinRoom.emissive.copy(c).multiplyScalar(0.025 * BASE.hall * lv('hall'));
 }
 function showSwitches() {
   for (const r of DEV.rockers) r.target = circuitOn(r.circ) ? -0.05 : 0.05;
@@ -3615,14 +3650,16 @@ function buildUI(seg) {
   $('t-win').addEventListener('click', () => setWindow(!SASH.open));
   $('t-curt').addEventListener('click', () => setCurtains(!CURT.closed));
   $('t-door').addEventListener('click', () => setDoor());
+  seg($('halldoors'), HALLDOORS, (k) => setHallDoor(k), hallDoor);
   $('t-cab').addEventListener('click', () => setCabinet(!CDOORS.some((d) => d.open)));
 }
-// its keys: D the garden door, G the hallway's door, R the cupboards, C the curtain, K its cloth, V the fittings' colour, Y the
+// its keys: D the garden door, G the hallway's door, J hinged or sliding, R the cupboards, C the curtain, K its cloth, V the fittings' colour, Y the
 // desk's frame, B its top; true when the key was one of them
 function key(k) {
   const pickNext = (id, keys, cur, fn) => { const n = keys[(keys.indexOf(cur) + 1) % keys.length]; document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle('on', b.dataset.key === n)); return fn(n); };
   if (k === 'd') setWindow(!SASH.open);
   else if (k === 'g') setDoor();
+  else if (k === 'j') setHallDoor(hallDoor === 'hinged' ? 'pocket' : 'hinged');
   else if (k === 'r') setCabinet(!CDOORS.some((d) => d.open));
   else if (k === 'c') setCurtains(!CURT.closed);
   else if (k === 'k') pickNext('curtains', Object.keys(CURTAINS), curtainKey, setCurtainKind);
@@ -3653,13 +3690,13 @@ const photos = () => (DESK_TOPS[deskTopKey].wood ? [WOODS[DESK_TOPS[deskTopKey].
 function legendRows() {
   const wood = WOODS[woodKey], wn = wood.short.toLowerCase(), top = DESK_TOPS[deskTopKey], frame = DESK_FRAMES[deskFrameKey].label.toLowerCase();
   return [
-    ['Study door', 'satin glass in a slim black frame at the hallway\'s south end, hinged by the east wall, opening into the home office against it (a click opens it): the room\'s light, or its daylight, shows through it', '#e6e4df'],
+    ['Study door', hallDoor === 'pocket' ? 'clear glass at the hallway\'s south end, no frame: it slides on a track in the ceiling into a pocket in the partition to the store, through a slot in the wooden wall\'s end, a flat pull by its edge staying out (a click opens it), 88 cm clear' : 'clear glass in a slim black frame at the hallway\'s south end, hinged by the east wall, opening into the home office against it (a click opens it)', '#dfe6e3'],
     ['Home office', 'room 0.05, the study at the hallway\'s south end (PRACOVNA), 2.60 × 3.19 m: a glazed door onto the terrace, its only window; the epoxy floor runs on into it from the hallway; a lowered plasterboard ceiling at 2.55 m, the curtain\'s track in a recess along the south wall up to the slab at 2.75 m', '#c9a37c'],
     ['Desk', 'IKEA BEKANT, 160 × 80 cm, where the model has it, standing out from the north wall: the top in ' + top.desc + ' on its ' + frame + ' T legs; the model\'s task chair; a 27" screen, a black desk lamp', top.swatch],
     ['Wall unit', 'the model\'s, built in along the study\'s west wall, ' + wn + ', 2.60 m, floor to ceiling, 30 cm deep: flush cupboards to 85 cm, push to open (a click opens them), open shelves over them, an LED line under the lowest', wood.swatch],
     ['Print', 'hills at dusk, in a ' + wn + ' frame, 67 × 87 cm, on the study\'s north wall where the model hangs its picture', '#c86a43'],
     ['Curtain', CURTAINS[curtainKey].label.toLowerCase() + ' wave curtain on a slim black track in a recess in the ceiling, across the garden door, gathered west of it', '#eee9e0'],
-    ['Garden door', 'the model\'s: anthracite aluminium, 1.0 × 2.55 m, fully glazed, hinged on the west as the plan draws it, opening into the study (a click opens it; a drawn curtain opens first); outside the terrace under the upper floor, its soffit white render, the exterior store\'s boarded wall beside it', '#383b3e'],
+    ['Garden door', 'the model\'s: anthracite aluminium, 1.0 × 2.55 m, fully glazed, hinged on the east, opening into the study against its east wall (a click opens it; a drawn curtain opens first); outside the terrace under the upper floor, its soffit white render, the exterior store\'s boarded wall beside it', '#383b3e'],
     ['Study light', 'a black magnetic track, 2 m, flush in the ceiling down the room: four spots turned to the desk, the print and the wall unit, a 60 cm opal line between them; the desk lamp, unswitched; the LED line in the wall unit', '#ffe2c2'],
     ['Study fittings', 'S1 by the hallway\'s door over the desk (the track; the wall unit\'s LED), S2 on the east wall by the garden door (the track); sockets: a double over the desk, one by the garden door, one on the east wall, a double and a data socket (the router) in the wall unit', DEVCOLORS[devColor].label === 'White' ? '#f0efeb' : '#1e1e20'],
     ['Study things', 'a tall plant, books, files, boxes, a printer: for scale, none of them in the model', '#d8d0c2'],
@@ -3669,7 +3706,7 @@ return {
   loadSkp, build, buildOutside, occluders, buildLights, applyMood: applyMoodOffice, applySky, showSwitches, animate: (dt) => { const a = animate(dt), b = animateDevices(dt); return a || b; },
   buildUI, key, under, action, applyLook, legendRows, inside, ENV, photos, curtainLet,
   sky: OL.sky, OL, LEAF, SASH, CDOORS, CURT, DEV, DESK_TOPS, DESK_FRAMES, CURTAINS, DEVCOLORS,
-  setDeskTop, setDeskFrame, setCurtainKind, setWindow, setDoor, setCabinet, setCurtains, setDeviceColor, toggleCDoor,
+  setDeskTop, setDeskFrame, setCurtainKind, setWindow, setDoor, setHallDoor, PKT, HD, setCabinet, setCurtains, setDeviceColor, toggleCDoor,
 };
 })();
 
@@ -3907,10 +3944,6 @@ function setSun(alt, az, day) {
   L.west.color.copy(skyC);
   for (const [s] of OFFICE.sky) s.color.copy(skyC);
   applySky();
-  // the study's door: its satin glass lit from behind by the study's daylight (its window faces south; the curtain keeps
-  // it out) or by its track lights (a little by its desk lamp alone)
-  const study = (MOODS[moodKey].study ?? 0) * (level('track') > 0 ? 1 : level('desk') > 0 ? 0.25 : 0), daylight = day && up ? skyL * OFFICE.curtainLet() : 0, lampC = new THREE.Color(MOODS[moodKey].tint);
-  M.satin.emissive.copy(M.satin.color).multiplyScalar(BASE.study * 0.3 * daylight).add(new THREE.Color().copy(M.satin.color).multiply(lampC).multiplyScalar(BASE.study * study));
   // outside: the sky's light on the garden, the soffit and the facades (they take none from the lamps), white by day, a
   // deep blue at dusk, near black at night
   const dusk = THREE.MathUtils.clamp((U + 0.12) / 0.11, 0.02, 1);
@@ -3949,17 +3982,17 @@ function kelvinRaw(k) {
 
 // Four moods. The lamps: hall: the lower hallway's downlights; land: the landing's; nook: the landing room's flat light; lamp: the floor
 // lamp; stair: the one over the stairwell; cor: the upper hallway's; the LED lines: niche (under the step cupboard's
-// plinth), glow (under the sideboard), step (the step lights); study: the study's lamp, seen through its satin glass door.
+// plinth), glow (under the sideboard), step (the step lights).
 // The home office: track (its spots), line (its opal line, on the same rocker), desk (its lamp), shelf (the LED in its
 // wall unit), set against this page's exposures as its own page had them. tint: the lamps' colour as the eye sees it; sky: the sun's place, under the horizon, for the dusk outside. Day: daylight
 // (the sun in through the east window in the morning), the windowless hallway's downlights on
 const MOODS = {
-  evening: { label: 'Evening', hall: 0.5, land: 0.35, nook: 0.35, lamp: 1, niche: 1, cove: 1, glow: 0.8, step: 1, stair: 0.5, chand: 0.7, cor: 0.3, study: 0.35, track: 0.4, line: 0.4, desk: 0.7, shelf: 0.8, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
-  bright: { label: 'Bright', hall: 1, land: 1, nook: 1, lamp: 0.6, niche: 0.8, cove: 0.7, glow: 0.5, step: 1, stair: 1, chand: 1, cor: 1, study: 0.6, track: 0.67, line: 0.67, desk: 0.67, shelf: 0.67, tint: '#fff4ea', exposure: 1.65, sky: [-10, 300], bloom: 1.6 },
-  night: { label: 'Night', hall: 0.06, land: 0, nook: 0, lamp: 0.35, niche: 0.4, cove: 0.5, glow: 0.5, step: 1, stair: 0.06, chand: 0, cor: 0.04, study: 0, track: 0, line: 0, desk: 0.75, shelf: 0.56, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
-  day: { label: 'Day', day: true, hall: 0.6, land: 0, nook: 0, lamp: 0, niche: 0, cove: 0, glow: 0, step: 0, stair: 0, chand: 0, cor: 0, study: 0, track: 0, line: 0, desk: 0, shelf: 0, tint: '#fff4ea', exposure: 1.4, bloom: 30 },
+  evening: { label: 'Evening', hall: 0.5, land: 0.35, nook: 0.35, lamp: 1, niche: 1, cove: 1, glow: 0.8, step: 1, stair: 0.5, chand: 0.7, cor: 0.3, track: 0.4, line: 0.4, desk: 0.7, shelf: 0.8, tint: '#ffe8d2', exposure: 1.7, sky: [-6, 285], bloom: 1.2 },
+  bright: { label: 'Bright', hall: 1, land: 1, nook: 1, lamp: 0.6, niche: 0.8, cove: 0.7, glow: 0.5, step: 1, stair: 1, chand: 1, cor: 1, track: 0.67, line: 0.67, desk: 0.67, shelf: 0.67, tint: '#fff4ea', exposure: 1.65, sky: [-10, 300], bloom: 1.6 },
+  night: { label: 'Night', hall: 0.06, land: 0, nook: 0, lamp: 0.35, niche: 0.4, cove: 0.5, glow: 0.5, step: 1, stair: 0.06, chand: 0, cor: 0.04, track: 0, line: 0, desk: 0.75, shelf: 0.56, tint: '#ffdcb8', exposure: 2.4, sky: [-16, 335], bloom: 1.0 },
+  day: { label: 'Day', day: true, hall: 0.6, land: 0, nook: 0, lamp: 0, niche: 0, cove: 0, glow: 0, step: 0, stair: 0, chand: 0, cor: 0, track: 0, line: 0, desk: 0, shelf: 0, tint: '#fff4ea', exposure: 1.4, bloom: 30 },
 };
-const BASE = { sun: 28, hall: 10, land: 12, nook: 12, lamp: 7, stair: 12, chand: 0.4, tube: 1.6, cor: 8, niche: 4, cove: 30, glow: 2.5, step: 60, lens: 30, strip: 7, shade: 1.6, panel: 1.5, sky: 1.0, north: 4, study: 1.2, track: 11, line: 12, desk: 3, shelf: 90 };
+const BASE = { sun: 28, hall: 10, land: 12, nook: 12, lamp: 7, stair: 12, chand: 0.4, tube: 1.6, cor: 8, niche: 4, cove: 30, glow: 2.5, step: 60, lens: 30, strip: 7, shade: 1.6, panel: 1.5, sky: 1.0, north: 4, track: 11, line: 12, desk: 3, shelf: 90 };
 const LENS = { hall: 'hall', land: 'land', cor: 'cor', stair: 'stair' };
 function applyMood(key) {
   const m = MOODS[key], c = new THREE.Color(m.tint), lv = (ch) => level(ch, m);
