@@ -36,6 +36,8 @@
   a.alt img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 8px; background: var(--line); transition: transform 0.15s, box-shadow 0.15s; }
   a.alt:hover img, a.alt:focus-visible img { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(40, 30, 20, 0.12); }
   a.alt:hover span, a.alt:focus-visible span { color: var(--accent); }
+  a.card.whole { grid-column: 1 / -1; }
+  a.card.whole img { aspect-ratio: 1600 / 660; }
   footer { margin-top: 36px; color: var(--muted); font-size: 14px; max-width: 760px; }
 </style>
 </head>
@@ -43,9 +45,18 @@
 <main>
   <header>
     <h1>Dům Pt · Interiors</h1>
-    <p>Interactive 3D views of the bathroom, entrance, kitchen &amp; living room, master bedroom, stairs &amp; lower hallway, kids room, room 0.07, home office, store and technical room designs. Each opens in your browser, with styles or stone schemes, light moods and the open / close options in its panel.</p>
+    <p>Interactive 3D views of the whole house on its plot and of the bathroom, entrance, kitchen &amp; living room, master bedroom, stairs &amp; lower hallway, kids room, room 0.07, home office, store and technical room designs. Each opens in your browser, with styles or stone schemes, light moods and the open / close options in its panel.</p>
   </header>
   <div class="grid">
+    <a class="card whole" href="whole-house.html">
+      <img src="thumbs/whole-house.jpg" alt="The whole house from the garden: two floors of glazing over the lawn, the terrace and the retaining wall" width="1600" height="660">
+      <div class="body">
+        <span class="kicker">The house on its plot · every room inside</span>
+        <h2>Whole house</h2>
+        <p>The exterior, the retaining walls and the planned terrain, with all the rooms in detail inside; cut the house open floor by floor, move the sun, switch to the evening and step into any room.</p>
+        <span class="open">Open 3D view →</span>
+      </div>
+    </a>
     <a class="card" href="lower-bathroom.html">
       <img src="thumbs/lower-bathroom.jpg" alt="Lower bathroom: stone box basin in a walnut vanity under a backlit mirror" width="960" height="600">
       <div class="body">
@@ -154,7 +165,7 @@
       </div>
     </a>
   </div>
-  <footer>Drag to look around, scroll to move closer, double-click to focus; the number keys jump between views and P saves an image. Best on a computer; each view loads 1 to 8 MB.</footer>
+  <footer>Drag to look around, scroll to move closer, double-click to focus; the number keys jump between views and P saves an image. Best on a computer; each view loads 1 to 8 MB, the whole house 20 MB.</footer>
 </main>
 </body>
 </html>
